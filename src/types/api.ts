@@ -112,6 +112,8 @@ export interface Project {
   deadline?: string;
   website_url?: string;
   drive_folder_url?: string;
+  budget_allocated_amount?: number;
+  budget_currency?: string;
   task_summary?: TaskSummary;
   tasks?: Task[];
   milestones?: Milestone[];
@@ -171,10 +173,11 @@ export interface Issue {
 export interface BudgetLine {
   id: number;
   project_id: number;
-  category?: string;
-  name?: string;
-  amount: number;
-  description?: string;
+  category: string;
+  planned_amount: number;
+  currency: string;
+  effective_date: string;
+  note?: string;
 }
 
 export interface SpendRecord {
@@ -188,8 +191,13 @@ export interface SpendRecord {
 }
 
 export interface FinancialSummary {
-  allocated_budget: number;
+  budget_allocated_amount?: number;
+  budget_currency?: string;
+  total_planned: number;
   total_spent: number;
+  remaining?: number;
+  variance?: number;
+  currency: string;
 }
 
 export interface Invitation {
@@ -310,6 +318,8 @@ export interface CreateProjectPayload {
   deadline?: string;
   website_url?: string;
   drive_folder_url?: string;
+  budget_allocated_amount?: number | null;
+  budget_currency?: string | null;
 }
 
 export interface CreateTaskPayload {
@@ -347,10 +357,11 @@ export interface CreateVaultEntryPayload {
 }
 
 export interface CreateBudgetLinePayload {
-  project_id: number;
-  category?: string;
-  amount: number;
-  description?: string;
+  category: string;
+  planned_amount: number;
+  currency: string;
+  effective_date: string;
+  note?: string;
 }
 
 export interface CreateSpendRecordPayload {

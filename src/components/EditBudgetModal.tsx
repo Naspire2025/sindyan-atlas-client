@@ -31,7 +31,7 @@ export default function EditBudgetModal({
     setIsSubmitting(true);
     try {
       await api.updateProject(projectId, {
-        total_budget_allocated: budget,
+        budget_allocated_amount: budget,
       });
       onSuccess();
       onClose();

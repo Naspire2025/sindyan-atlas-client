@@ -4,11 +4,10 @@ import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { PRIORITIES } from '../constants.js';
 import { canManageProject, canManageFinance, canManageRisk, canManageIssue } from '../auth/permissions.js';
-import type { User, Project, Milestone, Risk, Issue, BudgetLine, SpendRecord, ProjectLink, Priority, MilestoneStatus, ProjectRole, RiskSeverity, IssueStatus, RiskProbability, RiskStatus, CreateTaskPayload, CreateMilestonePayload } from '../types/api.js';
+import type { User, Project, Task, Milestone, Risk, Issue, BudgetLine, SpendRecord, ProjectLink, Priority, MilestoneStatus, ProjectRole, RiskSeverity, IssueStatus, RiskProbability, RiskStatus, CreateTaskPayload, CreateMilestonePayload } from '../types/api.js';
 import { formatDate, getInitials, getProgress, getProjectHealth } from '../utils/project.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
-import EditBudgetModal from './EditBudgetModal.js';
 import EmptyState from './EmptyState.js';
 import { SearchField, SelectField } from './FilterBar.js';
 import Icon from './Icon.js';
@@ -742,11 +741,11 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
     },
   });
 
-  const summary = summaryQuery.data || ({} as { allocated_budget?: number; total_spent?: number });
+  const summary = summaryQuery.data;
   const budgetLines = budgetLinesQuery.data || [];
   const spendRecords = spendRecordsQuery.data || [];
-  const allocated = summary.allocated_budget || budgetLines.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
-  const spent = summary.total_spent || spendRecords.reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+  const allocated = summary?.budget_allocated_amount ?? budgetLines.reduce((sum, line) => sum + line.planned_amount, 0);
+  const spent = summary?.total_spent ?? spendRecords.reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
   const remaining = allocated - spent;
   const variance = allocated > 0 ? Math.round(((remaining / allocated) * 100)) : 0;
 
@@ -771,12 +770,12 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             {budgetLines.map((line) => (
               <div className="detail-list-row" key={line.id}>
                 <span className="detail-list-copy">
-                  <strong>{line.category || line.name}</strong>
-                  <small>{formatCurrency(line.amount)} · {line.description || 'No description'}</small>
+                  <strong>{line.category}</strong>
+                  <small>{formatCurrency(line.planned_amount, line.currency)} · {line.note || 'No note'}</small>
                 </span>
                 <div className="milestone-actions">
                   <button className="text-button" type="button" onClick={() => setEditBudgetLine(line)}>Edit</button>
-                  <button className="text-button text-button-danger" type="button" onClick={() => setDeleteTarget({ _type: 'budgetLine', ...line })}>Delete</button>
+                  <button className="text-button text-button-danger" type="button" onClick={() => setDeleteTarget({ _type: 'budgetLine', id: line.id, category: line.category, amount: line.planned_amount })}>Delete</button>
                 </div>
               </div>
             ))}
@@ -818,7 +817,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
       {isSpendOpen && <SpendRecordDialog projectId={projectId} onClose={() => setIsSpendOpen(false)} />}
       {editSpend && <SpendRecordDialog projectId={projectId} record={editSpend} onClose={() => setEditSpend(null)} />}
       {deleteTarget?._type === 'budgetLine' && (
-        <ConfirmDialog title="Delete budget line" description={`Delete "${deleteTarget.category || deleteTarget.name}"?`} confirmLabel="Delete" isPending={deleteBudgetLine.isPending} onConfirm={() => deleteBudgetLine.mutate(deleteTarget.id)} onCancel={() => setDeleteTarget(null)} variant="danger" />
+        <ConfirmDialog title="Delete budget line" description={`Delete "${deleteTarget.category}"?`} confirmLabel="Delete" isPending={deleteBudgetLine.isPending} onConfirm={() => deleteBudgetLine.mutate(deleteTarget.id)} onCancel={() => setDeleteTarget(null)} variant="danger" />
       )}
       {deleteTarget?._type === 'spend' && (
         <ConfirmDialog title="Delete spend record" description={`Delete this spend record of ${formatCurrency(deleteTarget.amount)}?`} confirmLabel="Delete" isPending={deleteSpendRecord.isPending} onConfirm={() => deleteSpendRecord.mutate(deleteTarget.id)} onCancel={() => setDeleteTarget(null)} variant="danger" />
@@ -837,14 +836,16 @@ function BudgetLineDialog({ budgetLine, projectId, onClose }: BudgetLineDialogPr
   const queryClient = useQueryClient();
   const isEditing = Boolean(budgetLine);
   const [form, setForm] = useState({
-    category: budgetLine?.category || budgetLine?.name || '',
-    amount: budgetLine?.amount || '',
-    description: budgetLine?.description || '',
+    category: budgetLine?.category || '',
+    planned_amount: budgetLine?.planned_amount || '',
+    currency: budgetLine?.currency || 'USD',
+    effective_date: budgetLine?.effective_date || new Date().toISOString().slice(0, 10),
+    note: budgetLine?.note || '',
   });
   const [error, setError] = useState('');
 
   const saveMutation = useMutation({
-    mutationFn: (data: { category: string; amount: number; description: string; project_id: number }) => isEditing ? api.updateBudgetLine(budgetLine!.id, data) : api.createBudgetLine(projectId, data),
+    mutationFn: (data: import('../types/api.js').CreateBudgetLinePayload) => isEditing ? api.updateBudgetLine(budgetLine!.id, data) : api.createBudgetLine(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectBudgetLines(projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectFinancialSummary(projectId) });
@@ -855,8 +856,8 @@ function BudgetLineDialog({ budgetLine, projectId, onClose }: BudgetLineDialogPr
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!form.category.trim() || !form.amount) { setError('Category and amount are required.'); return; }
-    saveMutation.mutate({ ...form, project_id: projectId, amount: Number(form.amount) });
+    if (!form.category.trim() || !form.planned_amount || !form.effective_date) { setError('Category, amount, and effective date are required.'); return; }
+    saveMutation.mutate({ ...form, planned_amount: Number(form.planned_amount) });
   };
 
   return (
@@ -865,9 +866,11 @@ function BudgetLineDialog({ budgetLine, projectId, onClose }: BudgetLineDialogPr
         {error && <div className="error-banner" role="alert">{error}</div>}
         <div className="field-group"><label htmlFor="bl-category">Category</label><input id="bl-category" required value={form.category} onChange={(e) => setForm((c) => ({ ...c, category: e.target.value }))} placeholder="e.g. Infrastructure" /></div>
         <div className="field-row">
-          <div className="field-group"><label htmlFor="bl-amount">Amount ($)</label><input id="bl-amount" type="number" min="0" step="0.01" required value={form.amount} onChange={(e) => setForm((c) => ({ ...c, amount: e.target.value }))} /></div>
+          <div className="field-group"><label htmlFor="bl-amount">Amount</label><input id="bl-amount" type="number" min="0" step="0.01" required value={form.planned_amount} onChange={(e) => setForm((current) => ({ ...current, planned_amount: e.target.value }))} /></div>
+          <div className="field-group"><label htmlFor="bl-currency">Currency</label><input id="bl-currency" required maxLength={3} value={form.currency} onChange={(e) => setForm((current) => ({ ...current, currency: e.target.value.toUpperCase() }))} placeholder="USD" /></div>
         </div>
-        <div className="field-group"><label htmlFor="bl-desc">Description</label><textarea id="bl-desc" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="What is this budget allocated for?" /></div>
+        <div className="field-group"><label htmlFor="bl-date">Effective date</label><input id="bl-date" type="date" required value={form.effective_date} onChange={(e) => setForm((current) => ({ ...current, effective_date: e.target.value }))} /></div>
+        <div className="field-group"><label htmlFor="bl-note">Note</label><textarea id="bl-note" value={form.note} onChange={(e) => setForm((current) => ({ ...current, note: e.target.value }))} placeholder="What is this budget allocated for?" /></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
       </form>
     </DialogShell>
@@ -923,9 +926,9 @@ function SpendRecordDialog({ projectId, record, onClose }: SpendRecordDialogProp
   );
 }
 
-function formatCurrency(amount: number) {
+function formatCurrency(amount: number, currency = 'USD') {
   const num = Number(amount) || 0;
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
 }
 
 interface ProjectSectionProps {
