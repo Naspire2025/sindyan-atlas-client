@@ -85,12 +85,22 @@ async function parseResponse(response: Response): Promise<unknown> {
   return body;
 }
 
-async function request(path: string, options: RequestInit = {}): Promise<unknown> {
+async function request(path: string, options: RequestInit = {}, retried = false): Promise<unknown> {
   const method = (options.method || 'GET') as string;
   const response = await fetch(`${BASE_URL}${path}`, { ...options, method, credentials: 'include', headers: buildHeaders(method, options.body as string | undefined, options.headers) });
   if (response.status === 401) {
     setCsrfToken(null);
     await notifyUnauthorized();
+    return parseResponse(response);
+  }
+  if (!retried && response.status === 403 && method !== 'GET' && method !== 'HEAD') {
+    const clone = response.clone();
+    const body = await clone.json().catch(() => ({})) as { error?: string };
+    if (body.error === 'CSRF validation failed.') {
+      const { csrfToken: nextCsrfToken } = await request('/auth/csrf') as { csrfToken: string };
+      setCsrfToken(nextCsrfToken);
+      return request(path, options, true);
+    }
   }
   return parseResponse(response);
 }
