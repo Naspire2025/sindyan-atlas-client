@@ -19,6 +19,17 @@ interface ProjectsPageProps {
 
 const EMPTY_FILTERS: ProjectFilters = { search: '', status: '', priority: '', summary: 'all' };
 
+const SUMMARY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all', label: 'All projects' },
+  { value: 'planning', label: 'Planning' },
+  { value: 'active', label: 'Active' },
+  { value: 'on_hold', label: 'On hold' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'overdue', label: 'Overdue' },
+];
+
 export default function ProjectsPage({ canCreate, initialFilter, projects, onCreate, onMenu, onSelectProject }: ProjectsPageProps) {
   const [filters, setFilters] = useState<ProjectFilters>({ ...EMPTY_FILTERS, summary: initialFilter || 'all' });
   const visibleProjects = useMemo(() => filterProjects(projects, filters), [filters, projects]);
@@ -30,7 +41,7 @@ export default function ProjectsPage({ canCreate, initialFilter, projects, onCre
       <div className="panel projects-panel">
         <div className="project-toolbar">
           <div className="segmented-control" aria-label="Project view">
-            {['all', 'active', 'blocked', 'overdue'].map((value) => <button className={filters.summary === value ? 'is-active' : ''} key={value} type="button" onClick={() => setFilters((current) => ({ ...current, summary: value }))}>{value === 'all' ? 'All projects' : value[0].toUpperCase() + value.slice(1)}</button>)}
+            {SUMMARY_OPTIONS.map((option) => <button className={filters.summary === option.value ? 'is-active' : ''} key={option.value} type="button" onClick={() => setFilters((current) => ({ ...current, summary: option.value }))}>{option.label}</button>)}
           </div>
           <div className="toolbar-fields">
             <label className="search-field"><Icon name="search" /><span className="sr-only">Search projects</span><input value={filters.search} onChange={setFilter('search')} placeholder="Search projects" /></label>
@@ -50,9 +61,13 @@ function filterProjects(projects: Project[], filters: ProjectFilters) {
     if (search && !`${project.name} ${project.owner || ''}`.toLowerCase().includes(search)) return false;
     if (filters.status && project.status !== filters.status) return false;
     if (filters.priority && project.priority !== filters.priority) return false;
-    if (filters.summary === 'active' && project.status !== 'active') return false;
+    if (isStatusSummary(filters.summary) && project.status !== filters.summary) return false;
     if (filters.summary === 'blocked' && project.status !== 'blocked' && getTaskSummary(project).blocked === 0) return false;
     if (filters.summary === 'overdue' && !isProjectOverdue(project)) return false;
     return true;
   });
+}
+
+function isStatusSummary(value: string) {
+  return ['planning', 'active', 'on_hold', 'completed', 'cancelled'].includes(value);
 }

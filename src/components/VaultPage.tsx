@@ -69,15 +69,6 @@ export default function VaultPage({ onMenu }: VaultPageProps) {
         }
       />
 
-      <section className="vault-hero">
-        <div className="vault-shield"><Icon name="lock" size={24} /></div>
-        <div>
-          <span className="eyebrow">Security boundary</span>
-          <h2>Encrypted vault storage</h2>
-          <p>Secret values are never cached in browser state. Files are stored in encrypted cloud storage with audit logging.</p>
-        </div>
-      </section>
-
       <section className="panel vault-panel">
         <div className="project-toolbar">
           <div>

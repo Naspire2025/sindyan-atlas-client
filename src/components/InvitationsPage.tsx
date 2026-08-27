@@ -193,7 +193,28 @@ function CreateInvitationDialog({ onClose }: CreateInvitationDialogProps) {
           <input id="invite-email" autoComplete="email" required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="colleague@company.com" />
         </div>
         <div className="field-group"><label htmlFor="invite-role">Organization role</label><select id="invite-role" value={role} onChange={(event) => setRole(event.target.value as UserRole)}><option value="team_member">Team member</option><option value="admin">Administrator</option></select></div>
-        <fieldset className="field-group"><legend>Initial project access</legend>{projectsQuery.isLoading ? <span>Loading projects…</span> : (projectsQuery.data || []).map((project) => <label key={project.id}><input type="checkbox" checked={projectAssignments.some((item) => item.project_id === project.id)} onChange={() => toggleProjectAssignment(project.id)} /> {project.name}</label>)}</fieldset>
+        <fieldset className="project-select-fieldset">
+          <legend>Initial project access</legend>
+          {projectsQuery.isLoading ? (
+            <span className="loading-projects">Loading projects…</span>
+          ) : (
+            <div className="project-checklist-grid">
+              {(projectsQuery.data || []).map((project) => {
+                const isSelected = projectAssignments.some((item) => item.project_id === project.id);
+                return (
+                  <label key={project.id} className={`project-checkbox-item ${isSelected ? 'is-selected' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleProjectAssignment(project.id)}
+                    />
+                    <span className="project-name">{project.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </fieldset>
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>Cancel</button>
           <button className="button button-primary" type="submit" disabled={createInvitation.isPending}>

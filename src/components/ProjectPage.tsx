@@ -4,13 +4,17 @@ import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { PRIORITIES } from '../constants.js';
 import { canManageProject, canManageFinance, canManageRisk, canManageIssue } from '../auth/permissions.js';
-import type { User, Project, Milestone, ProjectMember, Risk, Issue, BudgetLine, SpendRecord, ProjectLink, Priority, TaskStatus, MilestoneStatus, ProjectRole, RiskSeverity, IssueStatus, RiskProbability, RiskStatus, CreateTaskPayload, CreateMilestonePayload } from '../types/api.js';
-import { formatDate, getInitials, getProgress } from '../utils/project.js';
+import type { User, Project, Milestone, Risk, Issue, BudgetLine, SpendRecord, ProjectLink, Priority, MilestoneStatus, ProjectRole, RiskSeverity, IssueStatus, RiskProbability, RiskStatus, CreateTaskPayload, CreateMilestonePayload } from '../types/api.js';
+import { formatDate, getInitials, getProgress, getProjectHealth } from '../utils/project.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
+import EditBudgetModal from './EditBudgetModal.js';
 import EmptyState from './EmptyState.js';
+import { SearchField, SelectField } from './FilterBar.js';
 import Icon from './Icon.js';
+import PhaseModal from './PhaseModal.js';
 import StatusBadge from './StatusBadge.js';
+import TaskKanbanBoard from './TaskKanbanBoard.js';
 
 interface ProjectPageProps {
   currentUser: User;
@@ -54,7 +58,6 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
   return (
     <div className="project-page">
       <ProjectBreadcrumb project={project} onBack={onBack} onMenu={onMenu} />
-      <ProjectHero project={project} />
       <nav className="project-tabs" aria-label="Project sections">
         {projectTabs.map((tab) => (
           <button
@@ -72,7 +75,7 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
 
       <div className="project-page-content">
         {activeTab === 'Overview' && <OverviewSection project={project} />}
-        {activeTab === 'Tasks' && <TasksSection canManageProject={isPrivileged} project={project} onCreate={() => setCreateType('task')} onSelectTask={onSelectTask} />}
+        {activeTab === 'Tasks' && <TasksSection canManageProject={isPrivileged} currentUser={currentUser} project={project} projectId={projectId} onSelectTask={onSelectTask} />}
         {activeTab === 'Milestones' && <MilestonesSection projectId={projectId} project={project} canManageProject={isPrivileged} />}
         {activeTab === 'Timeline' && <TimelineSection project={project} />}
         {activeTab === 'Links' && <LinksSection projectId={projectId} project={project} canManageProject={isPrivileged} />}
@@ -90,12 +93,108 @@ interface TimelineSectionProps {
 }
 
 function TimelineSection({ project }: TimelineSectionProps) {
-  const rows = [
-    ...(project.phases || []).map((phase) => ({ id: `phase-${phase.id}`, type: 'Phase', title: phase.name, start: phase.start_date, end: phase.end_date, status: '' })),
-    ...(project.milestones || []).map((milestone) => ({ id: `milestone-${milestone.id}`, type: 'Milestone', title: milestone.title, start: milestone.target_date, end: milestone.target_date, status: milestone.status })),
-    ...(project.tasks || []).map((task) => ({ id: `task-${task.id}`, type: 'Task', title: task.title, start: '', end: task.due_date, status: task.status, owner: task.assignee_name })),
-  ].sort((first, second) => String(first.end || '').localeCompare(String(second.end || '')));
-  return <ProjectSection title="Project timeline" description="Phases, milestones, and task deadlines in chronological order." actionLabel={null}>{rows.length ? <div className="detail-list" role="table" aria-label="Project timeline">{rows.map((row) => <div className="detail-list-row" key={row.id} role="row"><span className="role-pill">{row.type}</span><span className="detail-list-copy"><strong>{row.title}</strong><small>{(row as { owner?: string }).owner || row.status || 'Scheduled'} · {formatDate(row.start)} — {formatDate(row.end)}</small></span></div>)}</div> : <EmptyState icon="calendar" title="No scheduled work" message="Add phases, milestones, or dated tasks to populate the timeline." />}</ProjectSection>;
+  const queryClient = useQueryClient();
+  const [isPhaseOpen, setIsPhaseOpen] = useState(false);
+  const [filterType, setFilterType] = useState('');
+  const [search, setSearch] = useState('');
+  const [deletePhaseTarget, setDeletePhaseTarget] = useState<number | null>(null);
+
+  const deletePhaseMutation = useMutation({
+    mutationFn: (phaseId: number) => api.deletePhase(project.id, phaseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) });
+      setDeletePhaseTarget(null);
+    },
+  });
+
+  const rows = useMemo(() => {
+    const items = [
+      ...(project.phases || []).map((phase) => ({ id: `phase-${phase.id}`, rawId: phase.id, type: 'Phase', title: phase.name, start: phase.start_date, end: phase.end_date, status: '' })),
+      ...(project.milestones || []).map((milestone) => ({ id: `milestone-${milestone.id}`, rawId: milestone.id, type: 'Milestone', title: milestone.title, start: milestone.target_date, end: milestone.target_date, status: milestone.status })),
+      ...(project.tasks || []).map((task) => ({ id: `task-${task.id}`, rawId: task.id, type: 'Task', title: task.title, start: '', end: task.due_date, status: task.status, owner: task.assignee_name })),
+    ].sort((first, second) => String(first.end || '').localeCompare(String(second.end || '')));
+
+    return items.filter((item) => {
+      if (filterType && item.type.toLowerCase() !== filterType.toLowerCase()) return false;
+      if (search && !`${item.title} ${item.type}`.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [project, filterType, search]);
+
+  return (
+    <ProjectSection
+      title="Project timeline"
+      description="Phases, milestones, and task deadlines in chronological order."
+      actionLabel="Add phase"
+      onAction={() => setIsPhaseOpen(true)}
+    >
+      <div className="project-toolbar" style={{ marginBottom: 16 }}>
+        <div className="toolbar-fields">
+          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter timeline…" />
+          <SelectField
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            label="Filter by type"
+            options={[
+              { value: 'phase', label: 'Phases' },
+              { value: 'milestone', label: 'Milestones' },
+              { value: 'task', label: 'Tasks' },
+            ]}
+            placeholder="All items"
+          />
+        </div>
+      </div>
+
+      {rows.length ? (
+        <div className="detail-list" role="table" aria-label="Project timeline">
+          {rows.map((row) => (
+            <div className="detail-list-row" key={row.id} role="row">
+              <span className="role-pill">{row.type}</span>
+              <span className="detail-list-copy">
+                <strong>{row.title}</strong>
+                <small>
+                  {(row as { owner?: string }).owner || row.status || 'Scheduled'} · {formatDate(row.start)} — {formatDate(row.end)}
+                </small>
+              </span>
+              {row.type === 'Phase' && (
+                <div className="invitation-actions">
+                  <button
+                    className="text-button text-button-danger"
+                    type="button"
+                    onClick={() => setDeletePhaseTarget(row.rawId)}
+                  >
+                    Delete phase
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState icon="calendar" title="No scheduled work" message="Add phases, milestones, or dated tasks to populate the timeline." />
+      )}
+
+      {isPhaseOpen && (
+        <PhaseModal
+          projectId={project.id}
+          onClose={() => setIsPhaseOpen(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) })}
+        />
+      )}
+
+      {deletePhaseTarget && (
+        <ConfirmDialog
+          title="Delete Phase"
+          description="Are you sure you want to delete this timeline phase?"
+          confirmLabel="Delete phase"
+          variant="danger"
+          isPending={deletePhaseMutation.isPending}
+          onConfirm={() => deletePhaseMutation.mutate(deletePhaseTarget)}
+          onCancel={() => setDeletePhaseTarget(null)}
+        />
+      )}
+    </ProjectSection>
+  );
 }
 
 interface ProjectBreadcrumbProps {
@@ -127,6 +226,15 @@ interface ProjectHeroProps {
 }
 
 function ProjectHero({ project }: ProjectHeroProps) {
+  const health = getProjectHealth(project);
+  const healthLabels: Record<string, string> = {
+    on_track: 'On Track',
+    at_risk: 'At Risk',
+    behind: 'Off Track',
+    complete: 'Completed',
+    no_update: 'No Schedule',
+  };
+
   return (
     <section className="project-hero">
       <span className={`project-hero-icon priority-${project.priority}`}><Icon name="projects" size={20} /></span>
@@ -135,9 +243,14 @@ function ProjectHero({ project }: ProjectHeroProps) {
       <div className="project-properties" aria-label="Project properties">
         <span className="property-label">Properties</span>
         <StatusBadge status={project.status} />
+        <span className={`status-badge status-${health === 'behind' ? 'blocked' : health === 'at_risk' ? 'on_hold' : 'active'}`}>
+          <span className="status-dot" />
+          {healthLabels[health] || health}
+        </span>
         <span className="priority-label"><span className={`priority-mark priority-${project.priority}`} />{project.priority}</span>
         <span className="project-property"><span className="avatar">{getInitials(project.owner || project.owner_name)}</span>{project.owner || project.owner_name || 'Unassigned'}</span>
-        <span className="project-property"><Icon name="calendar" size={14} />{formatDate(project.deadline)}</span>
+        {project.start_date && <span className="project-property"><Icon name="calendar" size={14} />Start: {formatDate(project.start_date)}</span>}
+        <span className="project-property"><Icon name="calendar" size={14} />Target: {formatDate(project.deadline)}</span>
         <span className="project-property"><span className="progress-ring">{getProgress(project)}</span>{getProgress(project)}% complete</span>
       </div>
       <div className="project-resources">
@@ -157,69 +270,96 @@ interface OverviewSectionProps {
 function OverviewSection({ project }: OverviewSectionProps) {
   const completedTasks = project.tasks?.filter((task) => task.status === 'done').length || 0;
   return (
-    <div className="project-overview-layout">
-      <div className="project-main-column">
-        <section className="project-update-card">
-          <Icon name="overview" />
-          <span>
-            <strong>No project update yet</strong>
-            <small>Progress is currently calculated from tasks and milestones.</small>
-          </span>
-        </section>
-        <section className="project-section-block">
-          <span className="eyebrow">Description</span>
-          <h2>Project brief</h2>
-          <p>{project.description || 'No description has been added yet.'}</p>
-        </section>
-        <section className="project-section-block">
-          <span className="eyebrow">Milestones</span>
-          <h2>Delivery roadmap</h2>
-          {project.milestones?.length ? <MilestoneRows project={project} /> : <EmptyState icon="calendar" title="No milestones yet" message="Create a milestone to organize work around a target date." />}
-        </section>
-      </div>
-      <aside className="project-side-column">
-        <div className="project-stat-grid">
-          <ProjectStat value={project.tasks?.length || 0} label="Total tasks" />
-          <ProjectStat value={completedTasks} label="Completed" />
-          <ProjectStat value={project.milestones?.length || 0} label="Milestones" />
-          <ProjectStat value={project.team_members?.length || 0} label="Members" />
+    <>
+      <ProjectHero project={project} />
+      <div className="project-overview-layout">
+        <div className="project-main-column">
+          <section className="project-update-card">
+            <Icon name="overview" />
+            <span>
+              <strong>No project update yet</strong>
+              <small>Progress is currently calculated from tasks and milestones.</small>
+            </span>
+          </section>
+          <section className="project-section-block">
+            <span className="eyebrow">Milestones</span>
+            <h2>Delivery roadmap</h2>
+            {project.milestones?.length ? <MilestoneRows project={project} /> : <EmptyState icon="calendar" title="No milestones yet" message="Create a milestone to organize work around a target date." />}
+          </section>
         </div>
-        <dl className="project-facts">
-          <div><dt>Start date</dt><dd>{formatDate(project.start_date)}</dd></div>
-          <div><dt>Target date</dt><dd>{formatDate(project.deadline)}</dd></div>
-          <div><dt>Owner</dt><dd>{project.owner || project.owner_name || 'Unassigned'}</dd></div>
-          <div><dt>Priority</dt><dd>{project.priority}</dd></div>
-        </dl>
-      </aside>
-    </div>
+        <aside className="project-side-column">
+          <div className="project-stat-grid">
+            <ProjectStat value={project.tasks?.length || 0} label="Total tasks" />
+            <ProjectStat value={completedTasks} label="Completed" />
+            <ProjectStat value={project.milestones?.length || 0} label="Milestones" />
+            <ProjectStat value={project.team_members?.length || 0} label="Members" />
+          </div>
+        </aside>
+      </div>
+    </>
   );
 }
 
 interface TasksSectionProps {
   canManageProject: boolean;
-  onCreate: () => void;
+  currentUser: User;
   onSelectTask: (taskId: number) => void;
   project: Project;
+  projectId: number;
 }
 
-function TasksSection({ canManageProject, onCreate, onSelectTask, project }: TasksSectionProps) {
+function TasksSection({ canManageProject, currentUser, onSelectTask, project, projectId }: TasksSectionProps) {
+  const queryClient = useQueryClient();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  const tasks = project.tasks || [];
+
+  const handleStatusChange = async (task: Task, nextStatus: string) => {
+    setUpdatingId(task.id);
+    try {
+      await api.updateTask(task.id, { ...task, status: nextStatus as Task['status'] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
-    <ProjectSection title="Project tasks" description="Track ownership, due dates, and delivery status." actionLabel={canManageProject ? 'Add task' : null} onAction={onCreate}>
-      {project.tasks?.length ? (
-        <div className="detail-list">
-          {project.tasks.map((task) => (
-            <div className="detail-list-row" key={task.id}>
-              <span className={`task-check status-${task.status}`} />
-              <button className="detail-list-copy detail-list-link" type="button" onClick={() => onSelectTask(task.id)}>
-                <strong>{task.title}</strong>
-                <small>{task.owner || task.assignee_name || 'Unassigned'} · {formatDate(task.due_date)}</small>
-              </button>
-            </div>
-          ))}
+    <ProjectSection title="Project tasks" description="Track ownership, due dates, and delivery status." actionLabel={canManageProject ? 'Add task' : null} onAction={() => setIsCreateOpen(true)}>
+      <div className="task-view-toolbar" style={{ marginBottom: 16 }}>
+        <div className="segmented-control" aria-label="Task view">
+          <button className={view === 'list' ? 'is-active' : ''} type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>List</button>
+          <button className={view === 'kanban' ? 'is-active' : ''} type="button" aria-pressed={view === 'kanban'} onClick={() => setView('kanban')}>Kanban</button>
         </div>
+      </div>
+      {tasks.length ? (
+        view === 'list' ? (
+          <div className="detail-list">
+            {tasks.map((task) => (
+              <div className="detail-list-row" key={task.id}>
+                <span className={`task-check status-${task.status}`} />
+                <button className="detail-list-copy detail-list-link" type="button" onClick={() => onSelectTask(task.id)}>
+                  <strong>{task.title}</strong>
+                  <small>{task.owner || task.assignee_name || 'Unassigned'} · {formatDate(task.due_date)}</small>
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <TaskKanbanBoard
+            currentUser={currentUser}
+            tasks={tasks}
+            updatingId={updatingId}
+            onSelectTask={onSelectTask}
+            onStatusChange={handleStatusChange}
+          />
+        )
       ) : (
         <EmptyState icon="check" title="No tasks yet" message="No tasks are visible for this project." />
       )}
+      {isCreateOpen && <TaskDialog project={project} projectId={projectId} onClose={() => setIsCreateOpen(false)} />}
     </ProjectSection>
   );
 }
@@ -410,7 +550,7 @@ function RisksIssuesSection({ canManageProject, currentUser, project, projectId 
 
   return (
     <>
-      <div className="project-tabs" aria-label="Risk and issue sections" style={{ padding: '4px 10px', borderBottom: '1px solid var(--color-graphite)' }}>
+      <div className="project-tabs" aria-label="Risk and issue sections" style={{ padding: '4px 0' }}>
         <button className={activeSubTab === 'risks' ? 'is-active' : ''} type="button" onClick={() => setActiveSubTab('risks')}>Risks <span>{risks.length}</span></button>
         <button className={activeSubTab === 'issues' ? 'is-active' : ''} type="button" onClick={() => setActiveSubTab('issues')}>Issues <span>{issues.length}</span></button>
       </div>
@@ -879,7 +1019,6 @@ function CreateProjectItemForm({ onCancel, onCreated, project, type }: CreatePro
         <button className="icon-button" type="button" aria-label="Close form" onClick={onCancel}><Icon name="close" size={14} /></button>
       </div>
       {error && <div className="error-banner" role="alert">{error}</div>}
-      {type === 'task' && <TaskFields form={form} milestones={project.milestones || []} members={project.team_members || []} updateField={updateField} />}
       {type === 'milestone' && <MilestoneFields form={form} updateField={updateField} />}
       {type === 'member' && <MemberFields form={form} updateField={updateField} />}
       <div className="dialog-actions">
@@ -887,25 +1026,6 @@ function CreateProjectItemForm({ onCancel, onCreated, project, type }: CreatePro
         <button className="button button-primary button-small" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Save'}</button>
       </div>
     </form>
-  );
-}
-
-interface TaskFieldsProps {
-  form: InitialValues;
-  members: ProjectMember[];
-  milestones: Milestone[];
-  updateField: (key: string) => (eventOrValue: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | string | number | null) => void;
-}
-
-function TaskFields({ form, members, milestones, updateField }: TaskFieldsProps) {
-  return (
-    <>
-      <div className="field-group"><label htmlFor="task-title">Task title</label><input id="task-title" required value={form.title as string} onChange={updateField('title')} /></div>
-      <div className="field-group"><label htmlFor="task-description">Description</label><textarea id="task-description" value={form.description as string} onChange={updateField('description')} placeholder="Add context, expected outcome, or links…" /></div>
-      <div className="field-row"><div className="field-group"><label htmlFor="task-priority">Priority</label><select id="task-priority" value={form.priority as string} onChange={updateField('priority')}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div></div>
-      <div className="field-row"><div className="field-group"><label htmlFor="task-date">Due date</label><input id="task-date" type="date" value={form.due_date as string} onChange={updateField('due_date')} /></div><div className="field-group"><label htmlFor="task-milestone">Milestone</label><select id="task-milestone" value={(form.milestone_id as number | null) || ''} onChange={(event) => updateField('milestone_id')(event.target.value ? Number(event.target.value) : null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></div></div>
-      <div className="field-group"><label htmlFor="task-assignee">Assignee</label><select id="task-assignee" value={(form.assignee_user_id as number | null) || ''} onChange={(event) => updateField('assignee_user_id')(event.target.value ? Number(event.target.value) : null)}><option value="">Unassigned</option>{members.map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
-    </>
   );
 }
 
@@ -952,19 +1072,65 @@ interface InitialValues {
 }
 
 function getInitialValues(type: string): InitialValues {
-  if (type === 'task') return { title: '', description: '', priority: 'medium', due_date: '', milestone_id: null, assignee_user_id: null };
   if (type === 'milestone') return { title: '', target_date: '', status: 'not_started' };
   return { user_id: '', project_role: 'member' };
 }
 
 function getCreateTitle(type: string) {
-  return type === 'task' ? 'Create task' : type === 'milestone' ? 'Create milestone' : 'Add team member';
+  return type === 'milestone' ? 'Create milestone' : 'Add team member';
 }
 
 function createProjectItem(type: string, projectId: number, form: InitialValues) {
-  if (type === 'task') return api.createTask({ ...form, project_id: projectId, priority: (form.priority || 'medium') as Priority, status: (form.status || 'todo') as TaskStatus } as CreateTaskPayload);
   if (type === 'milestone') return api.createMilestone(projectId, { ...form, project_id: projectId, status: (form.status || 'not_started') as MilestoneStatus } as CreateMilestonePayload);
   return api.addProjectMember(projectId, { user_id: Number(form.user_id), project_role: (form.project_role || 'member') as ProjectRole });
+}
+
+interface TaskDialogProps {
+  onClose: () => void;
+  project: Project;
+  projectId: number;
+}
+
+function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    priority: 'medium' as Priority,
+    due_date: '',
+    milestone_id: null as number | null,
+    assignee_user_id: null as number | null,
+  });
+  const [error, setError] = useState('');
+
+  const saveMutation = useMutation({
+    mutationFn: (data: CreateTaskPayload) => api.createTask(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });
+      onClose();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.title.trim()) { setError('Title is required.'); return; }
+    saveMutation.mutate({ ...form, project_id: projectId });
+  };
+
+  return (
+    <DialogShell title="Create task" description="Add the details for this task." onClose={onClose}>
+      <form className="dialog-form" onSubmit={handleSubmit}>
+        {error && <div className="error-banner" role="alert">{error}</div>}
+        <div className="field-group"><label htmlFor="task-title">Task title</label><input id="task-title" required value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} /></div>
+        <div className="field-group"><label htmlFor="task-description">Description</label><textarea id="task-description" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Add context, expected outcome, or links…" /></div>
+        <div className="field-group"><label htmlFor="task-priority">Priority</label><select id="task-priority" value={form.priority} onChange={(e) => setForm((c) => ({ ...c, priority: e.target.value as Priority }))}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+        <div className="field-row"><div className="field-group"><label htmlFor="task-date">Due date</label><input id="task-date" type="date" value={form.due_date} onChange={(e) => setForm((c) => ({ ...c, due_date: e.target.value }))} /></div><div className="field-group"><label htmlFor="task-milestone">Milestone</label><select id="task-milestone" value={form.milestone_id || ''} onChange={(e) => setForm((c) => ({ ...c, milestone_id: e.target.value ? Number(e.target.value) : null }))}><option value="">No milestone</option>{(project.milestones || []).map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></div></div>
+        <div className="field-group"><label htmlFor="task-assignee">Assignee</label><select id="task-assignee" value={form.assignee_user_id || ''} onChange={(e) => setForm((c) => ({ ...c, assignee_user_id: e.target.value ? Number(e.target.value) : null }))}><option value="">Unassigned</option>{(project.team_members || []).map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
+        <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
+      </form>
+    </DialogShell>
+  );
 }
 
 interface MilestoneDialogProps {
