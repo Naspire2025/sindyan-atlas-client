@@ -34,7 +34,7 @@ export default function App() {
 
   if (status === 'checking') return <LoadingScreen message="Confirming your session…" />;
   if (status === 'error') return <SessionError message={error} />;
-  if (status !== 'authenticated') return <PublicApp route={route} />;
+  if (status !== 'authenticated') return <PublicApp route={route} sessionError={error} />;
   return <AuthenticatedApp route={route} setRoute={setRoute} />;
 }
 
@@ -149,14 +149,10 @@ function PageContent({ canCreateProject, canManageInvitations, canManageTeam, ca
   return <DashboardPage {...sharedPageProps} projects={projects} tasks={tasks} onNavigate={navigate} onSelectProject={onSelectProject} onSelectTask={onSelectTask} />;
 }
 
-interface PublicAppProps {
-  route: Route;
-}
-
-function PublicApp({ route }: PublicAppProps) {
+function PublicApp({ route, sessionError }: { route: Route; sessionError: string }) {
   const { acceptInvitation, login } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(sessionError);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const invitationToken = route.page === 'acceptInvitation' ? route.token : null;

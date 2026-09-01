@@ -40,7 +40,7 @@ const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 const BASE_URL = configuredBaseUrl.replace(/\/$/, '');
 
 let csrfToken: string | null = null;
-let unauthorizedHandler: (() => Promise<void>) | null = null;
+let unauthorizedHandler: ((error?: ApiError) => Promise<void>) | null = null;
 let isHandlingUnauthorized = false;
 
 export class ApiError extends Error {
@@ -54,7 +54,7 @@ export class ApiError extends Error {
 }
 
 export function setCsrfToken(token: string | null): void { csrfToken = token || null; }
-export function setUnauthorizedHandler(handler: (() => Promise<void>) | null): void { unauthorizedHandler = handler; }
+export function setUnauthorizedHandler(handler: ((error?: ApiError) => Promise<void>) | null): void { unauthorizedHandler = handler; }
 
 function withQuery(path: string, query?: Record<string, unknown>): string {
   const parameters = new URLSearchParams();
@@ -65,10 +65,10 @@ function withQuery(path: string, query?: Record<string, unknown>): string {
   return suffix ? `${path}?${suffix}` : path;
 }
 
-async function notifyUnauthorized(): Promise<void> {
+async function notifyUnauthorized(error?: ApiError): Promise<void> {
   if (isHandlingUnauthorized || !unauthorizedHandler) return;
   isHandlingUnauthorized = true;
-  try { await unauthorizedHandler(); } finally { isHandlingUnauthorized = false; }
+  try { await unauthorizedHandler(error); } finally { isHandlingUnauthorized = false; }
 }
 
 function buildHeaders(method: string, body?: string, headers?: HeadersInit): Headers {
@@ -85,24 +85,71 @@ async function parseResponse(response: Response): Promise<unknown> {
   return body;
 }
 
+function redactSensitive(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactSensitive);
+  if (value && typeof value === 'object') {
+    const copy: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      copy[key] = /password|token|secret|csrf|key/i.test(key) ? '[REDACTED]' : redactSensitive(entry);
+    }
+    return copy;
+  }
+  return value;
+}
+
+function parseRequestPayload(options: RequestInit): string | null {
+  if (typeof options.body !== 'string' || !options.body) return null;
+  try {
+    const parsed = JSON.parse(options.body);
+    return JSON.stringify(redactSensitive(parsed));
+  } catch {
+    return '(unparseable body)';
+  }
+}
+
 async function request(path: string, options: RequestInit = {}, retried = false): Promise<unknown> {
   const method = (options.method || 'GET') as string;
+  const startedAt = performance.now();
+  const payload = parseRequestPayload(options);
+  console.log(`[api] → ${method} ${BASE_URL}${path}${payload ? ` body=${payload}` : ''}`);
+
   const response = await fetch(`${BASE_URL}${path}`, { ...options, method, credentials: 'include', headers: buildHeaders(method, options.body as string | undefined, options.headers) });
+
   if (response.status === 401) {
+    const duration = Math.round(performance.now() - startedAt);
+    console.warn(`[api] ← ${method} ${BASE_URL}${path} -> 401 (${duration}ms) session not established`);
     setCsrfToken(null);
-    await notifyUnauthorized();
+    await notifyUnauthorized(new ApiError('Your session could not be established. Your browser may be blocking the login cookie.', 401));
     return parseResponse(response);
   }
   if (!retried && response.status === 403 && method !== 'GET' && method !== 'HEAD') {
     const clone = response.clone();
     const body = await clone.json().catch(() => ({})) as { error?: string };
     if (body.error === 'CSRF validation failed.') {
+      const duration = Math.round(performance.now() - startedAt);
+      console.warn(`[api] ← ${method} ${BASE_URL}${path} -> 403 CSRF failure (${duration}ms), refreshing CSRF token and retrying`);
       const { csrfToken: nextCsrfToken } = await request('/auth/csrf') as { csrfToken: string };
       setCsrfToken(nextCsrfToken);
       return request(path, options, true);
     }
   }
-  return parseResponse(response);
+
+  const duration = Math.round(performance.now() - startedAt);
+  let responseBody: unknown = null;
+  try {
+    responseBody = await response.json().catch(() => null);
+  } catch {
+    responseBody = null;
+  }
+  const log = (level: 'log' | 'warn' | 'error') => console[level](
+    `[api] ← ${method} ${BASE_URL}${path} -> ${response.status} (${duration}ms)${responseBody !== null ? ` body=${JSON.stringify(redactSensitive(responseBody))}` : ''}`,
+  );
+  if (response.ok) log('log');
+  else if (response.status < 500) log('warn');
+  else log('error');
+  if (response.status === 204) return null;
+  if (!response.ok) throw new ApiError((responseBody as { error?: string } | null)?.error || `Request failed: ${response.status}`, response.status);
+  return responseBody;
 }
 
 function jsonRequest(path: string, method: string, data: unknown): Promise<unknown> { return request(path, { method, body: JSON.stringify(data) }); }
