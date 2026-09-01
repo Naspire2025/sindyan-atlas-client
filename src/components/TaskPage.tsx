@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import { PRIORITIES, TASK_STATUSES, getLabel } from '../constants.js';
-import type { User, Task, TaskComment, TaskActivityEvent } from '../types/api.js';
+import type { User, Task, TaskComment, TaskActivityEvent, Milestone, ProjectMember } from '../types/api.js';
 import { formatDate, getInitials } from '../utils/project.js';
+import { getAllowedTaskStatuses } from '../utils/task.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
 
@@ -21,6 +22,8 @@ function initialTask(): Task | null {
 
 export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSelectProject, taskId }: TaskPageProps) {
   const [task, setTask] = useState<Task | null>(() => normalizeTask(initialTask()));
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
   const [isSavingProperty, setIsSavingProperty] = useState(false);
@@ -28,7 +31,14 @@ export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSel
 
   const loadTask = useCallback(async () => {
     try {
-      setTask(normalizeTask(await api.getTask(taskId)));
+      const loadedTask = await api.getTask(taskId);
+      const [projectMilestones, projectMembers] = await Promise.all([
+        api.listMilestones(loadedTask.project_id),
+        api.listProjectMembers(loadedTask.project_id),
+      ]);
+      setTask(normalizeTask(loadedTask));
+      setMilestones(projectMilestones);
+      setMembers(projectMembers);
       setError('');
     } catch (loadError) {
       setTask(null);
@@ -42,11 +52,12 @@ export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSel
     loadTask();
   }, [loadTask]);
 
-  const updateProperty = async (field: string, value: string) => {
+  const updateProperty = async (field: string, value: string | number | null) => {
     setIsSavingProperty(true);
     try {
       const updatedTask = await api.updateTask(task!.id, getTaskUpdatePayload(task!, { [field]: value }));
       setTask((current) => ({ ...current!, ...updatedTask }));
+      setError('');
       await onChanged();
     } catch (updateError) {
       setError((updateError as Error).message);
@@ -114,6 +125,8 @@ export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSel
         <TaskProperties
           currentUser={currentUser}
           isSaving={isSavingProperty}
+          members={members}
+          milestones={milestones}
           onSelectProject={onSelectProject}
           onUpdate={updateProperty}
           task={task}
@@ -149,21 +162,24 @@ function TaskBreadcrumb({ onBack, onMenu, onSelectProject, task }: TaskBreadcrum
 interface TaskPropertiesProps {
   currentUser: User;
   isSaving: boolean;
+  members: ProjectMember[];
+  milestones: Milestone[];
   onSelectProject: (projectId: number) => void;
-  onUpdate: (field: string, value: string) => void;
+  onUpdate: (field: string, value: string | number | null) => void;
   task: Task;
 }
 
-function TaskProperties({ currentUser, isSaving, onSelectProject, onUpdate, task }: TaskPropertiesProps) {
-  const availableStatuses = getAvailableStatuses(currentUser, task);
+function TaskProperties({ currentUser, isSaving, members, milestones, onSelectProject, onUpdate, task }: TaskPropertiesProps) {
+  const availableStatuses = getAllowedTaskStatuses(currentUser, task);
+  const canManage = canManageTaskProperties(currentUser, task);
   return (
     <aside className="task-properties" aria-label="Task properties">
       <h2>Properties</h2>
       {availableStatuses.length > 1 ? <label className="task-property-control"><Icon name="check" size={15} /><span>Status</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="check" label="Status" value={getLabel(TASK_STATUSES, task.status)} />}
-      {canEditPriority(currentUser, task) ? <label className="task-property-control"><Icon name="priority" size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="priority" label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
-      <PropertyRow icon="user" label="Assignee" value={task.owner || 'Unassigned'} />
-      <PropertyRow icon="calendar" label="Due date" value={formatDate(task.due_date)} />
-      <PropertyRow icon="milestone" label="Milestone" value={task.milestone_title || 'No milestone'} />
+      {canManage ? <label className="task-property-control"><Icon name="priority" size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="priority" label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
+      {canManage ? <label className="task-property-control"><Icon name="user" size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value ? Number(event.target.value) : null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon="user" label="Assignee" value={task.assignee_name || task.owner || 'Unassigned'} />}
+      {canManage ? <label className="task-property-control"><Icon name="calendar" size={15} /><span>Due date</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon="calendar" label="Due date" value={formatDate(task.due_date)} />}
+      {canManage ? <label className="task-property-control"><Icon name="milestone" size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value ? Number(event.target.value) : null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon="milestone" label="Milestone" value={task.milestone_title || 'No milestone'} />}
 
       <div className="task-property-group">
         <h3>Project</h3>
@@ -256,28 +272,14 @@ function TaskError({ error, onBack, onMenu }: TaskErrorProps) {
   return <><header className="project-breadcrumb-bar"><button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Icon name="menu" /></button><button className="text-button" type="button" onClick={onBack}>My tasks</button></header><div className="project-error"><EmptyState icon="alert" title="Task unavailable" message={error} action={<button className="button button-secondary" type="button" onClick={onBack}>Back to my tasks</button>} /></div></>;
 }
 
-function getTaskUpdatePayload(task: Task, changes: Record<string, string>) {
+function getTaskUpdatePayload(task: Task, changes: Record<string, unknown>) {
   if ('status' in changes) return { status: changes.status };
   if ('priority' in changes) return { priority: changes.priority };
   return changes;
 }
 
-function canEditPriority(user: User, task: Task) {
+function canManageTaskProperties(user: User, task: Task) {
   return user?.role === 'admin' || task.project_role === 'project_lead';
-}
-
-interface StatusOption {
-  value: string;
-  label: string;
-}
-
-function getAvailableStatuses(user: User, task: Task): StatusOption[] {
-  if (user?.role === 'admin') return TASK_STATUSES;
-  if (task.project_role === 'project_lead') return TASK_STATUSES.filter((item) => item.value !== 'reviewed' && item.value !== 'done');
-  if (task.assignee_user_id !== user?.id) return [{ value: task.status, label: getLabel(TASK_STATUSES, task.status) }];
-  const transitions: Record<string, string[]> = { todo: ['todo', 'in_progress'], in_progress: ['in_progress', 'blocked', 'reviewing'], blocked: ['blocked', 'in_progress', 'reviewing'] };
-  const values = transitions[task.status] || [task.status];
-  return TASK_STATUSES.filter((item) => values.includes(item.value));
 }
 
 function normalizeTask(task: Task | null): Task | null {

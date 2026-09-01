@@ -60,6 +60,7 @@ function AuthenticatedApp({ route, setRoute }: AuthenticatedAppProps) {
     mutationFn: api.createProject,
     onSuccess: (project) => {
       setIsNewProjectOpen(false);
+      queryClient.setQueryData<Project[]>(queryKeys.projects(), (projects = []) => [project, ...projects.filter((item) => item.id !== project.id)]);
       queryClient.invalidateQueries({ queryKey: queryKeys.projects() });
       navigateToPath(getProjectPath(project.id), setRoute);
     },
@@ -141,11 +142,11 @@ function PageContent({ canCreateProject, canManageInvitations, canManageTeam, ca
   if (route.page === 'project') return <ProjectPage {...sharedPageProps} currentUser={user} key={route.projectId} projectId={route.projectId ?? 0} onBack={() => navigate('projects')} onChanged={onWorkspaceChanged} onSelectTask={onSelectTask} />;
   if (route.page === 'task') return <TaskPage {...sharedPageProps} currentUser={user} key={route.taskId} taskId={route.taskId ?? 0} onBack={() => navigate('tasks')} onChanged={onWorkspaceChanged} onSelectProject={onSelectProject} />;
   if (route.page === 'projects') return <ProjectsPage {...sharedPageProps} canCreate={canCreateProject} key={route.filter} initialFilter={route.filter} projects={projects} onCreate={onCreateProject} onSelectProject={onSelectProject} />;
-  if (route.page === 'tasks') return <TasksPage {...sharedPageProps} currentUser={user} tasks={tasks} onSelectTask={onSelectTask} onUpdateTask={onUpdateTask} />;
+  if (route.page === 'tasks') return <TasksPage {...sharedPageProps} currentUser={user} tasks={tasks} onSelectProject={onSelectProject} onSelectTask={onSelectTask} onUpdateTask={onUpdateTask} />;
   if (route.page === 'vault') return <VaultPage {...sharedPageProps} />;
   if (route.page === 'notFound') return <NotFoundPage onMenu={onMenu} />;
-  if (!canViewOverview) return <TasksPage {...sharedPageProps} currentUser={user} tasks={tasks} onSelectTask={onSelectTask} onUpdateTask={onUpdateTask} />;
-  return <DashboardPage {...sharedPageProps} projects={projects} tasks={tasks} onNavigate={navigate} onSelectProject={onSelectProject} />;
+  if (!canViewOverview) return <TasksPage {...sharedPageProps} currentUser={user} tasks={tasks} onSelectProject={onSelectProject} onSelectTask={onSelectTask} onUpdateTask={onUpdateTask} />;
+  return <DashboardPage {...sharedPageProps} projects={projects} tasks={tasks} onNavigate={navigate} onSelectProject={onSelectProject} onSelectTask={onSelectTask} />;
 }
 
 interface PublicAppProps {

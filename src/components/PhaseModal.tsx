@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { api } from '../api/client.js';
+import type { Phase } from '../types/api.js';
 import DialogShell from './DialogShell.js';
 
 interface PhaseModalProps {
+  phase?: Phase;
   projectId: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function PhaseModal({ projectId, onClose, onSuccess }: PhaseModalProps) {
-  const [name, setName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+export default function PhaseModal({ phase, projectId, onClose, onSuccess }: PhaseModalProps) {
+  const isEditing = Boolean(phase);
+  const [name, setName] = useState(phase?.name || '');
+  const [startDate, setStartDate] = useState(phase?.start_date || '');
+  const [endDate, setEndDate] = useState(phase?.end_date || '');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,14 +26,20 @@ export default function PhaseModal({ projectId, onClose, onSuccess }: PhaseModal
       setError('Phase name is required.');
       return;
     }
+    if (!startDate || !endDate) {
+      setError('Start date and end date are required.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      await api.createPhase(projectId, {
+      const payload = {
         name: name.trim(),
         start_date: startDate || undefined,
         end_date: endDate || undefined,
-      });
+      };
+      if (isEditing) await api.updatePhase(projectId, phase!.id, payload);
+      else await api.createPhase(projectId, payload);
       onSuccess();
       onClose();
     } catch (err) {
@@ -42,8 +51,8 @@ export default function PhaseModal({ projectId, onClose, onSuccess }: PhaseModal
 
   return (
     <DialogShell
-      title="Add Project Phase"
-      description="Define a major stage or phase in the project timeline."
+      title={isEditing ? 'Edit project phase' : 'Add project phase'}
+      description="Define a major stage in the project timeline."
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -67,6 +76,7 @@ export default function PhaseModal({ projectId, onClose, onSuccess }: PhaseModal
             <input
               id="phase-start"
               type="date"
+              required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
@@ -77,6 +87,7 @@ export default function PhaseModal({ projectId, onClose, onSuccess }: PhaseModal
             <input
               id="phase-end"
               type="date"
+              required
               min={startDate || undefined}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -89,7 +100,7 @@ export default function PhaseModal({ projectId, onClose, onSuccess }: PhaseModal
             Cancel
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : 'Create phase'}
+            {isSubmitting ? 'Saving…' : isEditing ? 'Save phase' : 'Create phase'}
           </button>
         </footer>
       </form>

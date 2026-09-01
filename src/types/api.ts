@@ -21,7 +21,7 @@ export type RiskStatus = 'open' | 'mitigating' | 'escalated' | 'resolved';
 export type IssueStatus = 'open' | 'mitigating' | 'escalated' | 'resolved';
 export type VaultEntryType = 'credential' | 'secret_key' | 'markdown_note' | 'file' | 'external_link';
 export type ProjectRole = 'member' | 'project_lead';
-export type MilestoneStatus = 'not_started' | 'in_progress' | 'completed';
+export type MilestoneStatus = 'not_started' | 'in_progress' | 'done' | 'missed';
 export type HealthStatus = 'complete' | 'behind' | 'at_risk' | 'on_track' | 'no_update';
 export type ThemePreference = 'system' | 'dark' | 'light';
 
@@ -53,6 +53,7 @@ export interface ProjectMember {
   project_role: ProjectRole;
   name: string;
   email?: string;
+  status: UserStatus;
 }
 
 export interface TaskSummary {
@@ -70,14 +71,15 @@ export interface Task {
   status: TaskStatus;
   priority: Priority;
   due_date?: string;
-  assignee_user_id?: number;
+  assignee_user_id?: number | null;
   assignee_name?: string;
   owner?: string;
-  milestone_id?: number;
+  milestone_id?: number | null;
   milestone_title?: string;
   blocker_note?: string;
   project_role?: ProjectRole;
   created_at?: string;
+  updated_at?: string;
   created_by_name?: string;
   comments: TaskComment[];
   activity?: TaskActivityEvent[];
@@ -125,6 +127,8 @@ export interface Project {
 export interface Milestone {
   id: number;
   project_id: number;
+  phase_id?: number;
+  phase_name?: string;
   title: string;
   target_date?: string;
   status: MilestoneStatus;
@@ -134,6 +138,7 @@ export interface Phase {
   id: number;
   project_id: number;
   name: string;
+  position?: number;
   start_date?: string;
   end_date?: string;
 }
@@ -218,6 +223,7 @@ export interface DashboardAttentionItem {
   detail?: string;
   reason?: string;
   severity?: string;
+  item_type?: 'task' | 'milestone' | 'risk' | 'issue';
 }
 
 export interface DashboardOverview {
@@ -320,6 +326,7 @@ export interface CreateProjectPayload {
   drive_folder_url?: string;
   budget_allocated_amount?: number | null;
   budget_currency?: string | null;
+  links?: Array<Pick<CreateLinkPayload, 'label' | 'link_type' | 'url'>>;
 }
 
 export interface CreateTaskPayload {
@@ -335,6 +342,7 @@ export interface CreateTaskPayload {
 
 export interface CreateMilestonePayload {
   project_id: number;
+  phase_id: number;
   title: string;
   target_date?: string;
   status?: MilestoneStatus;

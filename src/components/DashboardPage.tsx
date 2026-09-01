@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import type { DashboardOverview, DashboardAttentionItem, Project, Task } from '../types/api.js';
-import { getProjectHealth, isProjectOverdue } from '../utils/project.js';
+import { getProjectHealth, isPastDate, isProjectOverdue } from '../utils/project.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
 import PageHeader from './PageHeader.js';
@@ -15,17 +15,19 @@ interface DashboardPageProps {
   onMenu: () => void;
   onNavigate: (page: string, filter?: string) => void;
   onSelectProject: (projectId: number) => void;
+  onSelectTask: (taskId: number) => void;
 }
 
 interface AttentionItem {
   key: string | number;
   projectId?: number;
+  taskId?: number;
   title: string;
   detail: string;
   tone: 'danger' | 'warning';
 }
 
-export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onSelectProject }: DashboardPageProps) {
+export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onSelectProject, onSelectTask }: DashboardPageProps) {
   const overviewQuery = useQuery({
     queryKey: queryKeys.dashboardOverview,
     queryFn: ({ signal }) => api.getDashboardOverview(signal),
@@ -42,8 +44,9 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
     ? serverAttention.map((item, index) => ({
         key: item.id || `attention-${index}`,
         projectId: item.project_id,
+        taskId: item.item_type === 'task' ? item.id : undefined,
         title: item.title || item.name || 'Needs attention',
-        detail: item.description || item.detail || item.reason || 'Requires review',
+        detail: item.reason || item.description || item.detail || 'Requires review',
         tone: (item.severity === 'high' || item.severity === 'critical' ? 'danger' : 'warning') as 'danger' | 'warning',
       }))
     : clientAttention;
@@ -87,7 +90,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
                   key={item.key}
                   className="attention-item"
                   type="button"
-                  onClick={() => item.projectId && onSelectProject(item.projectId)}
+                  onClick={() => item.taskId ? onSelectTask(item.taskId) : item.projectId && onSelectProject(item.projectId)}
                 >
                   <span className={`attention-icon attention-${item.tone}`}>
                     <Icon name="alert" size={15} />
@@ -104,7 +107,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
             <EmptyState
               icon="check"
               title="Everything looks clear"
-              message="There are no overdue projects or blocked tasks right now."
+              message="There are no overdue, blocked, or stalled tasks right now."
             />
           )}
         </div>
@@ -207,5 +210,16 @@ function buildAttentionItems(projects: Project[], tasks: Task[]): AttentionItem[
       detail: `${task.project_name} · ${task.blocker_note || 'Task is blocked'}`,
       tone: 'warning' as const,
     }));
-  return [...overdueProjects, ...blockedTasks];
+  const blockedTaskIds = new Set(blockedTasks.map((item) => item.key));
+  const overdueTasks = tasks
+    .filter((task) => task.status !== 'done' && isPastDate(task.due_date) && !blockedTaskIds.has(`task-${task.id}`))
+    .map((task) => ({
+      key: `task-${task.id}`,
+      projectId: task.project_id,
+      taskId: task.id,
+      title: task.title,
+      detail: `${task.project_name} · overdue since ${task.due_date}`,
+      tone: 'danger' as const,
+    }));
+  return [...overdueProjects, ...blockedTasks, ...overdueTasks];
 }

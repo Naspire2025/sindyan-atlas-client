@@ -76,7 +76,7 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
         {activeTab === 'Overview' && <OverviewSection project={project} />}
         {activeTab === 'Tasks' && <TasksSection canManageProject={isPrivileged} currentUser={currentUser} project={project} projectId={projectId} onSelectTask={onSelectTask} />}
         {activeTab === 'Milestones' && <MilestonesSection projectId={projectId} project={project} canManageProject={isPrivileged} />}
-        {activeTab === 'Timeline' && <TimelineSection project={project} />}
+        {activeTab === 'Timeline' && <TimelineSection canManageProject={isPrivileged} onOpenMilestones={() => setActiveTab('Milestones')} onSelectTask={onSelectTask} project={project} />}
         {activeTab === 'Links' && <LinksSection projectId={projectId} project={project} canManageProject={isPrivileged} />}
         {activeTab === 'Finance' && showFinance && <FinanceSection projectId={projectId} />}
         {activeTab === 'Risks & Issues' && <RisksIssuesSection projectId={projectId} project={project} canManageProject={isPrivileged} currentUser={currentUser} />}
@@ -88,13 +88,36 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
 }
 
 interface TimelineSectionProps {
+  canManageProject: boolean;
+  onOpenMilestones: () => void;
+  onSelectTask: (taskId: number) => void;
   project: Project;
 }
 
-function TimelineSection({ project }: TimelineSectionProps) {
+interface TimelineItem {
+  end?: string;
+  id: string;
+  milestoneId?: number;
+  owner?: string;
+  ownerId?: number;
+  phaseId?: number;
+  progress: number;
+  rawId: number;
+  start?: string;
+  status: string;
+  title: string;
+  type: 'Phase' | 'Milestone' | 'Task';
+}
+
+function TimelineSection({ canManageProject, onOpenMilestones, onSelectTask, project }: TimelineSectionProps) {
   const queryClient = useQueryClient();
   const [isPhaseOpen, setIsPhaseOpen] = useState(false);
+  const [editPhaseTarget, setEditPhaseTarget] = useState<import('../types/api.js').Phase | null>(null);
   const [filterType, setFilterType] = useState('');
+  const [filterPhase, setFilterPhase] = useState('');
+  const [filterOwner, setFilterOwner] = useState('');
+  const [filterMilestone, setFilterMilestone] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [search, setSearch] = useState('');
   const [deletePhaseTarget, setDeletePhaseTarget] = useState<number | null>(null);
 
@@ -106,28 +129,51 @@ function TimelineSection({ project }: TimelineSectionProps) {
     },
   });
 
-  const rows = useMemo(() => {
-    const items = [
-      ...(project.phases || []).map((phase) => ({ id: `phase-${phase.id}`, rawId: phase.id, type: 'Phase', title: phase.name, start: phase.start_date, end: phase.end_date, status: '' })),
-      ...(project.milestones || []).map((milestone) => ({ id: `milestone-${milestone.id}`, rawId: milestone.id, type: 'Milestone', title: milestone.title, start: milestone.target_date, end: milestone.target_date, status: milestone.status })),
-      ...(project.tasks || []).map((task) => ({ id: `task-${task.id}`, rawId: task.id, type: 'Task', title: task.title, start: '', end: task.due_date, status: task.status, owner: task.assignee_name })),
-    ].sort((first, second) => String(first.end || '').localeCompare(String(second.end || '')));
+  const items = useMemo<TimelineItem[]>(() => {
+    const milestones = project.milestones || [];
+    const tasks = project.tasks || [];
+    const phaseItems: TimelineItem[] = (project.phases || []).map((phase) => {
+      const phaseMilestoneIds = new Set(milestones.filter((milestone) => milestone.phase_id === phase.id).map((milestone) => milestone.id));
+      const phaseTasks = tasks.filter((task) => task.milestone_id && phaseMilestoneIds.has(task.milestone_id));
+      const progress = getTaskCompletion(phaseTasks);
+      return { id: `phase-${phase.id}`, rawId: phase.id, type: 'Phase', title: phase.name, start: phase.start_date, end: phase.end_date, status: progress === 100 ? 'done' : progress > 0 ? 'in_progress' : 'not_started', progress, phaseId: phase.id };
+    });
+    const milestoneItems: TimelineItem[] = milestones.map((milestone) => {
+      const milestoneTasks = tasks.filter((task) => task.milestone_id === milestone.id);
+      return { id: `milestone-${milestone.id}`, rawId: milestone.id, type: 'Milestone', title: milestone.title, start: milestone.target_date, end: milestone.target_date, status: milestone.status, progress: getTaskCompletion(milestoneTasks), phaseId: milestone.phase_id, milestoneId: milestone.id };
+    });
+    const taskItems: TimelineItem[] = tasks.map((task) => {
+      const milestone = milestones.find((item) => item.id === task.milestone_id);
+      return { id: `task-${task.id}`, rawId: task.id, type: 'Task', title: task.title, start: task.due_date, end: task.due_date, status: task.status, progress: task.status === 'done' ? 100 : 0, phaseId: milestone?.phase_id, milestoneId: task.milestone_id || undefined, owner: task.assignee_name, ownerId: task.assignee_user_id || undefined };
+    });
+    return [...phaseItems, ...milestoneItems, ...taskItems].sort((first, second) => String(first.start || first.end || '').localeCompare(String(second.start || second.end || '')));
+  }, [project]);
 
+  const rows = useMemo(() => {
     return items.filter((item) => {
-      if (filterType && item.type.toLowerCase() !== filterType.toLowerCase()) return false;
-      if (search && !`${item.title} ${item.type}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterType && item.type.toLowerCase() !== filterType) return false;
+      if (filterPhase && item.phaseId !== Number(filterPhase)) return false;
+      if (filterOwner && item.ownerId !== Number(filterOwner)) return false;
+      if (filterMilestone && item.milestoneId !== Number(filterMilestone)) return false;
+      if (filterStatus && item.status !== filterStatus) return false;
+      if (search && !`${item.title} ${item.type} ${item.owner || ''}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [project, filterType, search]);
+  }, [items, filterType, filterPhase, filterOwner, filterMilestone, filterStatus, search]);
+
+  const datedItems = items.filter((item) => item.start || item.end);
+  const timelineStart = earliestDate([project.start_date, ...datedItems.map((item) => item.start || item.end)]);
+  const timelineEnd = latestDate([project.deadline, ...datedItems.map((item) => item.end || item.start)]);
 
   return (
     <ProjectSection
       title="Project timeline"
       description="Phases, milestones, and task deadlines in chronological order."
-      actionLabel="Add phase"
+      actionLabel={canManageProject ? 'Add phase' : null}
       onAction={() => setIsPhaseOpen(true)}
     >
-      <div className="project-toolbar" style={{ marginBottom: 16 }}>
+      {deletePhaseMutation.error && <div className="error-banner" role="alert">{deletePhaseMutation.error.message}</div>}
+      <div className="project-toolbar timeline-toolbar">
         <div className="toolbar-fields">
           <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter timeline…" />
           <SelectField
@@ -141,42 +187,46 @@ function TimelineSection({ project }: TimelineSectionProps) {
             ]}
             placeholder="All items"
           />
+          <SelectField value={filterPhase} onChange={(e) => setFilterPhase(e.target.value)} label="Filter by phase" options={(project.phases || []).map((phase) => ({ value: String(phase.id), label: phase.name }))} placeholder="All phases" />
+          <SelectField value={filterOwner} onChange={(e) => setFilterOwner(e.target.value)} label="Filter by owner" options={(project.team_members || []).map((member) => ({ value: String(member.user_id || member.id), label: member.name }))} placeholder="All owners" />
+          <SelectField value={filterMilestone} onChange={(e) => setFilterMilestone(e.target.value)} label="Filter by milestone" options={(project.milestones || []).map((milestone) => ({ value: String(milestone.id), label: milestone.title }))} placeholder="All milestones" />
+          <SelectField value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} label="Filter by status" options={[{ value: 'not_started', label: 'Not started' }, { value: 'in_progress', label: 'In progress' }, { value: 'blocked', label: 'Blocked' }, { value: 'reviewing', label: 'Reviewing' }, { value: 'reviewed', label: 'Reviewed' }, { value: 'done', label: 'Done' }, { value: 'missed', label: 'Missed' }]} placeholder="All statuses" />
         </div>
       </div>
 
-      {rows.length ? (
-        <div className="detail-list" role="table" aria-label="Project timeline">
+      {rows.length && timelineStart && timelineEnd ? (
+        <div className="timeline-table" role="table" aria-label="Project Gantt timeline">
+          <div className="timeline-row timeline-header" role="row">
+            <span role="columnheader">Work item</span><span role="columnheader">Schedule and progress</span>
+          </div>
           {rows.map((row) => (
-            <div className="detail-list-row" key={row.id} role="row">
-              <span className="role-pill">{row.type}</span>
-              <span className="detail-list-copy">
-                <strong>{row.title}</strong>
-                <small>
-                  {(row as { owner?: string }).owner || row.status || 'Scheduled'} · {formatDate(row.start)} — {formatDate(row.end)}
-                </small>
-              </span>
-              {row.type === 'Phase' && (
-                <div className="invitation-actions">
-                  <button
-                    className="text-button text-button-danger"
-                    type="button"
-                    onClick={() => setDeletePhaseTarget(row.rawId)}
-                  >
-                    Delete phase
-                  </button>
+            <div className="timeline-row" key={row.id} role="row">
+              <div className="timeline-item-copy" role="cell">
+                <span className={`timeline-kind timeline-kind-${row.type.toLowerCase()}`}>{row.type}</span>
+                {row.type === 'Milestone' ? <button className="timeline-title-button" type="button" onClick={onOpenMilestones}>{row.title}</button> : row.type === 'Task' ? <button className="timeline-title-button" type="button" onClick={() => onSelectTask(row.rawId)}>{row.title}</button> : <strong>{row.title}</strong>}
+                <small>{row.owner || getPhaseName(project, row.phaseId) || formatTimelineStatus(row.status)} · {formatDate(row.start)} — {formatDate(row.end)}</small>
+                <span className={`timeline-deadline ${getDeadlineState(row)}`}>{formatDeadlineState(row)}</span>
+                {row.type === 'Phase' && canManageProject && <span className="timeline-actions"><button className="text-button" type="button" onClick={() => setEditPhaseTarget((project.phases || []).find((phase) => phase.id === row.rawId) || null)}>Edit</button><button className="text-button text-button-danger" type="button" onClick={() => setDeletePhaseTarget(row.rawId)}>Delete</button></span>}
+              </div>
+              <div className="timeline-track-cell" role="cell">
+                <div className="timeline-track" aria-label={`${row.title}: ${row.progress}% complete`}>
+                  {row.type === 'Milestone' ? <span className={`gantt-milestone ${getDeadlineState(row)}`} style={{ left: `${datePosition(row.end, timelineStart, timelineEnd)}%` }} /> : <span className={`gantt-bar gantt-${row.type.toLowerCase()} ${getDeadlineState(row)}`} style={getBarStyle(row, timelineStart, timelineEnd)}><span style={{ width: `${row.progress}%` }} /></span>}
                 </div>
-              )}
+                <strong className="timeline-progress">{row.progress}%</strong>
+              </div>
             </div>
           ))}
+          <div className="timeline-scale" aria-hidden="true"><span>{formatDate(timelineStart)}</span><span>{formatDate(timelineEnd)}</span></div>
         </div>
       ) : (
         <EmptyState icon="calendar" title="No scheduled work" message="Add phases, milestones, or dated tasks to populate the timeline." />
       )}
 
-      {isPhaseOpen && (
+      {(isPhaseOpen || editPhaseTarget) && (
         <PhaseModal
+          phase={editPhaseTarget || undefined}
           projectId={project.id}
-          onClose={() => setIsPhaseOpen(false)}
+          onClose={() => { setIsPhaseOpen(false); setEditPhaseTarget(null); }}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) })}
         />
       )}
@@ -184,7 +234,7 @@ function TimelineSection({ project }: TimelineSectionProps) {
       {deletePhaseTarget && (
         <ConfirmDialog
           title="Delete Phase"
-          description="Are you sure you want to delete this timeline phase?"
+          description="Delete this phase? A phase containing milestones must be cleared first."
           confirmLabel="Delete phase"
           variant="danger"
           isPending={deletePhaseMutation.isPending}
@@ -194,6 +244,59 @@ function TimelineSection({ project }: TimelineSectionProps) {
       )}
     </ProjectSection>
   );
+}
+
+function getTaskCompletion(tasks: Task[]): number {
+  return tasks.length ? Math.round((tasks.filter((task) => task.status === 'done').length / tasks.length) * 100) : 0;
+}
+
+function earliestDate(values: Array<string | undefined>): string | undefined {
+  return values.filter(Boolean).sort()[0];
+}
+
+function latestDate(values: Array<string | undefined>): string | undefined {
+  return values.filter(Boolean).sort().at(-1);
+}
+
+function datePosition(date: string | undefined, start: string, end: string): number {
+  if (!date || start === end) return 0;
+  const position = (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`));
+  return Math.max(0, Math.min(100, position * 100));
+}
+
+function getBarStyle(item: TimelineItem, start: string, end: string): { left: string; width: string } {
+  const left = datePosition(item.start || item.end, start, end);
+  const right = datePosition(item.end || item.start, start, end);
+  return { left: `${left}%`, width: `${Math.max(2, right - left)}%` };
+}
+
+function getDeadlineState(item: TimelineItem): string {
+  if (item.status === 'done' || item.progress === 100) return 'is-complete';
+  if (item.status === 'missed') return 'is-overdue';
+  if (!item.end) return 'is-unscheduled';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadline = new Date(`${item.end}T00:00:00`);
+  if (deadline < today) return 'is-overdue';
+  if (deadline.getTime() - today.getTime() <= 14 * 86_400_000) return 'is-upcoming';
+  return 'is-scheduled';
+}
+
+function formatDeadlineState(item: TimelineItem): string {
+  const state = getDeadlineState(item);
+  if (state === 'is-overdue') return 'Overdue';
+  if (state === 'is-upcoming') return 'Due soon';
+  if (state === 'is-complete') return 'Complete';
+  if (state === 'is-unscheduled') return 'Unscheduled';
+  return 'Scheduled';
+}
+
+function formatTimelineStatus(status: string): string {
+  return status ? status.replaceAll('_', ' ') : 'Scheduled';
+}
+
+function getPhaseName(project: Project, phaseId?: number): string {
+  return (project.phases || []).find((phase) => phase.id === phaseId)?.name || '';
 }
 
 interface ProjectBreadcrumbProps {
@@ -312,14 +415,18 @@ function TasksSection({ canManageProject, currentUser, onSelectTask, project, pr
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [view, setView] = useState<'list' | 'kanban'>('list');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updateError, setUpdateError] = useState('');
 
   const tasks = project.tasks || [];
 
   const handleStatusChange = async (task: Task, nextStatus: string) => {
     setUpdatingId(task.id);
+    setUpdateError('');
     try {
-      await api.updateTask(task.id, { ...task, status: nextStatus as Task['status'] });
+      await api.updateTask(task.id, { status: nextStatus as Task['status'] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });
+    } catch (error) {
+      setUpdateError((error as Error).message);
     } finally {
       setUpdatingId(null);
     }
@@ -327,6 +434,7 @@ function TasksSection({ canManageProject, currentUser, onSelectTask, project, pr
 
   return (
     <ProjectSection title="Project tasks" description="Track ownership, due dates, and delivery status." actionLabel={canManageProject ? 'Add task' : null} onAction={() => setIsCreateOpen(true)}>
+      {updateError && <div className="error-banner" role="alert">{updateError}</div>}
       <div className="task-view-toolbar" style={{ marginBottom: 16 }}>
         <div className="segmented-control" aria-label="Task view">
           <button className={view === 'list' ? 'is-active' : ''} type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>List</button>
@@ -396,7 +504,7 @@ function MilestonesSection({ canManageProject, project, projectId }: MilestonesS
                 <span className="milestone-mark" />
                 <span className="detail-list-copy">
                   <strong>{milestone.title}</strong>
-                  <small>{formatDate(milestone.target_date)} · {milestone.status?.replaceAll('_', ' ') || 'Not started'}</small>
+                  <small>{milestone.phase_name || 'No phase'} · {formatDate(milestone.target_date)} · {formatTimelineStatus(milestone.status)}</small>
                 </span>
                 <span className="mini-progress"><span style={{ width: `${progress}%` }} /></span>
                 <strong className="progress-number">{progress}%</strong>
@@ -413,8 +521,8 @@ function MilestonesSection({ canManageProject, project, projectId }: MilestonesS
       ) : (
         <EmptyState icon="calendar" title="No milestones yet" message="Milestone management is enabled through the secured API." />
       )}
-      {isCreateOpen && <MilestoneDialog projectId={projectId} onClose={() => setIsCreateOpen(false)} />}
-      {editTarget && <MilestoneDialog projectId={projectId} milestone={editTarget} onClose={() => setEditTarget(null)} />}
+      {isCreateOpen && <MilestoneDialog project={project} projectId={projectId} onClose={() => setIsCreateOpen(false)} />}
+      {editTarget && <MilestoneDialog project={project} projectId={projectId} milestone={editTarget} onClose={() => setEditTarget(null)} />}
       {deleteTarget && (
         <ConfirmDialog
           title="Delete milestone"
@@ -1129,7 +1237,7 @@ function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
         <div className="field-group"><label htmlFor="task-description">Description</label><textarea id="task-description" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Add context, expected outcome, or links…" /></div>
         <div className="field-group"><label htmlFor="task-priority">Priority</label><select id="task-priority" value={form.priority} onChange={(e) => setForm((c) => ({ ...c, priority: e.target.value as Priority }))}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
         <div className="field-row"><div className="field-group"><label htmlFor="task-date">Due date</label><input id="task-date" type="date" value={form.due_date} onChange={(e) => setForm((c) => ({ ...c, due_date: e.target.value }))} /></div><div className="field-group"><label htmlFor="task-milestone">Milestone</label><select id="task-milestone" value={form.milestone_id || ''} onChange={(e) => setForm((c) => ({ ...c, milestone_id: e.target.value ? Number(e.target.value) : null }))}><option value="">No milestone</option>{(project.milestones || []).map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></div></div>
-        <div className="field-group"><label htmlFor="task-assignee">Assignee</label><select id="task-assignee" value={form.assignee_user_id || ''} onChange={(e) => setForm((c) => ({ ...c, assignee_user_id: e.target.value ? Number(e.target.value) : null }))}><option value="">Unassigned</option>{(project.team_members || []).map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="task-assignee">Assignee</label><select id="task-assignee" value={form.assignee_user_id || ''} onChange={(e) => setForm((c) => ({ ...c, assignee_user_id: e.target.value ? Number(e.target.value) : null }))}><option value="">Unassigned</option>{(project.team_members || []).filter((member) => member.status === 'active').map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
       </form>
     </DialogShell>
@@ -1138,22 +1246,24 @@ function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
 
 interface MilestoneDialogProps {
   milestone?: Milestone;
+  project: Project;
   projectId: number;
   onClose: () => void;
 }
 
-function MilestoneDialog({ milestone, projectId, onClose }: MilestoneDialogProps) {
+function MilestoneDialog({ milestone, project, projectId, onClose }: MilestoneDialogProps) {
   const queryClient = useQueryClient();
   const isEditing = Boolean(milestone);
   const [form, setForm] = useState({
     title: milestone?.title || '',
     target_date: milestone?.target_date || '',
     status: milestone?.status || 'not_started',
+    phase_id: milestone?.phase_id ? String(milestone.phase_id) : '',
   });
   const [error, setError] = useState('');
 
   const saveMutation = useMutation({
-    mutationFn: (data: { title: string; target_date: string; status: MilestoneStatus; project_id: number }) => isEditing ? api.updateMilestone(milestone!.id, data) : api.createMilestone(projectId, data),
+    mutationFn: (data: CreateMilestonePayload) => isEditing ? api.updateMilestone(milestone!.id, data) : api.createMilestone(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });
       onClose();
@@ -1164,7 +1274,9 @@ function MilestoneDialog({ milestone, projectId, onClose }: MilestoneDialogProps
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.title.trim()) { setError('Title is required.'); return; }
-    saveMutation.mutate({ ...form, project_id: projectId });
+    if (!form.phase_id) { setError('Phase is required.'); return; }
+    if (!form.target_date) { setError('Target date is required.'); return; }
+    saveMutation.mutate({ ...form, phase_id: Number(form.phase_id), project_id: projectId });
   };
 
   return (
@@ -1172,8 +1284,9 @@ function MilestoneDialog({ milestone, projectId, onClose }: MilestoneDialogProps
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
         <div className="field-group"><label htmlFor="ms-title">Title</label><input id="ms-title" required value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} /></div>
-        <div className="field-group"><label htmlFor="ms-date">Target date</label><input id="ms-date" type="date" value={form.target_date} onChange={(e) => setForm((c) => ({ ...c, target_date: e.target.value }))} /></div>
-        <div className="field-group"><label htmlFor="ms-status">Status</label><select id="ms-status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MilestoneStatus }))}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></div>
+        <div className="field-group"><label htmlFor="ms-phase">Phase</label><select id="ms-phase" required value={form.phase_id} onChange={(e) => setForm((c) => ({ ...c, phase_id: e.target.value }))}><option value="">Select a phase</option>{(project.phases || []).map((phase) => <option key={phase.id} value={phase.id}>{phase.name}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="ms-date">Target date</label><input id="ms-date" type="date" required value={form.target_date} onChange={(e) => setForm((c) => ({ ...c, target_date: e.target.value }))} /></div>
+        <div className="field-group"><label htmlFor="ms-status">Status</label><select id="ms-status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MilestoneStatus }))}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="missed">Missed</option></select></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
       </form>
     </DialogShell>

@@ -2,13 +2,10 @@ import { useState } from 'react';
 import { TASK_STATUSES } from '../constants.js';
 import type { Task, User } from '../types/api.js';
 import { formatDate, isPastDate } from '../utils/project.js';
+import { getAllowedTaskStatuses } from '../utils/task.js';
 import Icon from './Icon.js';
 import StatusBadge from './StatusBadge.js';
-
-export interface StatusOption {
-  value: string;
-  label: string;
-}
+import TaskStatusSelect from './TaskStatusSelect.js';
 
 export interface TaskCollectionProps {
   currentUser: User;
@@ -28,7 +25,7 @@ export default function TaskKanbanBoard({
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
   const handleDragStart = (task: Task) => {
-    if (allowedStatuses(currentUser, task).length <= 1) return;
+    if (getAllowedTaskStatuses(currentUser, task).length <= 1) return;
     setDraggedTask(task);
   };
 
@@ -37,7 +34,7 @@ export default function TaskKanbanBoard({
   const canDrop = (status: string) =>
     Boolean(
       draggedTask &&
-        allowedStatuses(currentUser, draggedTask).some((option) => option.value === status)
+        getAllowedTaskStatuses(currentUser, draggedTask).some((option) => option.value === status)
     );
 
   const handleDrop = (status: string) => {
@@ -132,7 +129,7 @@ function KanbanColumn({
         {tasks.map((task) => (
           <KanbanCard
             currentUser={currentUser}
-            draggable={allowedStatuses(currentUser, task).length > 1}
+            draggable={getAllowedTaskStatuses(currentUser, task).length > 1}
             key={task.id}
             task={task}
             updatingId={updatingId}
@@ -189,56 +186,10 @@ function KanbanCard({
       </div>
       <TaskStatusSelect
         task={task}
-        statuses={allowedStatuses(currentUser, task)}
+        statuses={getAllowedTaskStatuses(currentUser, task)}
         isUpdating={updatingId === task.id}
         onStatusChange={onStatusChange}
       />
     </article>
-  );
-}
-
-interface TaskStatusSelectProps {
-  task: Task;
-  statuses: StatusOption[];
-  isUpdating: boolean;
-  onStatusChange: (task: Task, nextStatus: string) => Promise<void>;
-}
-
-export function TaskStatusSelect({
-  task,
-  statuses,
-  isUpdating,
-  onStatusChange,
-}: TaskStatusSelectProps) {
-  if (statuses.length <= 1) return <span />;
-  return (
-    <label className="status-select">
-      <span className="sr-only">Update {task.title} status</span>
-      <select
-        disabled={isUpdating}
-        value={task.status}
-        onChange={(event) => onStatusChange(task, event.target.value)}
-      >
-        {statuses.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-export function allowedStatuses(user: User, task: Task): StatusOption[] {
-  if (user?.role === 'admin') return TASK_STATUSES;
-  if (task.assignee_user_id !== user?.id)
-    return TASK_STATUSES.filter((item) => item.value === task.status);
-  const transitions: Record<string, string[]> = {
-    todo: ['todo', 'in_progress'],
-    in_progress: ['in_progress', 'blocked', 'reviewing'],
-    blocked: ['blocked', 'in_progress', 'reviewing'],
-  };
-  return TASK_STATUSES.filter((item) =>
-    (transitions[task.status] || [task.status]).includes(item.value)
   );
 }
