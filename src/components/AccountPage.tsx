@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, setCsrfToken } from '../api/client.js';
+import { api, setSessionToken } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { useAuth } from '../auth/useAuth.js';
 import DialogShell from './DialogShell.js';
@@ -72,9 +72,8 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
 
   const changePassword = useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) => api.changePassword(data),
-    onSuccess: async () => {
-      const { csrfToken } = await api.getCsrfToken();
-      setCsrfToken(csrfToken);
+    onSuccess: async (result: { token: string }) => {
+      setSessionToken(result.token);
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
       setSuccess(true);
       setError('');

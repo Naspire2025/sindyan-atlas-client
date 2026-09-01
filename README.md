@@ -12,7 +12,7 @@ The frontend for **Sindyan Atlas**, an internal project-management application. 
 - **Resources** — capacity profiles, availability, member and asset allocations, workload view
 - **Risks & Issues** — risk/issue tracking with severity, probability, progress, and owner
 - **Team** — user directory, role management, invitation flow with token-based onboarding
-- **Admin** — role-based access control (admin, project lead, team member), CSRF protection, session management
+- **Admin** — role-based access control (admin, project lead, team member), bearer-token session management
 
 ## Tech Stack
 
@@ -69,7 +69,7 @@ src/
     client.js          # Shared HTTP client (all fetch calls live here)
     queryKeys.js       # Centralized TanStack Query key factory
   auth/
-    AuthProvider.jsx   # Session and CSRF state provider
+    AuthProvider.jsx   # Session (bearer token) state provider
     auth-context.js    # React context definition
     permissions.js     # Role-based permission helpers
     useAuth.js         # Hook for consuming auth context

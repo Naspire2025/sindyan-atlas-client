@@ -39,7 +39,8 @@ import type {
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 const BASE_URL = configuredBaseUrl.replace(/\/$/, '');
 
-let csrfToken: string | null = null;
+const SESSION_STORAGE_KEY = 'atlas_session_token';
+
 let unauthorizedHandler: ((error?: ApiError) => Promise<void>) | null = null;
 let isHandlingUnauthorized = false;
 
@@ -53,7 +54,23 @@ export class ApiError extends Error {
   }
 }
 
-export function setCsrfToken(token: string | null): void { csrfToken = token || null; }
+function getSessionToken(): string | null {
+  try {
+    return window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setSessionToken(token: string | null): void {
+  try {
+    if (token) window.sessionStorage.setItem(SESSION_STORAGE_KEY, token);
+    else window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // sessionStorage unavailable; the in-memory token is not used for requests
+  }
+}
+
 export function setUnauthorizedHandler(handler: ((error?: ApiError) => Promise<void>) | null): void { unauthorizedHandler = handler; }
 
 function withQuery(path: string, query?: Record<string, unknown>): string {
@@ -74,7 +91,8 @@ async function notifyUnauthorized(error?: ApiError): Promise<void> {
 function buildHeaders(method: string, body?: string, headers?: HeadersInit): Headers {
   const resolvedHeaders = new Headers(headers);
   if (body !== undefined && !resolvedHeaders.has('Content-Type')) resolvedHeaders.set('Content-Type', 'application/json');
-  if (method !== 'GET' && method !== 'HEAD' && csrfToken) resolvedHeaders.set('X-CSRF-Token', csrfToken);
+  const token = getSessionToken();
+  if (token && !resolvedHeaders.has('Authorization')) resolvedHeaders.set('Authorization', `Bearer ${token}`);
   return resolvedHeaders;
 }
 
@@ -107,31 +125,19 @@ function parseRequestPayload(options: RequestInit): string | null {
   }
 }
 
-async function request(path: string, options: RequestInit = {}, retried = false): Promise<unknown> {
+async function request(path: string, options: RequestInit = {}): Promise<unknown> {
   const method = (options.method || 'GET') as string;
   const startedAt = performance.now();
   const payload = parseRequestPayload(options);
   console.log(`[api] → ${method} ${BASE_URL}${path}${payload ? ` body=${payload}` : ''}`);
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...options, method, credentials: 'include', headers: buildHeaders(method, options.body as string | undefined, options.headers) });
+  const response = await fetch(`${BASE_URL}${path}`, { ...options, method, headers: buildHeaders(method, options.body as string | undefined, options.headers) });
 
   if (response.status === 401) {
     const duration = Math.round(performance.now() - startedAt);
     console.warn(`[api] ← ${method} ${BASE_URL}${path} -> 401 (${duration}ms) session not established`);
-    setCsrfToken(null);
-    await notifyUnauthorized(new ApiError('Your session could not be established. Your browser may be blocking the login cookie.', 401));
+    await notifyUnauthorized(new ApiError('Your session could not be established. Please sign in again.', 401));
     return parseResponse(response);
-  }
-  if (!retried && response.status === 403 && method !== 'GET' && method !== 'HEAD') {
-    const clone = response.clone();
-    const body = await clone.json().catch(() => ({})) as { error?: string };
-    if (body.error === 'CSRF validation failed.') {
-      const duration = Math.round(performance.now() - startedAt);
-      console.warn(`[api] ← ${method} ${BASE_URL}${path} -> 403 CSRF failure (${duration}ms), refreshing CSRF token and retrying`);
-      const { csrfToken: nextCsrfToken } = await request('/auth/csrf') as { csrfToken: string };
-      setCsrfToken(nextCsrfToken);
-      return request(path, options, true);
-    }
   }
 
   const duration = Math.round(performance.now() - startedAt);
@@ -165,9 +171,8 @@ export const api = {
   login: (data: LoginPayload): Promise<AuthSession> => jsonRequest('/auth/login', 'POST', data) as Promise<AuthSession>,
   acceptInvitation: (token: string, data: { password: string }): Promise<AuthSession> => jsonRequest(`/auth/invitations/${encodeURIComponent(token)}/accept`, 'POST', data) as Promise<AuthSession>,
   getCurrentUser: (): Promise<{ user: User }> => request('/auth/me') as Promise<{ user: User }>,
-  getCsrfToken: (): Promise<{ csrfToken: string }> => request('/auth/csrf') as Promise<{ csrfToken: string }>,
   logout: (): Promise<null> => request('/auth/logout', { method: 'POST' }) as Promise<null>,
-  changePassword: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }): Promise<null> => jsonRequest('/auth/change-password', 'POST', { current_password: currentPassword, new_password: newPassword }) as Promise<null>,
+  changePassword: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }): Promise<{ token: string }> => jsonRequest('/auth/change-password', 'POST', { current_password: currentPassword, new_password: newPassword }) as Promise<{ token: string }>,
 
   listProjects: ({ signal, ...query }: { signal?: AbortSignal } & Partial<ProjectFilters> = {}): Promise<Project[]> => list('/projects', query, signal) as Promise<Project[]>,
   getProject: (id: number, signal?: AbortSignal): Promise<Project> => request(`/projects/${id}`, { signal }) as Promise<Project>,

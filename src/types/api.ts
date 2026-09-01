@@ -304,7 +304,7 @@ export interface LoginPayload {
 
 export interface AuthSession {
   user: User;
-  csrfToken: string;
+  token: string;
 }
 
 export interface CreateInvitationPayload {
