@@ -11,6 +11,7 @@ import PageHeader from './PageHeader.js';
 
 interface TeamDirectoryPageProps {
   onMenu: () => void;
+  onSelectMember: (userId: number) => void;
 }
 
 const ROLE_OPTIONS = [
@@ -19,7 +20,7 @@ const ROLE_OPTIONS = [
 ];
 const EMPTY_USERS: User[] = [];
 
-export default function TeamDirectoryPage({ onMenu }: TeamDirectoryPageProps) {
+export default function TeamDirectoryPage({ onMenu, onSelectMember }: TeamDirectoryPageProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -87,7 +88,7 @@ export default function TeamDirectoryPage({ onMenu }: TeamDirectoryPageProps) {
               <article className="member-card" key={user.id}>
                 <span className="avatar avatar-large">{user.name?.slice(0, 2).toUpperCase() || '—'}</span>
                 <div className="member-copy">
-                  <strong>{user.name}</strong>
+                  <button className="text-button member-name-button" type="button" onClick={() => onSelectMember(user.id)}>{user.name}</button>
                   <span>{user.email}</span>
                 </div>
                 <span className="role-pill">{user.role === 'admin' ? 'Admin' : 'Member'}</span>

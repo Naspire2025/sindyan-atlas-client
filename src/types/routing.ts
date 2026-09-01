@@ -20,6 +20,8 @@ export interface ProjectRoute {
   filter: string;
   token?: undefined;
   taskId?: undefined;
+  memberId?: undefined;
+  milestoneId?: undefined;
 }
 
 export interface TaskRoute {
@@ -28,6 +30,27 @@ export interface TaskRoute {
   projectId: null;
   filter: string;
   token?: undefined;
+  memberId?: undefined;
+  milestoneId?: undefined;
+}
+
+export interface MemberRoute {
+  page: 'member';
+  memberId: number;
+  projectId: null;
+  filter: string;
+  token?: undefined;
+  taskId?: undefined;
+}
+
+export interface MilestoneRoute {
+  page: 'milestone';
+  milestoneId: number;
+  projectId: null;
+  filter: string;
+  token?: undefined;
+  taskId?: undefined;
+  memberId?: undefined;
 }
 
 export interface StandardRoute {
@@ -36,9 +59,11 @@ export interface StandardRoute {
   filter: string;
   token?: undefined;
   taskId?: undefined;
+  memberId?: undefined;
+  milestoneId?: undefined;
 }
 
-export type Route = LoginRoute | AcceptInvitationRoute | ProjectRoute | TaskRoute | StandardRoute;
+export type Route = LoginRoute | AcceptInvitationRoute | ProjectRoute | TaskRoute | MemberRoute | MilestoneRoute | StandardRoute;
 
 export interface ProjectFilters {
   search: string;

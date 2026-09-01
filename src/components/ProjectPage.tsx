@@ -4,7 +4,7 @@ import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { PRIORITIES } from '../constants.js';
 import { canManageProject, canManageFinance, canManageRisk, canManageIssue } from '../auth/permissions.js';
-import type { User, Project, Task, Milestone, Risk, Issue, BudgetLine, SpendRecord, ProjectLink, Priority, MilestoneStatus, ProjectRole, RiskSeverity, IssueStatus, RiskProbability, RiskStatus, CreateTaskPayload, CreateMilestonePayload } from '../types/api.js';
+import type { User, Project, Task, Milestone, Risk, Issue, BudgetLine, SpendRecord, ProjectLink, Priority, MilestoneStatus, ProjectRole, RiskSeverity, IssueStatus, RiskProbability, RiskStatus, CreateTaskPayload, CreateMilestonePayload, VaultEntry, VaultFile } from '../types/api.js';
 import { formatDate, getInitials, getProgress, getProjectHealth } from '../utils/project.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
@@ -20,6 +20,8 @@ interface ProjectPageProps {
   onBack: () => void;
   onChanged: () => void;
   onMenu: () => void;
+  onSelectMember: (userId: number) => void;
+  onSelectMilestone: (milestoneId: number) => void;
   onSelectTask: (taskId: number) => void;
   projectId: number;
 }
@@ -27,7 +29,7 @@ interface ProjectPageProps {
 const PROJECT_TABS_ADMIN = ['Overview', 'Tasks', 'Milestones', 'Timeline', 'Links', 'Finance', 'Risks & Issues', 'Team'];
 const PROJECT_TABS_MEMBER = ['Overview', 'Tasks', 'Milestones', 'Timeline', 'Links', 'Risks & Issues', 'Team'];
 
-export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, onSelectTask, projectId }: ProjectPageProps) {
+export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, onSelectMember, onSelectMilestone, onSelectTask, projectId }: ProjectPageProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('Overview');
   const [createType, setCreateType] = useState('');
@@ -73,14 +75,14 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
       </nav>
 
       <div className="project-page-content">
-        {activeTab === 'Overview' && <OverviewSection project={project} />}
-        {activeTab === 'Tasks' && <TasksSection canManageProject={isPrivileged} currentUser={currentUser} project={project} projectId={projectId} onSelectTask={onSelectTask} />}
-        {activeTab === 'Milestones' && <MilestonesSection projectId={projectId} project={project} canManageProject={isPrivileged} />}
-        {activeTab === 'Timeline' && <TimelineSection canManageProject={isPrivileged} onOpenMilestones={() => setActiveTab('Milestones')} onSelectTask={onSelectTask} project={project} />}
-        {activeTab === 'Links' && <LinksSection projectId={projectId} project={project} canManageProject={isPrivileged} />}
+        {activeTab === 'Overview' && <OverviewSection project={project} onSelectMilestone={onSelectMilestone} />}
+        {activeTab === 'Tasks' && <TasksSection canManageProject={isPrivileged} currentUser={currentUser} project={project} projectId={projectId} onSelectMember={onSelectMember} onSelectTask={onSelectTask} />}
+        {activeTab === 'Milestones' && <MilestonesSection projectId={projectId} project={project} canManageProject={isPrivileged} onSelectMilestone={onSelectMilestone} />}
+        {activeTab === 'Timeline' && <TimelineSection canManageProject={isPrivileged} onSelectMilestone={onSelectMilestone} onSelectTask={onSelectTask} project={project} />}
+        {activeTab === 'Links' && <LinksSection projectId={projectId} project={project} currentUser={currentUser} canManageProject={isPrivileged} />}
         {activeTab === 'Finance' && showFinance && <FinanceSection projectId={projectId} />}
         {activeTab === 'Risks & Issues' && <RisksIssuesSection projectId={projectId} project={project} canManageProject={isPrivileged} currentUser={currentUser} />}
-        {activeTab === 'Team' && <TeamSection project={project} canManageProject={isPrivileged} onAdd={() => setCreateType('member')} />}
+        {activeTab === 'Team' && <TeamSection project={project} canManageProject={isPrivileged} onAdd={() => setCreateType('member')} onSelectMember={onSelectMember} />}
         {createType && <CreateProjectItemForm type={createType} project={project} onCancel={() => setCreateType('')} onCreated={handleCreated} />}
       </div>
     </div>
@@ -89,7 +91,7 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
 
 interface TimelineSectionProps {
   canManageProject: boolean;
-  onOpenMilestones: () => void;
+  onSelectMilestone: (milestoneId: number) => void;
   onSelectTask: (taskId: number) => void;
   project: Project;
 }
@@ -109,7 +111,7 @@ interface TimelineItem {
   type: 'Phase' | 'Milestone' | 'Task';
 }
 
-function TimelineSection({ canManageProject, onOpenMilestones, onSelectTask, project }: TimelineSectionProps) {
+function TimelineSection({ canManageProject, onSelectMilestone, onSelectTask, project }: TimelineSectionProps) {
   const queryClient = useQueryClient();
   const [isPhaseOpen, setIsPhaseOpen] = useState(false);
   const [editPhaseTarget, setEditPhaseTarget] = useState<import('../types/api.js').Phase | null>(null);
@@ -203,7 +205,7 @@ function TimelineSection({ canManageProject, onOpenMilestones, onSelectTask, pro
             <div className="timeline-row" key={row.id} role="row">
               <div className="timeline-item-copy" role="cell">
                 <span className={`timeline-kind timeline-kind-${row.type.toLowerCase()}`}>{row.type}</span>
-                {row.type === 'Milestone' ? <button className="timeline-title-button" type="button" onClick={onOpenMilestones}>{row.title}</button> : row.type === 'Task' ? <button className="timeline-title-button" type="button" onClick={() => onSelectTask(row.rawId)}>{row.title}</button> : <strong>{row.title}</strong>}
+                {row.type === 'Milestone' ? <button className="timeline-title-button" type="button" onClick={() => onSelectMilestone(row.rawId)}>{row.title}</button> : row.type === 'Task' ? <button className="timeline-title-button" type="button" onClick={() => onSelectTask(row.rawId)}>{row.title}</button> : <strong>{row.title}</strong>}
                 <small>{row.owner || getPhaseName(project, row.phaseId) || formatTimelineStatus(row.status)} · {formatDate(row.start)} — {formatDate(row.end)}</small>
                 <span className={`timeline-deadline ${getDeadlineState(row)}`}>{formatDeadlineState(row)}</span>
                 {row.type === 'Phase' && canManageProject && <span className="timeline-actions"><button className="text-button" type="button" onClick={() => setEditPhaseTarget((project.phases || []).find((phase) => phase.id === row.rawId) || null)}>Edit</button><button className="text-button text-button-danger" type="button" onClick={() => setDeletePhaseTarget(row.rawId)}>Delete</button></span>}
@@ -295,6 +297,19 @@ function formatTimelineStatus(status: string): string {
   return status ? status.replaceAll('_', ' ') : 'Scheduled';
 }
 
+function formatFileSize(sizeBytes?: number): string {
+  if (!sizeBytes) return '0 B';
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  if (sizeBytes < 1024 * 1024) return `${Math.round(sizeBytes / 1024)} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatFileStatus(status?: VaultFile['storage_status']): string {
+  if (status === 'quarantined') return 'Awaiting approval';
+  if (status === 'deletion_pending') return 'Removal pending';
+  return status ? status.replaceAll('_', ' ') : 'Pending';
+}
+
 function getPhaseName(project: Project, phaseId?: number): string {
   return (project.phases || []).find((phase) => phase.id === phaseId)?.name || '';
 }
@@ -350,7 +365,7 @@ function ProjectHero({ project }: ProjectHeroProps) {
           {healthLabels[health] || health}
         </span>
         <span className="priority-label"><span className={`priority-mark priority-${project.priority}`} />{project.priority}</span>
-        <span className="project-property"><span className="avatar">{getInitials(project.owner || project.owner_name)}</span>{project.owner || project.owner_name || 'Unassigned'}</span>
+        <span className="project-property"><span className="avatar">{getInitials(project.owner_name)}</span>{project.owner_name || 'Unassigned'}</span>
         {project.start_date && <span className="project-property"><Icon name="calendar" size={14} />Start: {formatDate(project.start_date)}</span>}
         <span className="project-property"><Icon name="calendar" size={14} />Target: {formatDate(project.deadline)}</span>
         <span className="project-property"><span className="progress-ring">{getProgress(project)}</span>{getProgress(project)}% complete</span>
@@ -367,9 +382,10 @@ function ProjectHero({ project }: ProjectHeroProps) {
 
 interface OverviewSectionProps {
   project: Project;
+  onSelectMilestone: (milestoneId: number) => void;
 }
 
-function OverviewSection({ project }: OverviewSectionProps) {
+function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
   const completedTasks = project.tasks?.filter((task) => task.status === 'done').length || 0;
   return (
     <>
@@ -386,7 +402,7 @@ function OverviewSection({ project }: OverviewSectionProps) {
           <section className="project-section-block">
             <span className="eyebrow">Milestones</span>
             <h2>Delivery roadmap</h2>
-            {project.milestones?.length ? <MilestoneRows project={project} /> : <EmptyState icon="calendar" title="No milestones yet" message="Create a milestone to organize work around a target date." />}
+            {project.milestones?.length ? <MilestoneRows project={project} onSelectMilestone={onSelectMilestone} /> : <EmptyState icon="calendar" title="No milestones yet" message="Create a milestone to organize work around a target date." />}
           </section>
         </div>
         <aside className="project-side-column">
@@ -405,12 +421,13 @@ function OverviewSection({ project }: OverviewSectionProps) {
 interface TasksSectionProps {
   canManageProject: boolean;
   currentUser: User;
+  onSelectMember: (userId: number) => void;
   onSelectTask: (taskId: number) => void;
   project: Project;
   projectId: number;
 }
 
-function TasksSection({ canManageProject, currentUser, onSelectTask, project, projectId }: TasksSectionProps) {
+function TasksSection({ canManageProject, currentUser, onSelectMember, onSelectTask, project, projectId }: TasksSectionProps) {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [view, setView] = useState<'list' | 'kanban'>('list');
@@ -449,8 +466,11 @@ function TasksSection({ canManageProject, currentUser, onSelectTask, project, pr
                 <span className={`task-check status-${task.status}`} />
                 <button className="detail-list-copy detail-list-link" type="button" onClick={() => onSelectTask(task.id)}>
                   <strong>{task.title}</strong>
-                  <small>{task.owner || task.assignee_name || 'Unassigned'} · {formatDate(task.due_date)}</small>
+                  <small>{task.status !== 'done' ? (task.status || 'todo').replaceAll('_', ' ') : 'Done'} · {task.due_date ? formatDate(task.due_date) : 'No due date'}</small>
                 </button>
+                {task.assignee_user_id && (
+                  <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button>
+                )}
               </div>
             ))}
           </div>
@@ -475,9 +495,10 @@ interface MilestonesSectionProps {
   canManageProject: boolean;
   project: Project;
   projectId: number;
+  onSelectMilestone: (milestoneId: number) => void;
 }
 
-function MilestonesSection({ canManageProject, project, projectId }: MilestonesSectionProps) {
+function MilestonesSection({ canManageProject, project, projectId, onSelectMilestone }: MilestonesSectionProps) {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Milestone | null>(null);
@@ -503,7 +524,7 @@ function MilestonesSection({ canManageProject, project, projectId }: MilestonesS
               <div className="detail-list-row" key={milestone.id}>
                 <span className="milestone-mark" />
                 <span className="detail-list-copy">
-                  <strong>{milestone.title}</strong>
+                  <button className="text-button user-link" type="button" onClick={() => onSelectMilestone(milestone.id)}>{milestone.title}</button>
                   <small>{milestone.phase_name || 'No phase'} · {formatDate(milestone.target_date)} · {formatTimelineStatus(milestone.status)}</small>
                 </span>
                 <span className="mini-progress"><span style={{ width: `${progress}%` }} /></span>
@@ -540,11 +561,12 @@ function MilestonesSection({ canManageProject, project, projectId }: MilestonesS
 
 interface LinksSectionProps {
   canManageProject: boolean;
+  currentUser: User;
   projectId: number;
   project: Project;
 }
 
-function LinksSection({ canManageProject, projectId }: LinksSectionProps) {
+function LinksSection({ canManageProject, currentUser, projectId }: LinksSectionProps) {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProjectLink | null>(null);
@@ -566,44 +588,135 @@ function LinksSection({ canManageProject, projectId }: LinksSectionProps) {
   const links = linksQuery.data || [];
 
   return (
-    <ProjectSection title="Project links" description="External resources and documentation." actionLabel={canManageProject ? 'Add link' : null} onAction={() => setIsCreateOpen(true)}>
-      {linksQuery.isLoading ? (
-        <div className="loading-state"><span className="spinner" />Loading links…</div>
-      ) : links.length ? (
+    <>
+      <ProjectSection title="Project links" description="External resources and documentation." actionLabel={canManageProject ? 'Add link' : null} onAction={() => setIsCreateOpen(true)}>
+        {linksQuery.isLoading ? (
+          <div className="loading-state"><span className="spinner" />Loading links…</div>
+        ) : links.length ? (
+          <div className="detail-list">
+            {links.map((link) => (
+              <div className="detail-list-row" key={link.id}>
+                <Icon name="external" size={16} />
+                <span className="detail-list-copy">
+                  <a href={link.url} target="_blank" rel="noopener noreferrer"><strong>{link.label || link.title || link.url}</strong></a>
+                  <small>{link.link_type || 'External link'}</small>
+                </span>
+                {canManageProject && (
+                  <div className="milestone-actions">
+                    <button className="text-button" type="button" onClick={() => setEditTarget(link)}>Edit</button>
+                    <button className="text-button text-button-danger" type="button" onClick={() => setDeleteTarget(link)}>Delete</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState icon="external" title="No links" message="Add external resources for quick access." />
+        )}
+        {isCreateOpen && <LinkDialog projectId={projectId} onClose={() => setIsCreateOpen(false)} />}
+        {editTarget && <LinkDialog projectId={projectId} link={editTarget} onClose={() => setEditTarget(null)} />}
+        {deleteTarget && (
+          <ConfirmDialog
+            title="Delete link"
+            description={`Are you sure you want to remove "${deleteTarget.label || deleteTarget.url}"?`}
+            confirmLabel="Delete"
+            isPending={deleteLink.isPending}
+            onConfirm={() => deleteLink.mutate({ linkId: deleteTarget.id })}
+            onCancel={() => setDeleteTarget(null)}
+            variant="danger"
+          />
+        )}
+      </ProjectSection>
+      <VaultResourcesSection currentUser={currentUser} projectId={projectId} />
+    </>
+  );
+}
+
+interface VaultResourcesSectionProps {
+  currentUser: User;
+  projectId: number;
+}
+
+function VaultResourcesSection({ currentUser, projectId }: VaultResourcesSectionProps) {
+  const queryClient = useQueryClient();
+  const resourcesQuery = useQuery({
+    queryKey: queryKeys.vaultEntries({ project_id: String(projectId) }),
+    queryFn: ({ signal }) => api.listVaultEntries({ signal, project_id: projectId }),
+  });
+
+  const deleteFile = useMutation({
+    mutationFn: (fileId: number) => api.deleteVaultFile(fileId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries({ project_id: String(projectId) }) }),
+  });
+
+  const resources = resourcesQuery.data || [];
+  const canReview = currentUser.role === 'admin';
+
+  const handleDownload = async (file: VaultFile) => {
+    const result = await api.getFileDownload(file.id);
+    window.location.assign(result.download_url);
+  };
+
+  const handleReview = async (file: VaultFile, status: 'available' | 'rejected') => {
+    await api.reviewVaultFile(file.id, status);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries({ project_id: String(projectId) }) });
+  };
+
+  return (
+    <ProjectSection title="Vault resources" description="Secure resources attached to this project." actionLabel={null}>
+      {resourcesQuery.isLoading ? (
+        <div className="loading-state"><span className="spinner" />Loading vault resources…</div>
+      ) : resourcesQuery.error ? (
+        <EmptyState icon="alert" title="Vault resources unavailable" message={resourcesQuery.error.message} />
+      ) : resources.length ? (
         <div className="detail-list">
-          {links.map((link) => (
-            <div className="detail-list-row" key={link.id}>
-              <Icon name="external" size={16} />
-              <span className="detail-list-copy">
-                <a href={link.url} target="_blank" rel="noopener noreferrer"><strong>{link.label || link.title || link.url}</strong></a>
-                <small>{link.link_type || 'External link'}</small>
-              </span>
-              {canManageProject && (
-                <div className="milestone-actions">
-                  <button className="text-button" type="button" onClick={() => setEditTarget(link)}>Edit</button>
-                  <button className="text-button text-button-danger" type="button" onClick={() => setDeleteTarget(link)}>Delete</button>
-                </div>
-              )}
-            </div>
+          {resources.map((resource) => (
+            <VaultResourceRow
+              canReview={canReview}
+              key={resource.id}
+              resource={resource}
+              onDeleteFile={(fileId) => deleteFile.mutate(fileId)}
+              onDownload={handleDownload}
+              onReview={handleReview}
+            />
           ))}
         </div>
       ) : (
-        <EmptyState icon="external" title="No links" message="Add external resources for quick access." />
-      )}
-      {isCreateOpen && <LinkDialog projectId={projectId} onClose={() => setIsCreateOpen(false)} />}
-      {editTarget && <LinkDialog projectId={projectId} link={editTarget} onClose={() => setEditTarget(null)} />}
-      {deleteTarget && (
-        <ConfirmDialog
-          title="Delete link"
-          description={`Are you sure you want to remove "${deleteTarget.label || deleteTarget.url}"?`}
-          confirmLabel="Delete"
-          isPending={deleteLink.isPending}
-          onConfirm={() => deleteLink.mutate({ linkId: deleteTarget.id })}
-          onCancel={() => setDeleteTarget(null)}
-          variant="danger"
-        />
+        <EmptyState icon="lock" title="No vault resources" message="Project-linked vault resources will appear here." />
       )}
     </ProjectSection>
+  );
+}
+
+interface VaultResourceRowProps {
+  canReview: boolean;
+  onDeleteFile: (fileId: number) => void;
+  onDownload: (file: VaultFile) => void;
+  onReview: (file: VaultFile, status: 'available' | 'rejected') => void;
+  resource: VaultEntry;
+}
+
+function VaultResourceRow({ canReview, onDeleteFile, onDownload, onReview, resource }: VaultResourceRowProps) {
+  const files = resource.files || [];
+  return (
+    <div className="detail-list-row vault-entry-row">
+      <Icon name={resource.entry_type === 'external_link' ? 'external' : resource.entry_type === 'file' ? 'projects' : 'lock'} size={16} />
+      <span className="detail-list-copy">
+        <strong>{resource.title}</strong>
+        <small>{resource.entry_type.replaceAll('_', ' ')} · {resource.category || 'General'}</small>
+        {files.map((file) => (
+          <span className="vault-file-chip" key={file.id}>
+            <span>{file.original_filename}</span>
+            <small>{formatFileSize(file.size_bytes)} · {formatFileStatus(file.storage_status)}</small>
+            {file.storage_status === 'available' && <button className="text-button" type="button" onClick={() => onDownload(file)}>Download</button>}
+            {canReview && file.storage_status === 'quarantined' && <button className="text-button" type="button" onClick={() => onReview(file, 'available')}>Approve</button>}
+            {canReview && file.storage_status === 'quarantined' && <button className="text-button text-button-danger" type="button" onClick={() => onReview(file, 'rejected')}>Reject</button>}
+            {canReview && <button className="text-button text-button-danger" type="button" onClick={() => onDeleteFile(file.id)}>Remove</button>}
+          </span>
+        ))}
+      </span>
+      {resource.external_url && <a className="text-button" href={resource.external_url} target="_blank" rel="noopener noreferrer">Open <Icon name="external" size={13} /></a>}
+    </div>
   );
 }
 
@@ -752,9 +865,10 @@ interface TeamSectionProps {
   project: Project;
   canManageProject: boolean;
   onAdd: () => void;
+  onSelectMember: (userId: number) => void;
 }
 
-function TeamSection({ project, canManageProject, onAdd }: TeamSectionProps) {
+function TeamSection({ project, canManageProject, onAdd, onSelectMember }: TeamSectionProps) {
   return (
     <ProjectSection title="Project team" description="The people who can access and contribute to this project." actionLabel={canManageProject ? 'Add member' : null} onAction={onAdd}>
       {project.team_members?.length ? (
@@ -763,7 +877,7 @@ function TeamSection({ project, canManageProject, onAdd }: TeamSectionProps) {
             <div className="detail-list-row" key={member.id}>
               <span className="avatar">{getInitials(member.name)}</span>
               <span className="detail-list-copy">
-                <strong>{member.name}</strong>
+                <button className="text-button user-link" type="button" onClick={() => onSelectMember(member.user_id)}>{member.name}</button>
                 <small>{member.email || 'No email added'}</small>
               </span>
               <span className="role-pill">{member.project_role === 'project_lead' ? 'Project lead' : 'Member'}</span>
@@ -779,9 +893,10 @@ function TeamSection({ project, canManageProject, onAdd }: TeamSectionProps) {
 
 interface MilestoneRowsProps {
   project: Project;
+  onSelectMilestone: (milestoneId: number) => void;
 }
 
-function MilestoneRows({ project }: MilestoneRowsProps) {
+function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
   return (
     <div className="detail-list">
       {project.milestones!.map((milestone) => {
@@ -792,7 +907,7 @@ function MilestoneRows({ project }: MilestoneRowsProps) {
           <div className="detail-list-row" key={milestone.id}>
             <span className="milestone-mark" />
             <span className="detail-list-copy">
-              <strong>{milestone.title}</strong>
+              <button className="text-button user-link" type="button" onClick={() => onSelectMilestone(milestone.id)}>{milestone.title}</button>
               <small>{formatDate(milestone.target_date)} · {milestone.status?.replaceAll('_', ' ') || 'Not started'}</small>
             </span>
             <span className="mini-progress"><span style={{ width: `${progress}%` }} /></span>

@@ -16,12 +16,14 @@ import type {
   Invitation,
   VaultEntry,
   VaultFile,
+  VaultUploadIntent,
   WorkloadItem,
   Asset,
   MemberAllocation,
   AssetAllocation,
   CapacityProfile,
   Availability,
+  MemberSummary,
   LoginPayload,
   CreateInvitationPayload,
   CreateProjectPayload,
@@ -34,6 +36,7 @@ import type {
   ProjectMember,
   ProjectAllocation,
   ProjectFilters,
+  MilestoneDetail,
 } from '../types/api.js';
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -161,10 +164,9 @@ async function request(path: string, options: RequestInit = {}): Promise<unknown
 function jsonRequest(path: string, method: string, data: unknown): Promise<unknown> { return request(path, { method, body: JSON.stringify(data) }); }
 function list(path: string, query: Record<string, unknown> | undefined, signal: AbortSignal | undefined): Promise<unknown> { return request(withQuery(path, query), { signal }); }
 
-async function uploadToSignedUrl(uploadUrl: string, file: File, onProgress?: (percent: number) => void): Promise<void> {
+async function uploadToSignedUrl(uploadUrl: string, file: File): Promise<void> {
   const response = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
   if (!response.ok) throw new ApiError('File upload failed.', response.status);
-  onProgress?.(100);
 }
 
 export const api = {
@@ -194,6 +196,7 @@ export const api = {
 
   listUsers: ({ signal, ...query }: { signal?: AbortSignal } & Record<string, unknown> = {}): Promise<User[]> => list('/users', query, signal) as Promise<User[]>,
   getUser: (id: number, signal?: AbortSignal): Promise<User> => request(`/users/${id}`, { signal }) as Promise<User>,
+  getMemberSummary: (id: number, signal?: AbortSignal): Promise<MemberSummary> => request(`/users/${id}/summary`, { signal }) as Promise<MemberSummary>,
   updateUser: (id: number, data: Partial<User>): Promise<User> => jsonRequest(`/users/${id}`, 'PATCH', data) as Promise<User>,
   listInvitations: (signal?: AbortSignal): Promise<Invitation[]> => request('/invitations', { signal }) as Promise<Invitation[]>,
   createInvitation: (data: CreateInvitationPayload): Promise<Invitation> => jsonRequest('/auth/invitations', 'POST', data) as Promise<Invitation>,
@@ -214,6 +217,7 @@ export const api = {
   deletePhase: (projectId: number, phaseId: number): Promise<null> => request(`/projects/${projectId}/phases/${phaseId}`, { method: 'DELETE' }) as Promise<null>,
 
   listMilestones: (projectId: number, signal?: AbortSignal): Promise<Milestone[]> => request(`/projects/${projectId}/milestones`, { signal }) as Promise<Milestone[]>,
+  getMilestone: (id: number, signal?: AbortSignal): Promise<MilestoneDetail> => request(`/milestones/${id}`, { signal }) as Promise<MilestoneDetail>,
   createMilestone: (projectId: number, data: CreateMilestonePayload): Promise<Milestone> => jsonRequest(`/projects/${projectId}/milestones`, 'POST', data) as Promise<Milestone>,
   updateMilestone: (id: number, data: Partial<CreateMilestonePayload>): Promise<Milestone> => jsonRequest(`/milestones/${id}`, 'PATCH', data) as Promise<Milestone>,
   deleteMilestone: (id: number): Promise<null> => request(`/milestones/${id}`, { method: 'DELETE' }) as Promise<null>,
@@ -271,9 +275,10 @@ export const api = {
   deleteVaultEntry: (id: number): Promise<null> => request(`/vault/entries/${id}`, { method: 'DELETE' }) as Promise<null>,
   revealVaultSecret: (id: number): Promise<{ secret_value: string }> => request(`/vault/entries/${id}/reveal`, { method: 'POST' }) as Promise<{ secret_value: string }>,
   listVaultFiles: (entryId: number, signal?: AbortSignal): Promise<VaultFile[]> => request(`/vault/entries/${entryId}/files`, { signal }) as Promise<VaultFile[]>,
-  createUploadIntent: (entryId: number, data: { filename: string; content_type: string; size_bytes: number }): Promise<VaultFile> => jsonRequest(`/vault/entries/${entryId}/files/upload-intents`, 'POST', data) as Promise<VaultFile>,
+  createUploadIntent: (entryId: number, data: { filename: string; content_type: string; size_bytes: number }): Promise<VaultUploadIntent> => jsonRequest(`/vault/entries/${entryId}/files/upload-intents`, 'POST', data) as Promise<VaultUploadIntent>,
   uploadToSignedUrl,
-  finalizeUpload: (fileId: number, data: Record<string, unknown>): Promise<null> => jsonRequest(`/vault/files/${fileId}/finalize`, 'POST', data) as Promise<null>,
-  getFileDownload: (fileId: number): Promise<{ download_url: string }> => request(`/vault/files/${fileId}/download`, { method: 'POST' }) as Promise<{ download_url: string }>,
+  finalizeUpload: (fileId: number, data: Record<string, unknown>): Promise<{ file_id: number; storage_status: VaultFile['storage_status'] }> => jsonRequest(`/vault/files/${fileId}/finalize`, 'POST', data) as Promise<{ file_id: number; storage_status: VaultFile['storage_status'] }>,
+  reviewVaultFile: (fileId: number, status: 'available' | 'rejected'): Promise<{ file_id: number; storage_status: VaultFile['storage_status'] }> => jsonRequest(`/vault/files/${fileId}/review`, 'POST', { status }) as Promise<{ file_id: number; storage_status: VaultFile['storage_status'] }>,
+  getFileDownload: (fileId: number): Promise<{ download_url: string; filename?: string }> => request(`/vault/files/${fileId}/download`, { method: 'POST' }) as Promise<{ download_url: string; filename?: string }>,
   deleteVaultFile: (fileId: number): Promise<null> => request(`/vault/files/${fileId}`, { method: 'DELETE' }) as Promise<null>,
 };

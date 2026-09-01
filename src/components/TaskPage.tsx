@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api } from '../api/client.js';
 import { PRIORITIES, TASK_STATUSES, getLabel } from '../constants.js';
 import type { User, Task, TaskComment, TaskActivityEvent, Milestone, ProjectMember } from '../types/api.js';
@@ -12,6 +12,7 @@ interface TaskPageProps {
   onBack: () => void;
   onChanged: () => void;
   onMenu: () => void;
+  onSelectMember: (userId: number) => void;
   onSelectProject: (projectId: number) => void;
   taskId: number;
 }
@@ -20,7 +21,7 @@ function initialTask(): Task | null {
   return null;
 }
 
-export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSelectProject, taskId }: TaskPageProps) {
+export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSelectMember, onSelectProject, taskId }: TaskPageProps) {
   const [task, setTask] = useState<Task | null>(() => normalizeTask(initialTask()));
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
@@ -127,6 +128,7 @@ export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSel
           isSaving={isSavingProperty}
           members={members}
           milestones={milestones}
+          onSelectMember={onSelectMember}
           onSelectProject={onSelectProject}
           onUpdate={updateProperty}
           task={task}
@@ -164,12 +166,13 @@ interface TaskPropertiesProps {
   isSaving: boolean;
   members: ProjectMember[];
   milestones: Milestone[];
+  onSelectMember: (userId: number) => void;
   onSelectProject: (projectId: number) => void;
   onUpdate: (field: string, value: string | number | null) => void;
   task: Task;
 }
 
-function TaskProperties({ currentUser, isSaving, members, milestones, onSelectProject, onUpdate, task }: TaskPropertiesProps) {
+function TaskProperties({ currentUser, isSaving, members, milestones, onSelectMember, onSelectProject, onUpdate, task }: TaskPropertiesProps) {
   const availableStatuses = getAllowedTaskStatuses(currentUser, task);
   const canManage = canManageTaskProperties(currentUser, task);
   return (
@@ -177,7 +180,7 @@ function TaskProperties({ currentUser, isSaving, members, milestones, onSelectPr
       <h2>Properties</h2>
       {availableStatuses.length > 1 ? <label className="task-property-control"><Icon name="check" size={15} /><span>Status</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="check" label="Status" value={getLabel(TASK_STATUSES, task.status)} />}
       {canManage ? <label className="task-property-control"><Icon name="priority" size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="priority" label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
-      {canManage ? <label className="task-property-control"><Icon name="user" size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value ? Number(event.target.value) : null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon="user" label="Assignee" value={task.assignee_name || task.owner || 'Unassigned'} />}
+      {canManage ? <label className="task-property-control"><Icon name="user" size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value ? Number(event.target.value) : null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon="user" label="Assignee" value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button> : task.owner || 'Unassigned'} />}
       {canManage ? <label className="task-property-control"><Icon name="calendar" size={15} /><span>Due date</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon="calendar" label="Due date" value={formatDate(task.due_date)} />}
       {canManage ? <label className="task-property-control"><Icon name="milestone" size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value ? Number(event.target.value) : null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon="milestone" label="Milestone" value={task.milestone_title || 'No milestone'} />}
 
@@ -196,7 +199,7 @@ function TaskProperties({ currentUser, isSaving, members, milestones, onSelectPr
 interface PropertyRowProps {
   icon: string;
   label: string;
-  value: string;
+  value: ReactNode;
 }
 
 function PropertyRow({ icon, label, value }: PropertyRowProps) {

@@ -15,6 +15,8 @@ export function readRoute(): Route {
   const path = normalizePath(window.location.pathname);
   const projectMatch = path.match(/^\/projects\/(\d+)$/);
   const taskMatch = path.match(/^\/tasks\/(\d+)$/);
+  const memberMatch = path.match(/^\/members\/(\d+)$/);
+  const milestoneMatch = path.match(/^\/milestones\/(\d+)$/);
 
   if (path === '/login') return { page: 'login', projectId: null, filter: 'all' };
   if (path === '/accept-invitation') return { page: 'acceptInvitation', token: new URLSearchParams(window.location.search).get('token') || '', projectId: null, filter: 'all' };
@@ -25,6 +27,14 @@ export function readRoute(): Route {
 
   if (taskMatch) {
     return { page: 'task', taskId: Number(taskMatch[1]), projectId: null, filter: 'all' };
+  }
+
+  if (memberMatch) {
+    return { page: 'member', memberId: Number(memberMatch[1]), projectId: null, filter: 'all' };
+  }
+
+  if (milestoneMatch) {
+    return { page: 'milestone', milestoneId: Number(milestoneMatch[1]), projectId: null, filter: 'all' };
   }
 
   if (path === '/projects' || path === '/projects/all') {
@@ -48,6 +58,14 @@ export function getProjectPath(projectId: number): string {
 
 export function getTaskPath(taskId: number): string {
   return `/tasks/${taskId}`;
+}
+
+export function getMemberPath(memberId: number): string {
+  return `/members/${memberId}`;
+}
+
+export function getMilestonePath(milestoneId: number): string {
+  return `/milestones/${milestoneId}`;
 }
 
 function normalizePath(path: string): string {

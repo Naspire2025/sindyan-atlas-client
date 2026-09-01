@@ -41,7 +41,7 @@ function ProjectRow({ project, onSelect }: ProjectRowProps) {
       </span>
       <span className={`health health-${health}`}><span />{HEALTH_LABELS[health]}</span>
       <span className="priority-label"><span className={`priority-mark priority-${project.priority}`} />{getLabel(PRIORITIES, project.priority)}</span>
-      <span className="lead-cell"><span className="avatar">{getInitials(project.owner)}</span>{project.owner || 'Unassigned'}</span>
+      <span className="lead-cell"><span className="avatar">{getInitials(project.owner_name)}</span>{project.owner_name || 'Unassigned'}</span>
       <span className="date-cell">{formatDate(project.deadline)}</span>
       <span className="issue-count">{tasks.total}{tasks.blocked > 0 && <small>{tasks.blocked} blocked</small>}</span>
       <span className="progress-cell"><span>{progress}%</span><span className="progress-track"><span style={{ width: `${progress}%` }} /></span></span>

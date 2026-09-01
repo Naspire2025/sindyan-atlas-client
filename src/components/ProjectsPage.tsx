@@ -58,7 +58,7 @@ export default function ProjectsPage({ canCreate, initialFilter, projects, onCre
 function filterProjects(projects: Project[], filters: ProjectFilters) {
   const search = filters.search.trim().toLowerCase();
   return projects.filter((project) => {
-    if (search && !`${project.name} ${project.owner || ''}`.toLowerCase().includes(search)) return false;
+    if (search && !`${project.name} ${project.owner_name || ''}`.toLowerCase().includes(search)) return false;
     if (filters.status && project.status !== filters.status) return false;
     if (filters.priority && project.priority !== filters.priority) return false;
     if (isStatusSummary(filters.summary) && project.status !== filters.summary) return false;

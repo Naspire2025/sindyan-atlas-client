@@ -11,6 +11,8 @@ import DashboardPage from './components/DashboardPage.jsx';
 import DashboardShell from './components/DashboardShell.jsx';
 import Icon from './components/Icon.jsx';
 import InvitationsPage from './components/InvitationsPage.jsx';
+import MemberPage from './components/MemberPage.jsx';
+import MilestonePage from './components/MilestonePage.jsx';
 import NotFoundPage from './components/NotFoundPage.jsx';
 import NewProjectModal from './components/NewProjectModal.jsx';
 import ProjectPage from './components/ProjectPage.jsx';
@@ -20,7 +22,7 @@ import TaskPage from './components/TaskPage.jsx';
 import TasksPage from './components/TasksPage.jsx';
 import TeamDirectoryPage from './components/TeamDirectoryPage.jsx';
 import VaultPage from './components/VaultPage.jsx';
-import { getPagePath, getProjectPath, getTaskPath, readRoute } from './routing.js';
+import { getMemberPath, getMilestonePath, getPagePath, getProjectPath, getTaskPath, readRoute } from './routing.js';
 
 export default function App() {
   const { error, status } = useAuth();
@@ -92,6 +94,8 @@ function AuthenticatedApp({ route, setRoute }: AuthenticatedAppProps) {
         onCreateProject={() => setIsNewProjectOpen(true)}
         onMenu={() => setIsSidebarOpen(true)}
         onSelectProject={(projectId) => navigateToPath(getProjectPath(projectId), setRoute)}
+        onSelectMember={(userId) => navigateToPath(getMemberPath(userId), setRoute)}
+        onSelectMilestone={(milestoneId) => navigateToPath(getMilestonePath(milestoneId), setRoute)}
         onSelectTask={(taskId) => navigateToPath(getTaskPath(taskId), setRoute)}
         onUpdateTask={(taskId, task) => updateTask.mutateAsync({ taskId, task })}
         onWorkspaceChanged={refreshWorkspace}
@@ -114,6 +118,8 @@ interface PageContentProps {
   onCreateProject: () => void;
   onMenu: () => void;
   onSelectProject: (projectId: number) => void;
+  onSelectMember: (userId: number) => void;
+  onSelectMilestone: (milestoneId: number) => void;
   onSelectTask: (taskId: number) => void;
   onUpdateTask: (taskId: number, task: Record<string, unknown>) => Promise<unknown>;
   onWorkspaceChanged: () => void;
@@ -123,13 +129,13 @@ interface PageContentProps {
   user: User;
 }
 
-function PageContent({ canCreateProject, canManageInvitations, canManageTeam, canViewPortfolio: canViewOverview, navigate, onCreateProject, onMenu, onSelectProject, onSelectTask, onUpdateTask, onWorkspaceChanged, projects, route, tasks, user }: PageContentProps) {
+function PageContent({ canCreateProject, canManageInvitations, canManageTeam, canViewPortfolio: canViewOverview, navigate, onCreateProject, onMenu, onSelectMember, onSelectMilestone, onSelectProject, onSelectTask, onUpdateTask, onWorkspaceChanged, projects, route, tasks, user }: PageContentProps) {
   const sharedPageProps = { onMenu };
 
   if (route.page === 'account') return <AccountPage {...sharedPageProps} />;
   if (route.page === 'team') {
     if (!canManageTeam) return <PermissionDeniedPage onMenu={onMenu} />;
-    return <TeamDirectoryPage {...sharedPageProps} />;
+    return <TeamDirectoryPage {...sharedPageProps} onSelectMember={onSelectMember} />;
   }
   if (route.page === 'invitations') {
     if (!canManageInvitations) return <PermissionDeniedPage onMenu={onMenu} />;
@@ -139,11 +145,13 @@ function PageContent({ canCreateProject, canManageInvitations, canManageTeam, ca
     if (!canManageTeam) return <PermissionDeniedPage onMenu={onMenu} />;
     return <ResourcesPage {...sharedPageProps} />;
   }
-  if (route.page === 'project') return <ProjectPage {...sharedPageProps} currentUser={user} key={route.projectId} projectId={route.projectId ?? 0} onBack={() => navigate('projects')} onChanged={onWorkspaceChanged} onSelectTask={onSelectTask} />;
-  if (route.page === 'task') return <TaskPage {...sharedPageProps} currentUser={user} key={route.taskId} taskId={route.taskId ?? 0} onBack={() => navigate('tasks')} onChanged={onWorkspaceChanged} onSelectProject={onSelectProject} />;
+  if (route.page === 'project') return <ProjectPage {...sharedPageProps} currentUser={user} key={route.projectId} projectId={route.projectId ?? 0} onBack={() => navigate('projects')} onChanged={onWorkspaceChanged} onSelectMember={onSelectMember} onSelectMilestone={onSelectMilestone} onSelectTask={onSelectTask} />;
+  if (route.page === 'task') return <TaskPage {...sharedPageProps} currentUser={user} key={route.taskId} taskId={route.taskId ?? 0} onBack={() => navigate('tasks')} onChanged={onWorkspaceChanged} onSelectMember={onSelectMember} onSelectProject={onSelectProject} />;
+  if (route.page === 'member') return <MemberPage {...sharedPageProps} key={route.memberId} memberId={route.memberId ?? 0} onBack={() => navigate('team')} onSelectProject={onSelectProject} onSelectTask={onSelectTask} />;
+  if (route.page === 'milestone') return <MilestonePage {...sharedPageProps} key={route.milestoneId} milestoneId={route.milestoneId ?? 0} onBack={() => navigate('projects')} onSelectMember={onSelectMember} onSelectProject={onSelectProject} onSelectTask={onSelectTask} />;
   if (route.page === 'projects') return <ProjectsPage {...sharedPageProps} canCreate={canCreateProject} key={route.filter} initialFilter={route.filter} projects={projects} onCreate={onCreateProject} onSelectProject={onSelectProject} />;
   if (route.page === 'tasks') return <TasksPage {...sharedPageProps} currentUser={user} tasks={tasks} onSelectProject={onSelectProject} onSelectTask={onSelectTask} onUpdateTask={onUpdateTask} />;
-  if (route.page === 'vault') return <VaultPage {...sharedPageProps} />;
+  if (route.page === 'vault') return <VaultPage {...sharedPageProps} currentUser={user} />;
   if (route.page === 'notFound') return <NotFoundPage onMenu={onMenu} />;
   if (!canViewOverview) return <TasksPage {...sharedPageProps} currentUser={user} tasks={tasks} onSelectProject={onSelectProject} onSelectTask={onSelectTask} onUpdateTask={onUpdateTask} />;
   return <DashboardPage {...sharedPageProps} projects={projects} tasks={tasks} onNavigate={navigate} onSelectProject={onSelectProject} onSelectTask={onSelectTask} />;

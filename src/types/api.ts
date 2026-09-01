@@ -46,6 +46,42 @@ export interface User {
   created_at?: string;
 }
 
+export interface MemberProjectSummary {
+  project_id: number;
+  project_name: string;
+  status: string;
+  priority: string;
+  project_role: ProjectRole;
+}
+
+export interface MemberAssignmentItem {
+  id: number;
+  title: string;
+  status: string;
+  priority: string;
+  due_date?: string | null;
+  project_id: number;
+  project_name: string;
+}
+
+export interface MemberAssignments {
+  tasks: MemberAssignmentItem[];
+  risks: Array<{ id: number; title: string; severity: string; status: string; due_date?: string | null; project_id: number; project_name: string }>;
+  issues: Array<{ id: number; title: string; priority: string; status: string; target_resolution_date?: string | null; project_id: number; project_name: string }>;
+  vault_entries: Array<{ id: number; title: string; entry_type: string; category?: string | null; project_id?: number | null; project_name?: string | null }>;
+  allocations: Array<{ project_id: number; project_name: string; starts_on: string; ends_on: string; allocation_percent: number }>;
+}
+
+export interface MemberSummary {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  projects: MemberProjectSummary[];
+  assignments: MemberAssignments;
+}
+
 export interface ProjectMember {
   id: number;
   user_id: number;
@@ -132,6 +168,32 @@ export interface Milestone {
   title: string;
   target_date?: string;
   status: MilestoneStatus;
+}
+
+export interface MilestoneTask {
+  id: number;
+  title: string;
+  status: TaskStatus;
+  priority: Priority;
+  due_date?: string;
+  assignee_user_id?: number | null;
+  assignee_name?: string;
+  project_id: number;
+  project_name: string;
+}
+
+export interface MilestoneMember {
+  user_id: number;
+  name: string;
+  email?: string;
+  project_role: ProjectRole;
+}
+
+export interface MilestoneDetail extends Milestone {
+  project_name: string;
+  progress: number;
+  tasks: MilestoneTask[];
+  members: MilestoneMember[];
 }
 
 export interface Phase {
@@ -238,10 +300,13 @@ export interface VaultEntry {
   title: string;
   entry_type: VaultEntryType;
   category?: string;
+  project_id?: number | null;
+  owner_user_id?: number;
   tags?: VaultTag[];
   markdown_content?: string;
   external_url?: string;
   secret_value?: string;
+  files?: VaultFile[];
 }
 
 export interface VaultTag {
@@ -251,12 +316,20 @@ export interface VaultTag {
 
 export interface VaultFile {
   id: number;
-  file_id?: number;
-  entry_id: number;
-  filename: string;
+  vault_entry_id?: number;
+  original_filename: string;
   content_type?: string;
   size_bytes?: number;
-  upload_url?: string;
+  storage_status?: 'pending' | 'quarantined' | 'available' | 'rejected' | 'deleted' | 'deletion_pending';
+  uploaded_by_user_id?: number;
+  uploaded_at?: string;
+  available_at?: string;
+}
+
+export interface VaultUploadIntent {
+  file_id: number;
+  upload_url: string;
+  storage_status: 'pending';
 }
 
 export interface WorkloadItem {
@@ -359,6 +432,7 @@ export interface CreateVaultEntryPayload {
   title: string;
   entry_type: VaultEntryType;
   category?: string;
+  project_id?: number | null;
   markdown_content?: string;
   external_url?: string;
   secret_value?: string;

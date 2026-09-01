@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { VAULT_ENTRY_TYPES } from '../constants.js';
-import type { VaultEntry, VaultEntryType } from '../types/api.js';
+import type { Project, User, VaultEntry, VaultEntryType, VaultFile } from '../types/api.js';
+import { canRevealSecret, isAdmin } from '../auth/permissions.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
@@ -12,12 +13,25 @@ import PageHeader from './PageHeader.js';
 import { SearchField, SelectField } from './FilterBar.js';
 
 interface VaultPageProps {
+  currentUser: User;
   onMenu: () => void;
 }
 
 const EMPTY_ENTRIES: VaultEntry[] = [];
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = new Set([
+  'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+  'application/pdf',
+  'text/plain', 'text/markdown', 'text/csv',
+  'application/json',
+  'application/zip',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]);
 
-export default function VaultPage({ onMenu }: VaultPageProps) {
+export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<VaultEntry | null>(null);
@@ -106,6 +120,8 @@ export default function VaultPage({ onMenu }: VaultPageProps) {
               <VaultEntryRow
                 key={entry.id}
                 entry={entry}
+                currentUser={currentUser}
+                projects={projectsQuery.data || []}
                 onEdit={() => setEditTarget(entry)}
                 onDelete={() => setDeleteTarget(entry)}
                 onReveal={() => setRevealTarget(entry)}
@@ -134,14 +150,18 @@ export default function VaultPage({ onMenu }: VaultPageProps) {
 }
 
 interface VaultEntryRowProps {
+  currentUser: User;
   entry: VaultEntry;
+  projects: Project[];
   onEdit: () => void;
   onDelete: () => void;
   onReveal: () => void;
 }
 
-function VaultEntryRow({ entry, onEdit, onDelete, onReveal }: VaultEntryRowProps) {
+function VaultEntryRow({ currentUser, entry, projects, onEdit, onDelete, onReveal }: VaultEntryRowProps) {
   const hasSecret = entry.entry_type === 'credential' || entry.entry_type === 'secret_key';
+  const projectName = entry.project_id ? projects.find((project) => project.id === entry.project_id)?.name || `Project ${entry.project_id}` : 'Organization-wide';
+  const files = entry.files || [];
 
   return (
     <div className="detail-list-row vault-entry-row">
@@ -150,10 +170,15 @@ function VaultEntryRow({ entry, onEdit, onDelete, onReveal }: VaultEntryRowProps
       </span>
       <span className="detail-list-copy">
         <strong>{entry.title}</strong>
-        <small>{VAULT_ENTRY_TYPES.find((t) => t.value === entry.entry_type)?.label || entry.entry_type} · {entry.category || 'General'}</small>
+        <small>{VAULT_ENTRY_TYPES.find((t) => t.value === entry.entry_type)?.label || entry.entry_type} · {entry.category || 'General'} · {projectName}</small>
+        {files.length > 0 && (
+          <span className="vault-file-list">
+            {files.map((file) => <VaultFileActions key={file.id} currentUser={currentUser} file={file} />)}
+          </span>
+        )}
       </span>
       <div className="vault-entry-actions">
-        {hasSecret && (
+        {hasSecret && canRevealSecret(currentUser) && (
           <button className="text-button" type="button" onClick={onReveal}>
             <Icon name="lock" size={13} />
             Reveal
@@ -172,6 +197,56 @@ function VaultEntryRow({ entry, onEdit, onDelete, onReveal }: VaultEntryRowProps
   );
 }
 
+interface VaultFileActionsProps {
+  currentUser: User;
+  file: VaultFile;
+}
+
+function VaultFileActions({ currentUser, file }: VaultFileActionsProps) {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState('');
+  const canReview = isAdmin(currentUser) && file.storage_status === 'quarantined';
+  const canDelete = isAdmin(currentUser) || (file.storage_status === 'pending' && file.uploaded_by_user_id === currentUser.id);
+  const reviewFile = useMutation({
+    mutationFn: (status: 'available' | 'rejected') => api.reviewVaultFile(file.id, status),
+    onSuccess: () => {
+      setError('');
+      queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries() });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+  const deleteFile = useMutation({
+    mutationFn: () => api.deleteVaultFile(file.id),
+    onSuccess: () => {
+      setError('');
+      queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries() });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const handleDownload = async () => {
+    setError('');
+    try {
+      const result = await api.getFileDownload(file.id);
+      window.location.assign(result.download_url);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  return (
+    <span className="vault-file-chip">
+      <span>{file.original_filename}</span>
+      <small>{formatFileSize(file.size_bytes)} · {formatFileStatus(file.storage_status)}</small>
+      {file.storage_status === 'available' && <button className="text-button" type="button" onClick={handleDownload}>Download</button>}
+      {canReview && <button className="text-button" type="button" disabled={reviewFile.isPending} onClick={() => reviewFile.mutate('available')}>Approve</button>}
+      {canReview && <button className="text-button text-button-danger" type="button" disabled={reviewFile.isPending} onClick={() => reviewFile.mutate('rejected')}>Reject</button>}
+      {canDelete && <button className="text-button text-button-danger" type="button" disabled={deleteFile.isPending} onClick={() => deleteFile.mutate()}>Remove</button>}
+      {error && <em role="alert">{error}</em>}
+    </span>
+  );
+}
+
 interface VaultEntryDialogProps {
   entry?: VaultEntry;
   onClose: () => void;
@@ -186,24 +261,35 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
     category: entry?.category || '',
     markdown_content: entry?.markdown_content || '',
     external_url: entry?.external_url || '',
+    project_id: entry?.project_id ? String(entry.project_id) : '',
     secret_value: '',
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadStep, setUploadStep] = useState('');
+  const [preparedFileId, setPreparedFileId] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const projectsQuery = useQuery({ queryKey: queryKeys.projects(), queryFn: ({ signal }) => api.listProjects({ signal }) });
 
   const createEntry = useMutation({
-    mutationFn: async (data: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; secret_value?: string }) => {
+    mutationFn: async (data: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; project_id?: number | null; secret_value?: string }) => {
+      setUploadStep(isEditing ? 'Saving changes' : 'Creating resource');
       const savedEntry = isEditing ? await api.updateVaultEntry(entry!.id, data) : await api.createVaultEntry(data);
       if (selectedFile) {
+        setUploadStep('Preparing upload');
         const intent = await api.createUploadIntent(savedEntry.id ?? 0, { filename: selectedFile.name, content_type: selectedFile.type, size_bytes: selectedFile.size });
+        setPreparedFileId(intent.file_id);
         if (!intent.upload_url) { throw new Error('Upload could not be prepared.'); }
+        setUploadStep('Uploading');
         await api.uploadToSignedUrl(intent.upload_url, selectedFile);
+        setUploadStep('Verifying');
         await api.finalizeUpload(intent.file_id ?? 0, {});
+        setUploadStep('Awaiting approval');
       }
       return savedEntry;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries() });
+      if (form.project_id) queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries({ project_id: form.project_id }) });
       onClose();
     },
     onError: (err: Error) => setError(err.message),
@@ -212,12 +298,13 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    const payload: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; secret_value?: string } = {
+    const payload: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; project_id?: number | null; secret_value?: string } = {
       title: form.title,
       entry_type: form.entry_type as VaultEntryType,
       category: form.category || undefined,
       markdown_content: form.markdown_content || undefined,
       external_url: form.external_url || undefined,
+      project_id: form.project_id ? Number(form.project_id) : null,
     };
     if (!isEditing && form.secret_value) {
       payload.secret_value = form.secret_value;
@@ -226,23 +313,44 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
       setError('Title is required.');
       return;
     }
+    if (!isEditing && form.entry_type === 'file') {
+      const validationError = validateSelectedFile(selectedFile);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
     createEntry.mutate(payload);
   };
 
   const updateField = (key: string) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const isUploading = createEntry.isPending;
+  const cleanupPreparedFile = async () => {
+    if (!preparedFileId) return;
+    await api.deleteVaultFile(preparedFileId);
+    setPreparedFileId(null);
+    setUploadStep('');
+    queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries() });
+  };
 
   return (
-    <DialogShell title={isEditing ? 'Edit resource' : 'Create resource'} description={isEditing ? 'Update vault resource details.' : 'Add a new resource to the secure vault.'} onClose={onClose}>
+    <DialogShell title={isEditing ? 'Edit resource' : 'Create resource'} description={isEditing ? 'Update vault resource details.' : 'Add a new resource to the secure vault.'} closeDisabled={isUploading} onClose={onClose}>
       <form className="dialog-form" onSubmit={handleSubmit}>
-        {error && <div className="error-banner" role="alert">{error}</div>}
+        {error && (
+          <div className="error-banner" role="alert">
+            {uploadStep ? `${uploadStep} failed: ` : ''}{error}
+            {preparedFileId && <button className="text-button" type="button" onClick={cleanupPreparedFile}>Remove pending upload</button>}
+          </div>
+        )}
+        {uploadStep && <div className="upload-steps" aria-live="polite"><span className="spinner" />{uploadStep}</div>}
         <div className="field-group">
           <label htmlFor="entry-title">Title</label>
-          <input id="entry-title" required value={form.title} onChange={updateField('title')} placeholder="e.g. Production API key" />
+          <input id="entry-title" required disabled={isUploading} value={form.title} onChange={updateField('title')} placeholder="e.g. Production API key" />
         </div>
         <div className="field-row">
           <div className="field-group">
             <label htmlFor="entry-type">Type</label>
-            <select id="entry-type" value={form.entry_type} onChange={updateField('entry_type')}>
+            <select id="entry-type" value={form.entry_type} disabled={isEditing || isUploading} onChange={updateField('entry_type')}>
               {VAULT_ENTRY_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>{type.label}</option>
               ))}
@@ -250,25 +358,38 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
           </div>
           <div className="field-group">
             <label htmlFor="entry-category">Category</label>
-            <input id="entry-category" value={form.category} onChange={updateField('category')} placeholder="e.g. Infrastructure" />
+            <input id="entry-category" disabled={isUploading} value={form.category} onChange={updateField('category')} placeholder="e.g. Infrastructure" />
           </div>
+        </div>
+        <div className="field-group">
+          <label htmlFor="entry-project">Project</label>
+          <select id="entry-project" value={form.project_id} disabled={isUploading || projectsQuery.isLoading} onChange={updateField('project_id')}>
+            <option value="">Organization-wide</option>
+            {(projectsQuery.data || []).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select>
         </div>
         {form.entry_type === 'external_link' && (
           <div className="field-group">
             <label htmlFor="entry-url">External URL</label>
-            <input id="entry-url" type="url" value={form.external_url} onChange={updateField('external_url')} placeholder="https://..." />
+            <input id="entry-url" type="url" disabled={isUploading} value={form.external_url} onChange={updateField('external_url')} placeholder="https://..." />
           </div>
         )}
         {(form.entry_type === 'credential' || form.entry_type === 'secret_key') && (
           <div className="field-group">
             <label htmlFor="entry-secret">Secret value</label>
-            <textarea id="entry-secret" value={form.secret_value} onChange={updateField('secret_value')} placeholder="Enter the secret value… This will be stored encrypted." />
+            <textarea id="entry-secret" disabled={isUploading} value={form.secret_value} onChange={updateField('secret_value')} placeholder="Enter the secret value… This will be stored encrypted." />
           </div>
         )}
-        {form.entry_type === 'markdown_note' && <div className="field-group"><label htmlFor="entry-notes">Markdown content</label><textarea id="entry-notes" value={form.markdown_content} onChange={updateField('markdown_content')} placeholder="Write Markdown content…" /></div>}
-        {form.entry_type === 'file' && !isEditing && <div className="field-group"><label htmlFor="entry-file">File</label><input id="entry-file" type="file" required onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} /></div>}
+        {form.entry_type === 'markdown_note' && <div className="field-group"><label htmlFor="entry-notes">Markdown content</label><textarea id="entry-notes" disabled={isUploading} value={form.markdown_content} onChange={updateField('markdown_content')} placeholder="Write Markdown content…" /></div>}
+        {form.entry_type === 'file' && !isEditing && (
+          <div className="field-group">
+            <label htmlFor="entry-file">File</label>
+            <input id="entry-file" type="file" required disabled={isUploading} onChange={(event) => setSelectedFile(event.target.files?.[0] || null)} />
+            <small className="field-help">Accepted: PDF, images, text, Markdown, CSV, JSON, ZIP, Word, and Excel files up to 50 MB.</small>
+          </div>
+        )}
         <footer className="dialog-actions">
-          <button className="button button-secondary" type="button" onClick={onClose}>Cancel</button>
+          <button className="button button-secondary" type="button" disabled={isUploading} onClick={onClose}>Cancel</button>
           <button className="button button-primary" type="submit" disabled={createEntry.isPending}>
             {createEntry.isPending ? 'Saving…' : isEditing ? 'Save changes' : 'Create resource'}
           </button>
@@ -276,6 +397,27 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
       </form>
     </DialogShell>
   );
+}
+
+function validateSelectedFile(file: File | null): string {
+  if (!file) return 'Choose a file before creating this resource.';
+  if (!ALLOWED_FILE_TYPES.has(file.type)) return 'This file type is not allowed.';
+  if (file.size <= 0) return 'The selected file is empty.';
+  if (file.size > MAX_FILE_SIZE_BYTES) return 'The selected file is larger than 50 MB.';
+  return '';
+}
+
+function formatFileSize(sizeBytes?: number): string {
+  if (!sizeBytes) return '0 B';
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  if (sizeBytes < 1024 * 1024) return `${Math.round(sizeBytes / 1024)} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatFileStatus(status?: VaultFile['storage_status']): string {
+  if (status === 'quarantined') return 'Awaiting approval';
+  if (status === 'deletion_pending') return 'Removal pending';
+  return status ? status.replaceAll('_', ' ') : 'Pending';
 }
 
 interface SecretRevealDialogProps {

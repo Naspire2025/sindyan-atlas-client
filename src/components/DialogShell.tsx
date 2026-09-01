@@ -6,12 +6,13 @@ const FOCUSABLE_SELECTOR = 'button:not([disabled]), input:not([disabled]), selec
 interface DialogShellProps {
   children: ReactNode;
   description?: string;
+  closeDisabled?: boolean;
   onClose: () => void;
   size?: 'default' | 'large' | 'small';
   title: string;
 }
 
-export default function DialogShell({ children, description, onClose, size = 'default', title }: DialogShellProps) {
+export default function DialogShell({ children, closeDisabled = false, description, onClose, size = 'default', title }: DialogShellProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function DialogShell({ children, description, onClose, size = 'de
     (dialog?.querySelector(FOCUSABLE_SELECTOR) as HTMLElement)?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && !closeDisabled) onClose();
       if (event.key !== 'Tab' || !dialog) return;
 
       const focusable = [...dialog.querySelectorAll(FOCUSABLE_SELECTOR)] as HTMLElement[];
@@ -38,14 +39,14 @@ export default function DialogShell({ children, description, onClose, size = 'de
       document.body.classList.remove('dialog-open');
       previousFocus?.focus();
     };
-  }, [onClose]);
+  }, [closeDisabled, onClose]);
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && !closeDisabled && onClose()}>
       <section ref={dialogRef} className={`dialog dialog-${size}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby={description ? 'dialog-description' : undefined}>
         <header className="dialog-header">
           <div><span className="eyebrow">Atlas</span><h2 id="dialog-title">{title}</h2>{description && <p id="dialog-description">{description}</p>}</div>
-          <button className="icon-button" type="button" aria-label="Close dialog" onClick={onClose}><Icon name="close" /></button>
+          <button className="icon-button" type="button" aria-label="Close dialog" disabled={closeDisabled} onClick={onClose}><Icon name="close" /></button>
         </header>
         {children}
       </section>
