@@ -1389,9 +1389,8 @@ function MilestoneDialog({ milestone, project, projectId, onClose }: MilestoneDi
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.title.trim()) { setError('Title is required.'); return; }
-    if (!form.phase_id) { setError('Phase is required.'); return; }
     if (!form.target_date) { setError('Target date is required.'); return; }
-    saveMutation.mutate({ ...form, phase_id: Number(form.phase_id), project_id: projectId });
+    saveMutation.mutate({ ...form, phase_id: form.phase_id ? Number(form.phase_id) : null, project_id: projectId });
   };
 
   return (
@@ -1399,7 +1398,7 @@ function MilestoneDialog({ milestone, project, projectId, onClose }: MilestoneDi
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
         <div className="field-group"><label htmlFor="ms-title">Title</label><input id="ms-title" required value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} /></div>
-        <div className="field-group"><label htmlFor="ms-phase">Phase</label><select id="ms-phase" required value={form.phase_id} onChange={(e) => setForm((c) => ({ ...c, phase_id: e.target.value }))}><option value="">Select a phase</option>{(project.phases || []).map((phase) => <option key={phase.id} value={phase.id}>{phase.name}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="ms-phase">Phase</label><select id="ms-phase" value={form.phase_id} onChange={(e) => setForm((c) => ({ ...c, phase_id: e.target.value }))}><option value="">No phase</option>{(project.phases || []).map((phase) => <option key={phase.id} value={phase.id}>{phase.name}</option>)}</select></div>
         <div className="field-group"><label htmlFor="ms-date">Target date</label><input id="ms-date" type="date" required value={form.target_date} onChange={(e) => setForm((c) => ({ ...c, target_date: e.target.value }))} /></div>
         <div className="field-group"><label htmlFor="ms-status">Status</label><select id="ms-status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MilestoneStatus }))}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="done">Done</option><option value="missed">Missed</option></select></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>

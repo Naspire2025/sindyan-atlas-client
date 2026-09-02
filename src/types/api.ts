@@ -415,7 +415,7 @@ export interface CreateTaskPayload {
 
 export interface CreateMilestonePayload {
   project_id: number;
-  phase_id: number;
+  phase_id?: number | null;
   title: string;
   target_date?: string;
   status?: MilestoneStatus;
