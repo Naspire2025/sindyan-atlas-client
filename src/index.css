@@ -444,6 +444,8 @@ a { color: inherit; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.72); backdrop-filter: blur(4px); }
 .dialog { width: min(520px, 100%); max-height: calc(100vh - 40px); overflow: auto; border: 1px solid var(--color-graphite); border-radius: var(--radius-card); background: var(--color-carbon); box-shadow: 0 24px 80px rgba(0,0,0,.55); }
 .dialog-large { width: min(820px, 100%); }
+.dialog:has(.project-links-editor) { scrollbar-width: none; }
+.dialog:has(.project-links-editor)::-webkit-scrollbar { display: none; }
 .dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 20px 22px; border-bottom: 1px solid var(--color-graphite); }
 .dialog-header h2 { margin: 5px 0 0; color: var(--color-paper); font-size: 20px; font-weight: 510; letter-spacing: -.012em; }
 .dialog-header p { margin: 5px 0 0; color: var(--color-ash); font-size: 11px; }
