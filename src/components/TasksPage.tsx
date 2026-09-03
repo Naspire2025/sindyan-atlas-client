@@ -14,9 +14,9 @@ interface TasksPageProps {
   currentUser: User;
   tasks: Task[];
   onMenu: () => void;
-  onSelectProject: (projectId: number) => void;
-  onSelectTask: (taskId: number) => void;
-  onUpdateTask: (taskId: number, task: Record<string, unknown>) => Promise<unknown>;
+  onSelectProject: (projectId: string) => void;
+  onSelectTask: (taskId: string) => void;
+  onUpdateTask: (taskId: string, task: Record<string, unknown>) => Promise<unknown>;
 }
 
 type TaskView = 'list' | 'kanban';
@@ -27,7 +27,7 @@ export default function TasksPage({ currentUser, tasks, onMenu, onSelectProject,
   const [search, setSearch] = useState('');
   const [view, setView] = useState<TaskView>('list');
   const [grouping, setGrouping] = useState<TaskGrouping>('due_date');
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState('');
   const visibleTasks = useMemo(() => tasks.filter((task) => `${task.title} ${task.project_name || ''} ${task.assignee_name || task.owner || ''} ${task.milestone_title || ''}`.toLowerCase().includes(search.toLowerCase()) && (!status || task.status === status)), [search, status, tasks]);
   const taskGroups = useMemo(() => groupTasks(visibleTasks, grouping), [grouping, visibleTasks]);
@@ -80,9 +80,9 @@ export default function TasksPage({ currentUser, tasks, onMenu, onSelectProject,
 interface TaskCollectionProps {
   currentUser: User;
   groups: Array<{ label: string; tasks: Task[] }>;
-  updatingId: number | null;
-  onSelectProject: (projectId: number) => void;
-  onSelectTask: (taskId: number) => void;
+  updatingId: string | null;
+  onSelectProject: (projectId: string) => void;
+  onSelectTask: (taskId: string) => void;
   onStatusChange: (task: Task, nextStatus: string) => Promise<void>;
 }
 
@@ -90,7 +90,7 @@ function TaskList({ currentUser, groups, updatingId, onSelectProject, onSelectTa
   return <div className="task-groups">{groups.map((group) => <section className="task-group" key={group.label} aria-labelledby={`task-group-${toDomId(group.label)}`}><header><h3 id={`task-group-${toDomId(group.label)}`}>{group.label}</h3><span>{group.tasks.length}</span></header><div className="task-list">{group.tasks.map((task) => <TaskListItem currentUser={currentUser} key={task.id} task={task} updatingId={updatingId} onSelectProject={onSelectProject} onSelectTask={onSelectTask} onStatusChange={onStatusChange} />)}</div></section>)}</div>;
 }
 
-function TaskListItem({ currentUser, task, updatingId, onSelectProject, onSelectTask, onStatusChange }: { currentUser: User; task: Task; updatingId: number | null; onSelectProject: (projectId: number) => void; onSelectTask: (taskId: number) => void; onStatusChange: (task: Task, nextStatus: string) => Promise<void> }) {
+function TaskListItem({ currentUser, task, updatingId, onSelectProject, onSelectTask, onStatusChange }: { currentUser: User; task: Task; updatingId: string | null; onSelectProject: (projectId: string) => void; onSelectTask: (taskId: string) => void; onStatusChange: (task: Task, nextStatus: string) => Promise<void> }) {
   const isOverdue = task.status !== 'done' && isPastDate(task.due_date);
   const statuses = getAllowedTaskStatuses(currentUser, task);
   return <article className="task-list-item"><div className="task-primary"><button className="task-open" type="button" onClick={() => onSelectTask(task.id)}><span className={`task-check status-${task.status}`} /><span className="task-copy"><strong>{task.title}</strong><small>{task.assignee_name || 'Unassigned'}{task.milestone_title ? ` · ${task.milestone_title}` : ''}</small></span></button><button className="task-project-button" type="button" onClick={() => onSelectProject(task.project_id)}>{task.project_name || 'Project'}</button></div><span className={`task-date ${isOverdue ? 'is-overdue' : ''}`}><Icon name="calendar" size={14} />{formatDate(task.due_date)}</span><StatusBadge status={task.status} type="task" /><TaskStatusSelect task={task} statuses={statuses} isUpdating={updatingId === task.id} onStatusChange={onStatusChange} /></article>;
@@ -98,7 +98,7 @@ function TaskListItem({ currentUser, task, updatingId, onSelectProject, onSelect
 
 function groupTasks(tasks: Task[], grouping: TaskGrouping): Array<{ label: string; tasks: Task[] }> {
   const groups = new Map<string, Task[]>();
-  const sortedTasks = [...tasks].sort((first, second) => String(first.due_date || '9999').localeCompare(String(second.due_date || '9999')) || first.id - second.id);
+  const sortedTasks = [...tasks].sort((first, second) => String(first.due_date || '9999').localeCompare(String(second.due_date || '9999')) || first.id.localeCompare(second.id));
   sortedTasks.forEach((task) => {
     const label = grouping === 'status' ? TASK_STATUSES.find((item) => item.value === task.status)?.label || task.status : grouping === 'project' ? task.project_name || 'No project' : getDueDateGroup(task);
     groups.set(label, [...(groups.get(label) || []), task]);

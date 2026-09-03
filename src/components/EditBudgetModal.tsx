@@ -3,7 +3,7 @@ import { api } from '../api/client.js';
 import DialogShell from './DialogShell.js';
 
 interface EditBudgetModalProps {
-  projectId: number;
+  projectId: string;
   currentBudget: number;
   onClose: () => void;
   onSuccess: () => void;

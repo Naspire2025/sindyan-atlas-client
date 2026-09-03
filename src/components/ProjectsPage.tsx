@@ -14,7 +14,7 @@ interface ProjectsPageProps {
   projects: Project[];
   onCreate: () => void;
   onMenu: () => void;
-  onSelectProject: (projectId: number) => void;
+  onSelectProject: (projectId: string) => void;
 }
 
 const EMPTY_FILTERS: ProjectFilters = { search: '', status: '', priority: '', summary: 'all' };

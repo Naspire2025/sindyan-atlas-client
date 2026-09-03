@@ -7,11 +7,11 @@ import Icon from './Icon.js';
 import PageHeader from './PageHeader.js';
 
 interface MemberPageProps {
-  memberId: number;
+  memberId: string;
   onBack: () => void;
   onMenu: () => void;
-  onSelectProject: (projectId: number) => void;
-  onSelectTask: (taskId: number) => void;
+  onSelectProject: (projectId: string) => void;
+  onSelectTask: (taskId: string) => void;
 }
 
 function roleLabel(role: string): string {

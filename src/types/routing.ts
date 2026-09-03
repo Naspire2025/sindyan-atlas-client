@@ -16,7 +16,7 @@ export interface AcceptInvitationRoute {
 
 export interface ProjectRoute {
   page: 'project';
-  projectId: number;
+  projectId: string;
   filter: string;
   token?: undefined;
   taskId?: undefined;
@@ -26,7 +26,7 @@ export interface ProjectRoute {
 
 export interface TaskRoute {
   page: 'task';
-  taskId: number;
+  taskId: string;
   projectId: null;
   filter: string;
   token?: undefined;
@@ -36,7 +36,7 @@ export interface TaskRoute {
 
 export interface MemberRoute {
   page: 'member';
-  memberId: number;
+  memberId: string;
   projectId: null;
   filter: string;
   token?: undefined;
@@ -45,7 +45,7 @@ export interface MemberRoute {
 
 export interface MilestoneRoute {
   page: 'milestone';
-  milestoneId: number;
+  milestoneId: string;
   projectId: null;
   filter: string;
   token?: undefined;

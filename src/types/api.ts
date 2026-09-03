@@ -38,7 +38,7 @@ export interface ProjectFilters {
 }
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: UserRole;
@@ -47,7 +47,7 @@ export interface User {
 }
 
 export interface MemberProjectSummary {
-  project_id: number;
+  project_id: string;
   project_name: string;
   status: string;
   priority: string;
@@ -55,25 +55,25 @@ export interface MemberProjectSummary {
 }
 
 export interface MemberAssignmentItem {
-  id: number;
+  id: string;
   title: string;
   status: string;
   priority: string;
   due_date?: string | null;
-  project_id: number;
+  project_id: string;
   project_name: string;
 }
 
 export interface MemberAssignments {
   tasks: MemberAssignmentItem[];
-  risks: Array<{ id: number; title: string; severity: string; status: string; due_date?: string | null; project_id: number; project_name: string }>;
-  issues: Array<{ id: number; title: string; priority: string; status: string; target_resolution_date?: string | null; project_id: number; project_name: string }>;
-  vault_entries: Array<{ id: number; title: string; entry_type: string; category?: string | null; project_id?: number | null; project_name?: string | null }>;
-  allocations: Array<{ project_id: number; project_name: string; starts_on: string; ends_on: string; allocation_percent: number }>;
+  risks: Array<{ id: string; title: string; severity: string; status: string; due_date?: string | null; project_id: string; project_name: string }>;
+  issues: Array<{ id: string; title: string; priority: string; status: string; target_resolution_date?: string | null; project_id: string; project_name: string }>;
+  vault_entries: Array<{ id: string; title: string; entry_type: string; category?: string | null; project_id?: string | null; project_name?: string | null }>;
+  allocations: Array<{ project_id: string; project_name: string; starts_on: string; ends_on: string; allocation_percent: number }>;
 }
 
 export interface MemberSummary {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: UserRole;
@@ -83,9 +83,9 @@ export interface MemberSummary {
 }
 
 export interface ProjectMember {
-  id: number;
-  user_id: number;
-  project_id: number;
+  id: string;
+  user_id: string;
+  project_id: string;
   project_role: ProjectRole;
   name: string;
   email?: string;
@@ -99,18 +99,18 @@ export interface TaskSummary {
 }
 
 export interface Task {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   project_name: string;
   title: string;
   description?: string;
   status: TaskStatus;
   priority: Priority;
   due_date?: string;
-  assignee_user_id?: number | null;
+  assignee_user_id?: string | null;
   assignee_name?: string;
   owner?: string;
-  milestone_id?: number | null;
+  milestone_id?: string | null;
   milestone_title?: string;
   blocker_note?: string;
   project_role?: ProjectRole;
@@ -122,15 +122,15 @@ export interface Task {
 }
 
 export interface TaskComment {
-  id: number;
-  task_id: number;
+  id: string;
+  task_id: string;
   body: string;
   author: string;
   created_at: string;
 }
 
 export interface TaskActivityEvent {
-  id: number;
+  id: string;
   actor_name?: string;
   actor?: string;
   event_type: string;
@@ -138,14 +138,14 @@ export interface TaskActivityEvent {
 }
 
 export interface Project {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   status: ProjectStatus;
   priority: Priority;
   owner?: string;
   owner_name?: string;
-  owner_user_id?: number;
+  owner_user_id?: string;
   start_date?: string;
   deadline?: string;
   website_url?: string;
@@ -161,9 +161,9 @@ export interface Project {
 }
 
 export interface Milestone {
-  id: number;
-  project_id: number;
-  phase_id?: number;
+  id: string;
+  project_id: string;
+  phase_id?: string;
   phase_name?: string;
   title: string;
   target_date?: string;
@@ -171,19 +171,19 @@ export interface Milestone {
 }
 
 export interface MilestoneTask {
-  id: number;
+  id: string;
   title: string;
   status: TaskStatus;
   priority: Priority;
   due_date?: string;
-  assignee_user_id?: number | null;
+  assignee_user_id?: string | null;
   assignee_name?: string;
-  project_id: number;
+  project_id: string;
   project_name: string;
 }
 
 export interface MilestoneMember {
-  user_id: number;
+  user_id: string;
   name: string;
   email?: string;
   project_role: ProjectRole;
@@ -197,8 +197,8 @@ export interface MilestoneDetail extends Milestone {
 }
 
 export interface Phase {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   name: string;
   position?: number;
   start_date?: string;
@@ -206,8 +206,8 @@ export interface Phase {
 }
 
 export interface ProjectLink {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   url: string;
   label?: string;
   title?: string;
@@ -215,8 +215,8 @@ export interface ProjectLink {
 }
 
 export interface Risk {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   title: string;
   description?: string;
   severity?: RiskSeverity;
@@ -224,13 +224,13 @@ export interface Risk {
   status?: RiskStatus;
   mitigation_note?: string;
   mitigation_progress?: number;
-  owner_user_id?: number;
+  owner_user_id?: string;
   due_date?: string;
 }
 
 export interface Issue {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   title: string;
   description?: string;
   severity?: RiskSeverity;
@@ -238,8 +238,8 @@ export interface Issue {
 }
 
 export interface BudgetLine {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   category: string;
   planned_amount: number;
   currency: string;
@@ -248,8 +248,8 @@ export interface BudgetLine {
 }
 
 export interface SpendRecord {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   amount: number;
   category?: string;
   description?: string;
@@ -268,7 +268,7 @@ export interface FinancialSummary {
 }
 
 export interface Invitation {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role?: string;
@@ -277,8 +277,8 @@ export interface Invitation {
 }
 
 export interface DashboardAttentionItem {
-  id?: number;
-  project_id?: number;
+  id?: string;
+  project_id?: string;
   title?: string;
   name?: string;
   description?: string;
@@ -296,12 +296,12 @@ export interface DashboardOverview {
 }
 
 export interface VaultEntry {
-  id: number;
+  id: string;
   title: string;
   entry_type: VaultEntryType;
   category?: string;
-  project_id?: number | null;
-  owner_user_id?: number;
+  project_id?: string | null;
+  owner_user_id?: string;
   tags?: VaultTag[];
   markdown_content?: string;
   external_url?: string;
@@ -315,26 +315,26 @@ export interface VaultTag {
 }
 
 export interface VaultFile {
-  id: number;
-  vault_entry_id?: number;
+  id: string;
+  vault_entry_id?: string;
   original_filename: string;
   content_type?: string;
   size_bytes?: number;
   storage_status?: 'pending' | 'quarantined' | 'available' | 'rejected' | 'deleted' | 'deletion_pending';
-  uploaded_by_user_id?: number;
+  uploaded_by_user_id?: string;
   uploaded_at?: string;
   available_at?: string;
 }
 
 export interface VaultUploadIntent {
-  file_id: number;
+  file_id: string;
   upload_url: string;
   storage_status: 'pending';
 }
 
 export interface WorkloadItem {
-  user_id?: number;
-  id?: number;
+  user_id?: string;
+  id?: string;
   user_name?: string;
   name?: string;
   email?: string;
@@ -343,7 +343,7 @@ export interface WorkloadItem {
 }
 
 export interface Asset {
-  id: number;
+  id: string;
   name: string;
   type?: string;
   asset_type?: string;
@@ -351,20 +351,20 @@ export interface Asset {
 }
 
 export interface MemberAllocation {
-  id: number;
-  user_id?: number;
+  id: string;
+  user_id?: string;
   user_name?: string;
-  project_id?: number;
+  project_id?: string;
   project_name?: string;
   allocation_percentage?: number;
   percentage?: number;
 }
 
 export interface AssetAllocation {
-  id: number;
-  asset_id?: number;
+  id: string;
+  asset_id?: string;
   asset_name?: string;
-  project_id?: number;
+  project_id?: string;
   project_name?: string;
   allocation_percentage?: number;
   percentage?: number;
@@ -384,13 +384,13 @@ export interface CreateInvitationPayload {
   name: string;
   email: string;
   role: UserRole;
-  project_assignments?: { project_id: number; project_role: ProjectRole }[];
+  project_assignments?: { project_id: string; project_role: ProjectRole }[];
 }
 
 export interface CreateProjectPayload {
   name: string;
   description?: string;
-  owner_user_id?: number | null;
+  owner_user_id?: string | null;
   status?: ProjectStatus;
   priority?: Priority;
   start_date?: string;
@@ -403,26 +403,26 @@ export interface CreateProjectPayload {
 }
 
 export interface CreateTaskPayload {
-  project_id: number;
+  project_id: string;
   title: string;
   description?: string;
   priority?: Priority;
   due_date?: string;
-  assignee_user_id?: number | null;
-  milestone_id?: number | null;
+  assignee_user_id?: string | null;
+  milestone_id?: string | null;
   status?: TaskStatus;
 }
 
 export interface CreateMilestonePayload {
-  project_id: number;
-  phase_id?: number | null;
+  project_id: string;
+  phase_id?: string | null;
   title: string;
   target_date?: string;
   status?: MilestoneStatus;
 }
 
 export interface CreateLinkPayload {
-  project_id: number;
+  project_id: string;
   url: string;
   label?: string;
   link_type?: string;
@@ -432,7 +432,7 @@ export interface CreateVaultEntryPayload {
   title: string;
   entry_type: VaultEntryType;
   category?: string;
-  project_id?: number | null;
+  project_id?: string | null;
   markdown_content?: string;
   external_url?: string;
   secret_value?: string;
@@ -447,7 +447,7 @@ export interface CreateBudgetLinePayload {
 }
 
 export interface CreateSpendRecordPayload {
-  project_id: number;
+  project_id: string;
   amount: number;
   category?: string;
   description?: string;
@@ -455,8 +455,8 @@ export interface CreateSpendRecordPayload {
 }
 
 export interface CapacityProfile {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   start_date: string;
   end_date: string;
   capacity_hours: number;
@@ -464,8 +464,8 @@ export interface CapacityProfile {
 }
 
 export interface Availability {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   start_date: string;
   end_date: string;
   status: 'available' | 'unavailable' | 'limited';
@@ -473,9 +473,9 @@ export interface Availability {
 }
 
 export interface ProjectAllocation {
-  user_id?: number;
+  user_id?: string;
   user_name?: string;
-  project_id?: number;
+  project_id?: string;
   project_name?: string;
   allocation_percentage?: number;
   percentage?: number;

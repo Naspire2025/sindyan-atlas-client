@@ -9,7 +9,7 @@ interface TeamPageProps {
   members: ProjectMember[];
   onMenu: () => void;
   projects: Project[];
-  onSelectProject: (projectId: number) => void;
+  onSelectProject: (projectId: string) => void;
 }
 
 export default function TeamPage({ members, onMenu, projects, onSelectProject }: TeamPageProps) {

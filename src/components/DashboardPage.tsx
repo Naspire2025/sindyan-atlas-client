@@ -14,14 +14,14 @@ interface DashboardPageProps {
   tasks: Task[];
   onMenu: () => void;
   onNavigate: (page: string, filter?: string) => void;
-  onSelectProject: (projectId: number) => void;
-  onSelectTask: (taskId: number) => void;
+  onSelectProject: (projectId: string) => void;
+  onSelectTask: (taskId: string) => void;
 }
 
 interface AttentionItem {
   key: string | number;
-  projectId?: number;
-  taskId?: number;
+  projectId?: string;
+  taskId?: string;
   title: string;
   detail: string;
   tone: 'danger' | 'warning';

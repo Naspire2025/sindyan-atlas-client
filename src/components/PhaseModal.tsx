@@ -5,7 +5,7 @@ import DialogShell from './DialogShell.js';
 
 interface PhaseModalProps {
   phase?: Phase;
-  projectId: number;
+  projectId: string;
   onClose: () => void;
   onSuccess: () => void;
 }

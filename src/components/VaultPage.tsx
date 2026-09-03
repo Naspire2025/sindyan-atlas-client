@@ -48,7 +48,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
   });
 
   const deleteEntry = useMutation({
-    mutationFn: (id: number) => api.deleteVaultEntry(id),
+    mutationFn: (id: string) => api.deleteVaultEntry(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries() });
       setDeleteTarget(null);
@@ -266,23 +266,23 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStep, setUploadStep] = useState('');
-  const [preparedFileId, setPreparedFileId] = useState<number | null>(null);
+  const [preparedFileId, setPreparedFileId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const projectsQuery = useQuery({ queryKey: queryKeys.projects(), queryFn: ({ signal }) => api.listProjects({ signal }) });
 
   const createEntry = useMutation({
-    mutationFn: async (data: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; project_id?: number | null; secret_value?: string }) => {
+    mutationFn: async (data: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; project_id?: string | null; secret_value?: string }) => {
       setUploadStep(isEditing ? 'Saving changes' : 'Creating resource');
       const savedEntry = isEditing ? await api.updateVaultEntry(entry!.id, data) : await api.createVaultEntry(data);
       if (selectedFile) {
         setUploadStep('Preparing upload');
-        const intent = await api.createUploadIntent(savedEntry.id ?? 0, { filename: selectedFile.name, content_type: selectedFile.type, size_bytes: selectedFile.size });
+        const intent = await api.createUploadIntent(savedEntry.id ?? '', { filename: selectedFile.name, content_type: selectedFile.type, size_bytes: selectedFile.size });
         setPreparedFileId(intent.file_id);
         if (!intent.upload_url) { throw new Error('Upload could not be prepared.'); }
         setUploadStep('Uploading');
         await api.uploadToSignedUrl(intent.upload_url, selectedFile);
         setUploadStep('Verifying');
-        await api.finalizeUpload(intent.file_id ?? 0, {});
+        await api.finalizeUpload(intent.file_id ?? '', {});
         setUploadStep('Awaiting approval');
       }
       return savedEntry;
@@ -298,13 +298,13 @@ function VaultEntryDialog({ entry, onClose }: VaultEntryDialogProps) {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
-    const payload: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; project_id?: number | null; secret_value?: string } = {
+    const payload: { title: string; entry_type: VaultEntryType; category?: string; markdown_content?: string; external_url?: string; project_id?: string | null; secret_value?: string } = {
       title: form.title,
       entry_type: form.entry_type as VaultEntryType,
       category: form.category || undefined,
       markdown_content: form.markdown_content || undefined,
       external_url: form.external_url || undefined,
-      project_id: form.project_id ? Number(form.project_id) : null,
+      project_id: form.project_id || null,
     };
     if (!isEditing && form.secret_value) {
       payload.secret_value = form.secret_value;

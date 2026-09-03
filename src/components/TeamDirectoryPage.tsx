@@ -11,7 +11,7 @@ import PageHeader from './PageHeader.js';
 
 interface TeamDirectoryPageProps {
   onMenu: () => void;
-  onSelectMember: (userId: number) => void;
+  onSelectMember: (userId: string) => void;
 }
 
 const ROLE_OPTIONS = [
@@ -34,7 +34,7 @@ export default function TeamDirectoryPage({ onMenu, onSelectMember }: TeamDirect
   });
 
   const updateUser = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<User> }) => api.updateUser(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<User> }) => api.updateUser(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users() });
       setEditTarget(null);

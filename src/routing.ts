@@ -11,30 +11,32 @@ const PAGE_PATHS: Record<string, string> = {
   account: '/account',
 };
 
+const UUID_PATTERN = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+
 export function readRoute(): Route {
   const path = normalizePath(window.location.pathname);
-  const projectMatch = path.match(/^\/projects\/(\d+)$/);
-  const taskMatch = path.match(/^\/tasks\/(\d+)$/);
-  const memberMatch = path.match(/^\/members\/(\d+)$/);
-  const milestoneMatch = path.match(/^\/milestones\/(\d+)$/);
+  const projectMatch = path.match(new RegExp(`^/projects/(${UUID_PATTERN})$`));
+  const taskMatch = path.match(new RegExp(`^/tasks/(${UUID_PATTERN})$`));
+  const memberMatch = path.match(new RegExp(`^/members/(${UUID_PATTERN})$`));
+  const milestoneMatch = path.match(new RegExp(`^/milestones/(${UUID_PATTERN})$`));
 
   if (path === '/login') return { page: 'login', projectId: null, filter: 'all' };
   if (path === '/accept-invitation') return { page: 'acceptInvitation', token: new URLSearchParams(window.location.search).get('token') || '', projectId: null, filter: 'all' };
 
   if (projectMatch) {
-    return { page: 'project', projectId: Number(projectMatch[1]), filter: 'all' };
+    return { page: 'project', projectId: projectMatch[1], filter: 'all' };
   }
 
   if (taskMatch) {
-    return { page: 'task', taskId: Number(taskMatch[1]), projectId: null, filter: 'all' };
+    return { page: 'task', taskId: taskMatch[1], projectId: null, filter: 'all' };
   }
 
   if (memberMatch) {
-    return { page: 'member', memberId: Number(memberMatch[1]), projectId: null, filter: 'all' };
+    return { page: 'member', memberId: memberMatch[1], projectId: null, filter: 'all' };
   }
 
   if (milestoneMatch) {
-    return { page: 'milestone', milestoneId: Number(milestoneMatch[1]), projectId: null, filter: 'all' };
+    return { page: 'milestone', milestoneId: milestoneMatch[1], projectId: null, filter: 'all' };
   }
 
   if (path === '/projects' || path === '/projects/all') {
@@ -52,19 +54,19 @@ export function getPagePath(page: string, filter = 'all'): string {
   return `${path}?view=${encodeURIComponent(filter)}`;
 }
 
-export function getProjectPath(projectId: number): string {
+export function getProjectPath(projectId: string): string {
   return `/projects/${projectId}`;
 }
 
-export function getTaskPath(taskId: number): string {
+export function getTaskPath(taskId: string): string {
   return `/tasks/${taskId}`;
 }
 
-export function getMemberPath(memberId: number): string {
+export function getMemberPath(memberId: string): string {
   return `/members/${memberId}`;
 }
 
-export function getMilestonePath(milestoneId: number): string {
+export function getMilestonePath(milestoneId: string): string {
   return `/milestones/${milestoneId}`;
 }
 

@@ -12,9 +12,9 @@ interface TaskPageProps {
   onBack: () => void;
   onChanged: () => void;
   onMenu: () => void;
-  onSelectMember: (userId: number) => void;
-  onSelectProject: (projectId: number) => void;
-  taskId: number;
+  onSelectMember: (userId: string) => void;
+  onSelectProject: (projectId: string) => void;
+  taskId: string;
 }
 
 function initialTask(): Task | null {
@@ -142,7 +142,7 @@ interface TaskBreadcrumbProps {
   task: Task;
   onBack: () => void;
   onMenu: () => void;
-  onSelectProject: (projectId: number) => void;
+  onSelectProject: (projectId: string) => void;
 }
 
 function TaskBreadcrumb({ onBack, onMenu, onSelectProject, task }: TaskBreadcrumbProps) {
@@ -166,8 +166,8 @@ interface TaskPropertiesProps {
   isSaving: boolean;
   members: ProjectMember[];
   milestones: Milestone[];
-  onSelectMember: (userId: number) => void;
-  onSelectProject: (projectId: number) => void;
+  onSelectMember: (userId: string) => void;
+  onSelectProject: (projectId: string) => void;
   onUpdate: (field: string, value: string | number | null) => void;
   task: Task;
 }
@@ -180,9 +180,9 @@ function TaskProperties({ currentUser, isSaving, members, milestones, onSelectMe
       <h2>Properties</h2>
       {availableStatuses.length > 1 ? <label className="task-property-control"><Icon name="check" size={15} /><span>Status</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="check" label="Status" value={getLabel(TASK_STATUSES, task.status)} />}
       {canManage ? <label className="task-property-control"><Icon name="priority" size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="priority" label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
-      {canManage ? <label className="task-property-control"><Icon name="user" size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value ? Number(event.target.value) : null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon="user" label="Assignee" value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button> : task.owner || 'Unassigned'} />}
+      {canManage ? <label className="task-property-control"><Icon name="user" size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon="user" label="Assignee" value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button> : task.owner || 'Unassigned'} />}
       {canManage ? <label className="task-property-control"><Icon name="calendar" size={15} /><span>Due date</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon="calendar" label="Due date" value={formatDate(task.due_date)} />}
-      {canManage ? <label className="task-property-control"><Icon name="milestone" size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value ? Number(event.target.value) : null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon="milestone" label="Milestone" value={task.milestone_title || 'No milestone'} />}
+      {canManage ? <label className="task-property-control"><Icon name="milestone" size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value || null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon="milestone" label="Milestone" value={task.milestone_title || 'No milestone'} />}
 
       <div className="task-property-group">
         <h3>Project</h3>

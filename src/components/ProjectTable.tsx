@@ -7,7 +7,7 @@ const HEALTH_LABELS: Record<string, string> = { complete: 'Complete', behind: 'B
 
 interface ProjectTableProps {
   projects: Project[];
-  onSelect: (projectId: number) => void;
+  onSelect: (projectId: string) => void;
 }
 
 export default function ProjectTable({ projects, onSelect }: ProjectTableProps) {
@@ -25,7 +25,7 @@ export default function ProjectTable({ projects, onSelect }: ProjectTableProps) 
 
 interface ProjectRowProps {
   project: Project;
-  onSelect: (projectId: number) => void;
+  onSelect: (projectId: string) => void;
 }
 
 function ProjectRow({ project, onSelect }: ProjectRowProps) {

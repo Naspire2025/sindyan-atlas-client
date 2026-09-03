@@ -20,10 +20,10 @@ interface ProjectPageProps {
   onBack: () => void;
   onChanged: () => void;
   onMenu: () => void;
-  onSelectMember: (userId: number) => void;
-  onSelectMilestone: (milestoneId: number) => void;
-  onSelectTask: (taskId: number) => void;
-  projectId: number;
+  onSelectMember: (userId: string) => void;
+  onSelectMilestone: (milestoneId: string) => void;
+  onSelectTask: (taskId: string) => void;
+  projectId: string;
 }
 
 const PROJECT_TABS_ADMIN = ['Overview', 'Tasks', 'Milestones', 'Timeline', 'Links', 'Finance', 'Risks & Issues', 'Team'];
@@ -91,20 +91,20 @@ export default function ProjectPage({ currentUser, onBack, onChanged, onMenu, on
 
 interface TimelineSectionProps {
   canManageProject: boolean;
-  onSelectMilestone: (milestoneId: number) => void;
-  onSelectTask: (taskId: number) => void;
+  onSelectMilestone: (milestoneId: string) => void;
+  onSelectTask: (taskId: string) => void;
   project: Project;
 }
 
 interface TimelineItem {
   end?: string;
   id: string;
-  milestoneId?: number;
+  milestoneId?: string;
   owner?: string;
-  ownerId?: number;
-  phaseId?: number;
+  ownerId?: string;
+  phaseId?: string;
   progress: number;
-  rawId: number;
+  rawId: string;
   start?: string;
   status: string;
   title: string;
@@ -121,10 +121,10 @@ function TimelineSection({ canManageProject, onSelectMilestone, onSelectTask, pr
   const [filterMilestone, setFilterMilestone] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [search, setSearch] = useState('');
-  const [deletePhaseTarget, setDeletePhaseTarget] = useState<number | null>(null);
+  const [deletePhaseTarget, setDeletePhaseTarget] = useState<string | null>(null);
 
   const deletePhaseMutation = useMutation({
-    mutationFn: (phaseId: number) => api.deletePhase(project.id, phaseId),
+    mutationFn: (phaseId: string) => api.deletePhase(project.id, phaseId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) });
       setDeletePhaseTarget(null);
@@ -154,9 +154,9 @@ function TimelineSection({ canManageProject, onSelectMilestone, onSelectTask, pr
   const rows = useMemo(() => {
     return items.filter((item) => {
       if (filterType && item.type.toLowerCase() !== filterType) return false;
-      if (filterPhase && item.phaseId !== Number(filterPhase)) return false;
-      if (filterOwner && item.ownerId !== Number(filterOwner)) return false;
-      if (filterMilestone && item.milestoneId !== Number(filterMilestone)) return false;
+      if (filterPhase && item.phaseId !== filterPhase) return false;
+      if (filterOwner && item.ownerId !== filterOwner) return false;
+      if (filterMilestone && item.milestoneId !== filterMilestone) return false;
       if (filterStatus && item.status !== filterStatus) return false;
       if (search && !`${item.title} ${item.type} ${item.owner || ''}`.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -310,7 +310,7 @@ function formatFileStatus(status?: VaultFile['storage_status']): string {
   return status ? status.replaceAll('_', ' ') : 'Pending';
 }
 
-function getPhaseName(project: Project, phaseId?: number): string {
+function getPhaseName(project: Project, phaseId?: string): string {
   return (project.phases || []).find((phase) => phase.id === phaseId)?.name || '';
 }
 
@@ -382,7 +382,7 @@ function ProjectHero({ project }: ProjectHeroProps) {
 
 interface OverviewSectionProps {
   project: Project;
-  onSelectMilestone: (milestoneId: number) => void;
+  onSelectMilestone: (milestoneId: string) => void;
 }
 
 function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
@@ -421,17 +421,17 @@ function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
 interface TasksSectionProps {
   canManageProject: boolean;
   currentUser: User;
-  onSelectMember: (userId: number) => void;
-  onSelectTask: (taskId: number) => void;
+  onSelectMember: (userId: string) => void;
+  onSelectTask: (taskId: string) => void;
   project: Project;
-  projectId: number;
+  projectId: string;
 }
 
 function TasksSection({ canManageProject, currentUser, onSelectMember, onSelectTask, project, projectId }: TasksSectionProps) {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [view, setView] = useState<'list' | 'kanban'>('list');
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState('');
 
   const tasks = project.tasks || [];
@@ -494,8 +494,8 @@ function TasksSection({ canManageProject, currentUser, onSelectMember, onSelectT
 interface MilestonesSectionProps {
   canManageProject: boolean;
   project: Project;
-  projectId: number;
-  onSelectMilestone: (milestoneId: number) => void;
+  projectId: string;
+  onSelectMilestone: (milestoneId: string) => void;
 }
 
 function MilestonesSection({ canManageProject, project, projectId, onSelectMilestone }: MilestonesSectionProps) {
@@ -505,7 +505,7 @@ function MilestonesSection({ canManageProject, project, projectId, onSelectMiles
   const [deleteTarget, setDeleteTarget] = useState<Milestone | null>(null);
 
   const deleteMilestone = useMutation({
-    mutationFn: (id: number) => api.deleteMilestone(id),
+    mutationFn: (id: string) => api.deleteMilestone(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });
       setDeleteTarget(null);
@@ -562,7 +562,7 @@ function MilestonesSection({ canManageProject, project, projectId, onSelectMiles
 interface LinksSectionProps {
   canManageProject: boolean;
   currentUser: User;
-  projectId: number;
+  projectId: string;
   project: Project;
 }
 
@@ -578,7 +578,7 @@ function LinksSection({ canManageProject, currentUser, projectId }: LinksSection
   });
 
   const deleteLink = useMutation({
-    mutationFn: ({ linkId }: { linkId: number }) => api.deleteLink(projectId, linkId),
+    mutationFn: ({ linkId }: { linkId: string }) => api.deleteLink(projectId, linkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectLinks(projectId) });
       setDeleteTarget(null);
@@ -634,7 +634,7 @@ function LinksSection({ canManageProject, currentUser, projectId }: LinksSection
 
 interface VaultResourcesSectionProps {
   currentUser: User;
-  projectId: number;
+  projectId: string;
 }
 
 function VaultResourcesSection({ currentUser, projectId }: VaultResourcesSectionProps) {
@@ -645,7 +645,7 @@ function VaultResourcesSection({ currentUser, projectId }: VaultResourcesSection
   });
 
   const deleteFile = useMutation({
-    mutationFn: (fileId: number) => api.deleteVaultFile(fileId),
+    mutationFn: (fileId: string) => api.deleteVaultFile(fileId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries({ project_id: String(projectId) }) }),
   });
 
@@ -690,7 +690,7 @@ function VaultResourcesSection({ currentUser, projectId }: VaultResourcesSection
 
 interface VaultResourceRowProps {
   canReview: boolean;
-  onDeleteFile: (fileId: number) => void;
+  onDeleteFile: (fileId: string) => void;
   onDownload: (file: VaultFile) => void;
   onReview: (file: VaultFile, status: 'available' | 'rejected') => void;
   resource: VaultEntry;
@@ -724,7 +724,7 @@ interface RisksIssuesSectionProps {
   canManageProject: boolean;
   currentUser: User;
   project: Project;
-  projectId: number;
+  projectId: string;
 }
 
 interface RiskOrIssue extends Risk {
@@ -749,7 +749,7 @@ function RisksIssuesSection({ canManageProject, currentUser, project, projectId 
   });
 
   const deleteRisk = useMutation({
-    mutationFn: (id: number) => api.deleteRisk(id),
+    mutationFn: (id: string) => api.deleteRisk(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectRisks(projectId) });
       setDeleteTarget(null);
@@ -757,7 +757,7 @@ function RisksIssuesSection({ canManageProject, currentUser, project, projectId 
   });
 
   const deleteIssue = useMutation({
-    mutationFn: (id: number) => api.deleteIssue(id),
+    mutationFn: (id: string) => api.deleteIssue(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectIssues(projectId) });
       setDeleteTarget(null);
@@ -865,7 +865,7 @@ interface TeamSectionProps {
   project: Project;
   canManageProject: boolean;
   onAdd: () => void;
-  onSelectMember: (userId: number) => void;
+  onSelectMember: (userId: string) => void;
 }
 
 function TeamSection({ project, canManageProject, onAdd, onSelectMember }: TeamSectionProps) {
@@ -893,7 +893,7 @@ function TeamSection({ project, canManageProject, onAdd, onSelectMember }: TeamS
 
 interface MilestoneRowsProps {
   project: Project;
-  onSelectMilestone: (milestoneId: number) => void;
+  onSelectMilestone: (milestoneId: string) => void;
 }
 
 function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
@@ -920,7 +920,7 @@ function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
 }
 
 interface FinanceSectionProps {
-  projectId: number;
+  projectId: string;
 }
 
 function FinanceSection({ projectId }: FinanceSectionProps) {
@@ -929,7 +929,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
   const [isSpendOpen, setIsSpendOpen] = useState(false);
   const [editBudgetLine, setEditBudgetLine] = useState<BudgetLine | null>(null);
   const [editSpend, setEditSpend] = useState<SpendRecord | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ _type: string; id: number; category?: string; name?: string; amount: number } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ _type: string; id: string; category?: string; name?: string; amount: number } | null>(null);
 
   const summaryQuery = useQuery({
     queryKey: queryKeys.projectFinancialSummary(projectId),
@@ -947,7 +947,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
   });
 
   const deleteBudgetLine = useMutation({
-    mutationFn: (id: number) => api.deleteBudgetLine(id),
+    mutationFn: (id: string) => api.deleteBudgetLine(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectBudgetLines(projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectFinancialSummary(projectId) });
@@ -956,7 +956,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
   });
 
   const deleteSpendRecord = useMutation({
-    mutationFn: (id: number) => api.deleteSpendRecord(id),
+    mutationFn: (id: string) => api.deleteSpendRecord(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectSpendRecords(projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectFinancialSummary(projectId) });
@@ -1051,7 +1051,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
 
 interface BudgetLineDialogProps {
   budgetLine?: BudgetLine;
-  projectId: number;
+  projectId: string;
   onClose: () => void;
 }
 
@@ -1101,7 +1101,7 @@ function BudgetLineDialog({ budgetLine, projectId, onClose }: BudgetLineDialogPr
 }
 
 interface SpendRecordDialogProps {
-  projectId: number;
+  projectId: string;
   record?: SpendRecord;
   onClose: () => void;
 }
@@ -1118,7 +1118,7 @@ function SpendRecordDialog({ projectId, record, onClose }: SpendRecordDialogProp
   const [error, setError] = useState('');
 
   const saveMutation = useMutation({
-    mutationFn: (data: { amount: number; category: string; description: string; spend_date: string; project_id: number }) => isEditing ? api.updateSpendRecord(record!.id, data) : api.createSpendRecord(projectId, data),
+    mutationFn: (data: { amount: number; category: string; description: string; spend_date: string; project_id: string }) => isEditing ? api.updateSpendRecord(record!.id, data) : api.createSpendRecord(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectSpendRecords(projectId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectFinancialSummary(projectId) });
@@ -1289,8 +1289,8 @@ interface InitialValues {
   description?: string;
   priority?: string;
   due_date?: string;
-  milestone_id?: number | null;
-  assignee_user_id?: number | null;
+  milestone_id?: string | null;
+  assignee_user_id?: string | null;
   target_date?: string;
   status?: string;
   user_id?: string;
@@ -1306,26 +1306,28 @@ function getCreateTitle(type: string) {
   return type === 'milestone' ? 'Create milestone' : 'Add team member';
 }
 
-function createProjectItem(type: string, projectId: number, form: InitialValues) {
+function createProjectItem(type: string, projectId: string, form: InitialValues) {
   if (type === 'milestone') return api.createMilestone(projectId, { ...form, project_id: projectId, status: (form.status || 'not_started') as MilestoneStatus } as CreateMilestonePayload);
-  return api.addProjectMember(projectId, { user_id: Number(form.user_id), project_role: (form.project_role || 'member') as ProjectRole });
+  return api.addProjectMember(projectId, { user_id: form.user_id || '', project_role: (form.project_role || 'member') as ProjectRole });
 }
 
-interface TaskDialogProps {
+export interface TaskDialogProps {
+  initialMilestoneId?: string | null;
   onClose: () => void;
+  onCreated?: () => void;
   project: Project;
-  projectId: number;
+  projectId: string;
 }
 
-function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
+export function TaskDialog({ initialMilestoneId = null, onClose, onCreated, project, projectId }: TaskDialogProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     title: '',
     description: '',
     priority: 'medium' as Priority,
     due_date: '',
-    milestone_id: null as number | null,
-    assignee_user_id: null as number | null,
+    milestone_id: initialMilestoneId,
+    assignee_user_id: null as string | null,
   });
   const [error, setError] = useState('');
 
@@ -1333,6 +1335,7 @@ function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
     mutationFn: (data: CreateTaskPayload) => api.createTask(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });
+      onCreated?.();
       onClose();
     },
     onError: (err: Error) => setError(err.message),
@@ -1351,8 +1354,8 @@ function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
         <div className="field-group"><label htmlFor="task-title">Task title</label><input id="task-title" required value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} /></div>
         <div className="field-group"><label htmlFor="task-description">Description</label><textarea id="task-description" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Add context, expected outcome, or links…" /></div>
         <div className="field-group"><label htmlFor="task-priority">Priority</label><select id="task-priority" value={form.priority} onChange={(e) => setForm((c) => ({ ...c, priority: e.target.value as Priority }))}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-        <div className="field-row"><div className="field-group"><label htmlFor="task-date">Due date</label><input id="task-date" type="date" value={form.due_date} onChange={(e) => setForm((c) => ({ ...c, due_date: e.target.value }))} /></div><div className="field-group"><label htmlFor="task-milestone">Milestone</label><select id="task-milestone" value={form.milestone_id || ''} onChange={(e) => setForm((c) => ({ ...c, milestone_id: e.target.value ? Number(e.target.value) : null }))}><option value="">No milestone</option>{(project.milestones || []).map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></div></div>
-        <div className="field-group"><label htmlFor="task-assignee">Assignee</label><select id="task-assignee" value={form.assignee_user_id || ''} onChange={(e) => setForm((c) => ({ ...c, assignee_user_id: e.target.value ? Number(e.target.value) : null }))}><option value="">Unassigned</option>{(project.team_members || []).filter((member) => member.status === 'active').map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
+        <div className="field-row"><div className="field-group"><label htmlFor="task-date">Due date</label><input id="task-date" type="date" value={form.due_date} onChange={(e) => setForm((c) => ({ ...c, due_date: e.target.value }))} /></div><div className="field-group"><label htmlFor="task-milestone">Milestone</label><select id="task-milestone" value={form.milestone_id || ''} onChange={(e) => setForm((c) => ({ ...c, milestone_id: e.target.value ? e.target.value : null }))}><option value="">No milestone</option>{(project.milestones || []).map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></div></div>
+        <div className="field-group"><label htmlFor="task-assignee">Assignee</label><select id="task-assignee" value={form.assignee_user_id || ''} onChange={(e) => setForm((c) => ({ ...c, assignee_user_id: e.target.value ? e.target.value : null }))}><option value="">Unassigned</option>{(project.team_members || []).filter((member) => member.status === 'active').map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
       </form>
     </DialogShell>
@@ -1362,7 +1365,7 @@ function TaskDialog({ onClose, project, projectId }: TaskDialogProps) {
 interface MilestoneDialogProps {
   milestone?: Milestone;
   project: Project;
-  projectId: number;
+  projectId: string;
   onClose: () => void;
 }
 
@@ -1390,7 +1393,7 @@ function MilestoneDialog({ milestone, project, projectId, onClose }: MilestoneDi
     event.preventDefault();
     if (!form.title.trim()) { setError('Title is required.'); return; }
     if (!form.target_date) { setError('Target date is required.'); return; }
-    saveMutation.mutate({ ...form, phase_id: form.phase_id ? Number(form.phase_id) : null, project_id: projectId });
+    saveMutation.mutate({ ...form, phase_id: form.phase_id ? form.phase_id : null, project_id: projectId });
   };
 
   return (
@@ -1409,7 +1412,7 @@ function MilestoneDialog({ milestone, project, projectId, onClose }: MilestoneDi
 
 interface LinkDialogProps {
   link?: ProjectLink;
-  projectId: number;
+  projectId: string;
   onClose: () => void;
 }
 
@@ -1424,7 +1427,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
   const [error, setError] = useState('');
 
   const saveMutation = useMutation({
-    mutationFn: (data: { label: string; url: string; link_type: string; project_id: number }) => isEditing ? api.updateLink(projectId, link!.id, data) : api.createLink(projectId, data),
+    mutationFn: (data: { label: string; url: string; link_type: string; project_id: string }) => isEditing ? api.updateLink(projectId, link!.id, data) : api.createLink(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projectLinks(projectId) });
       onClose();
@@ -1454,7 +1457,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
 interface RiskDialogProps {
   onClose: () => void;
   project: Project;
-  projectId: number;
+  projectId: string;
   risk?: Risk;
 }
 
@@ -1503,7 +1506,7 @@ function RiskDialog({ onClose, project, projectId, risk }: RiskDialogProps) {
           <div className="field-group"><label htmlFor="risk-status">Status</label><select id="risk-status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as RiskStatus }))}><option value="open">Open</option><option value="mitigating">Mitigating</option><option value="escalated">Escalated</option><option value="resolved">Resolved</option></select></div>
           <div className="field-group"><label htmlFor="risk-date">Due date</label><input id="risk-date" type="date" value={form.due_date} onChange={(e) => setForm((c) => ({ ...c, due_date: e.target.value }))} /></div>
         </div>
-        <div className="field-group"><label htmlFor="risk-owner">Owner</label><select id="risk-owner" value={form.owner_user_id} onChange={(e) => setForm((c) => ({ ...c, owner_user_id: e.target.value ? Number(e.target.value) : '' }))}><option value="">Unassigned</option>{(project?.team_members || []).map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="risk-owner">Owner</label><select id="risk-owner" value={form.owner_user_id} onChange={(e) => setForm((c) => ({ ...c, owner_user_id: e.target.value }))}><option value="">Unassigned</option>{(project?.team_members || []).map((member) => <option key={member.user_id} value={member.user_id}>{member.name}</option>)}</select></div>
         <div className="field-group"><label htmlFor="risk-mitigation">Mitigation plan</label><textarea id="risk-mitigation" value={form.mitigation_note} onChange={(e) => setForm((c) => ({ ...c, mitigation_note: e.target.value }))} placeholder="How will this risk be addressed?" /></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
       </form>
@@ -1515,7 +1518,7 @@ interface IssueDialogProps {
   issue?: Issue;
   onClose: () => void;
   project: Project;
-  projectId: number;
+  projectId: string;
 }
 
 function IssueDialog({ issue, onClose, project, projectId }: IssueDialogProps) {

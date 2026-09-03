@@ -1,28 +1,72 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
+import { queryKeys } from '../api/queryKeys.js';
+import { canManageProject } from '../auth/permissions.js';
 import { PRIORITIES, TASK_STATUSES, getLabel } from '../constants.js';
-import type { MilestoneDetail } from '../types/api.js';
+import type { MilestoneDetail, Project, ProjectRole, User } from '../types/api.js';
 import { formatDate } from '../utils/project.js';
+import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
 import PageHeader from './PageHeader.js';
+import { TaskDialog } from './ProjectPage.js';
 
 interface MilestonePageProps {
-  milestoneId: number;
+  currentUser: User;
+  milestoneId: string;
   onBack: () => void;
   onMenu: () => void;
-  onSelectProject: (projectId: number) => void;
-  onSelectTask: (taskId: number) => void;
-  onSelectMember: (userId: number) => void;
+  onSelectProject: (projectId: string) => void;
+  onSelectTask: (taskId: string) => void;
+  onSelectMember: (userId: string) => void;
 }
 
 function milestoneStatusLabel(status: string): string {
   return status ? status.replaceAll('_', ' ') : 'Unscheduled';
 }
 
-export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectProject, onSelectTask, onSelectMember }: MilestonePageProps) {
+function AddMemberDialog({ project, onClose }: { project: Project; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const usersQuery = useQuery({ queryKey: queryKeys.users(), queryFn: ({ signal }) => api.listUsers({ signal }) });
+  const [userId, setUserId] = useState('');
+  const [role, setRole] = useState<ProjectRole>('member');
+  const [error, setError] = useState('');
+
+  const saveMutation = useMutation({
+    mutationFn: (data: { user_id: string; project_role: ProjectRole }) => api.addProjectMember(project.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.projectMembers(project.id) });
+      onClose();
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!userId) { setError('Select a team member.'); return; }
+    saveMutation.mutate({ user_id: userId, project_role: role });
+  };
+
+  return (
+    <DialogShell title="Add person" description={`Add a team member to ${project.name}.`} onClose={onClose}>
+      <form className="dialog-form" onSubmit={handleSubmit}>
+        {error && <div className="error-banner" role="alert">{error}</div>}
+        <div className="field-group"><label htmlFor="mi-member-user">Team member</label><select id="mi-member-user" required value={userId} onChange={(e) => setUserId(e.target.value)}><option value="">Select a user</option>{(usersQuery.data || []).filter((user) => user.status === 'active').map((user) => <option key={user.id} value={user.id}>{user.name} — {user.email}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="mi-member-role">Project role</label><select id="mi-member-role" value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}><option value="member">Member</option><option value="project_lead">Project lead</option></select></div>
+        <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
+      </form>
+    </DialogShell>
+  );
+}
+
+export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu, onSelectProject, onSelectTask, onSelectMember }: MilestonePageProps) {
+  const queryClient = useQueryClient();
   const [milestone, setMilestone] = useState<MilestoneDetail | null>(null);
   const [error, setError] = useState('');
+  const [isTaskOpen, setIsTaskOpen] = useState(false);
+  const [isMemberOpen, setIsMemberOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,6 +84,12 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
     // oxlint-disable-next-line react/set-state-in-effect
     load();
   }, [load]);
+
+  const projectQuery = useQuery({
+    queryKey: queryKeys.project(milestone?.project_id ?? ''),
+    queryFn: ({ signal }) => api.getProject(milestone!.project_id, signal),
+    enabled: Boolean(milestone?.project_id),
+  });
 
   if (error && !milestone) {
     return (
@@ -60,10 +110,16 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
   }
 
   const { tasks } = milestone;
+  const project = projectQuery.data;
+  const canEdit = canManageProject(currentUser, project);
+  const refreshMilestone = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.milestone(milestoneId) });
+    load();
+  };
 
   return (
     <div className="page">
-      <header className="project-breadcrumb-bar">
+      <header className="project-breadcrumb-bar milestone-header">
         <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Icon name="menu" size={18} /></button>
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <button type="button" onClick={onBack}>Projects</button>
@@ -80,18 +136,11 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
         title={milestone.title}
         description={`${milestone.phase_name || 'No phase'} · target ${formatDate(milestone.target_date)}`}
         onMenu={onMenu}
+        action={<div className="mini-progress milestone-progress milestone-progress-header"><span style={{ width: `${milestone.progress}%` }} /></div>}
       />
 
       <div className="project-section-block">
-        <div className="project-section-card">
-          <div className="section-header">
-            <div>
-              <div className="eyebrow">Milestone</div>
-              <h2>{milestone.title}</h2>
-              <p>{milestone.phase_name || 'No phase'} · {formatDate(milestone.target_date)}</p>
-            </div>
-          </div>
-          <div className="project-stat-grid">
+        <div className="project-stat-grid">
             <div className="project-stat">
               <strong>{tasks.length}</strong>
               <span>Tasks</span>
@@ -109,9 +158,7 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
               <span>Progress</span>
             </div>
           </div>
-          <div className="mini-progress milestone-progress"><span style={{ width: `${milestone.progress}%` }} /></div>
         </div>
-      </div>
 
       <div className="project-section-block">
         <div className="project-section-card">
@@ -120,9 +167,10 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
               <h2>Tasks</h2>
               <p>Work attached to this milestone</p>
             </div>
+            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsTaskOpen(true)}><Icon name="plus" size={14} />Add task</button>}
           </div>
           {tasks.length === 0 ? (
-            <EmptyState icon="check" title="No tasks" message="No tasks are attached to this milestone yet." />
+            <EmptyState icon="check" title="No tasks" message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>Add task</button> : undefined} />
           ) : (
             <div className="detail-list">
               {tasks.map((task) => (
@@ -149,9 +197,10 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
               <h2>People</h2>
               <p>Members assigned to these tasks</p>
             </div>
+            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsMemberOpen(true)}><Icon name="plus" size={14} />Add people</button>}
           </div>
           {milestone.members.length === 0 ? (
-            <EmptyState icon="users" title="No people" message="No team members are assigned to tasks on this milestone." />
+            <EmptyState icon="users" title="No people" message="No team members are assigned to tasks on this milestone." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsMemberOpen(true)}>Add people</button> : undefined} />
           ) : (
             <div className="detail-list">
               {milestone.members.map((member) => (
@@ -168,6 +217,9 @@ export default function MilestonePage({ milestoneId, onBack, onMenu, onSelectPro
           )}
         </div>
       </div>
+
+      {isTaskOpen && project && <TaskDialog project={project} projectId={project.id} initialMilestoneId={milestone.id} onClose={() => setIsTaskOpen(false)} onCreated={refreshMilestone} />}
+      {isMemberOpen && project && <AddMemberDialog project={project} onClose={() => setIsMemberOpen(false)} />}
     </div>
   );
 }

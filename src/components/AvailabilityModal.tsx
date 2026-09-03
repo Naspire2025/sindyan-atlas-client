@@ -42,7 +42,7 @@ export default function AvailabilityModal({ onClose, onSuccess }: AvailabilityMo
 
     setIsSubmitting(true);
     try {
-      await api.createAvailability(Number(userId), {
+      await api.createAvailability(userId, {
         start_date: startDate,
         end_date: endDate,
         status,

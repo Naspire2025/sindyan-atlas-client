@@ -25,7 +25,7 @@ export default function InvitationsPage({ onMenu }: InvitationsPageProps) {
   });
 
   const revokeInvitation = useMutation({
-    mutationFn: (id: number) => api.revokeInvitation(id),
+    mutationFn: (id: string) => api.revokeInvitation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.invitations });
       setRevokeTarget(null);
@@ -33,7 +33,7 @@ export default function InvitationsPage({ onMenu }: InvitationsPageProps) {
   });
 
   const resendInvitation = useMutation({
-    mutationFn: (id: number) => api.resendInvitation(id),
+    mutationFn: (id: string) => api.resendInvitation(id),
     onSuccess: () => {
       setResendTarget(null);
     },
@@ -155,11 +155,11 @@ function CreateInvitationDialog({ onClose }: CreateInvitationDialogProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'admin' | 'team_member'>('team_member');
-  const [projectAssignments, setProjectAssignments] = useState<{ project_id: number; project_role: string }[]>([]);
+  const [projectAssignments, setProjectAssignments] = useState<{ project_id: string; project_role: string }[]>([]);
   const [error, setError] = useState('');
 
   const createInvitation = useMutation({
-    mutationFn: (data: { name: string; email: string; role: UserRole; project_assignments: { project_id: number; project_role: string }[] }) => api.createInvitation(data as CreateInvitationPayload),
+    mutationFn: (data: { name: string; email: string; role: UserRole; project_assignments: { project_id: string; project_role: string }[] }) => api.createInvitation(data as CreateInvitationPayload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.invitations });
       onClose();
@@ -177,7 +177,7 @@ function CreateInvitationDialog({ onClose }: CreateInvitationDialogProps) {
     createInvitation.mutate({ name: name.trim(), email: email.trim(), role, project_assignments: projectAssignments });
   };
 
-  const toggleProjectAssignment = (projectId: number) => {
+  const toggleProjectAssignment = (projectId: string) => {
     setProjectAssignments((assignments) => assignments.some((item) => item.project_id === projectId)
       ? assignments.filter((item) => item.project_id !== projectId)
       : [...assignments, { project_id: projectId, project_role: 'member' }]);

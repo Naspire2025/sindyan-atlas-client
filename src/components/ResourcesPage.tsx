@@ -39,7 +39,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   const [deleteAssetTarget, setDeleteAssetTarget] = useState<Asset | null>(null);
 
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
-  const [deleteAvailabilityTarget, setDeleteAvailabilityTarget] = useState<{ userId: number; id: number } | null>(null);
+  const [deleteAvailabilityTarget, setDeleteAvailabilityTarget] = useState<{ userId: string; id: string } | null>(null);
 
   // Queries
   const workloadQuery = useQuery({
@@ -82,7 +82,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   };
 
   const deleteMemberAllocationMutation = useMutation({
-    mutationFn: (id: number) => api.deleteMemberAllocation(id),
+    mutationFn: (id: string) => api.deleteMemberAllocation(id),
     onSuccess: () => {
       invalidateResources();
       setDeleteMemberAllocTarget(null);
@@ -90,7 +90,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   });
 
   const deleteAssetAllocationMutation = useMutation({
-    mutationFn: (id: number) => api.deleteAssetAllocation(id),
+    mutationFn: (id: string) => api.deleteAssetAllocation(id),
     onSuccess: () => {
       invalidateResources();
       setDeleteAssetAllocTarget(null);
@@ -98,7 +98,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   });
 
   const deleteAssetMutation = useMutation({
-    mutationFn: (id: number) => api.deleteAsset(id),
+    mutationFn: (id: string) => api.deleteAsset(id),
     onSuccess: () => {
       invalidateResources();
       setDeleteAssetTarget(null);
@@ -106,7 +106,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   });
 
   const deleteAvailabilityMutation = useMutation({
-    mutationFn: ({ userId, id }: { userId: number; id: number }) => api.deleteAvailability(userId, id),
+    mutationFn: ({ userId, id }: { userId: string; id: string }) => api.deleteAvailability(userId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['availability'] });
       setDeleteAvailabilityTarget(null);
@@ -770,9 +770,9 @@ function AssetsTab({
 /* Availability Tab Component                                                 */
 /* -------------------------------------------------------------------------- */
 interface AvailabilityTabProps {
-  users: { id: number; name: string; email: string }[];
+  users: { id: string; name: string; email: string }[];
   onNewUnavailability: () => void;
-  onDeleteAvailability: (userId: number, id: number) => void;
+  onDeleteAvailability: (userId: string, id: string) => void;
 }
 
 function AvailabilityTab({
@@ -782,7 +782,7 @@ function AvailabilityTab({
 }: AvailabilityTabProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
 
-  const targetUserId = selectedUserId ? Number(selectedUserId) : users[0]?.id;
+  const targetUserId = selectedUserId || users[0]?.id;
 
   const availabilityQuery = useQuery({
     queryKey: ['availability', targetUserId],

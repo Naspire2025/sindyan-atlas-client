@@ -81,28 +81,28 @@ export default function AllocationModal({
       if (allocationType === 'member') {
         if (editMemberTarget) {
           await api.updateMemberAllocation(editMemberTarget.id, {
-            user_id: Number(userId),
-            project_id: Number(projectId),
+            user_id: userId,
+            project_id: projectId,
             allocation_percentage: Number(percentage),
           });
         } else {
           await api.createMemberAllocation({
-            user_id: Number(userId),
-            project_id: Number(projectId),
+            user_id: userId,
+            project_id: projectId,
             allocation_percentage: Number(percentage),
           });
         }
       } else {
         if (editAssetTarget) {
           await api.updateAssetAllocation(editAssetTarget.id, {
-            asset_id: Number(assetId),
-            project_id: Number(projectId),
+            asset_id: assetId,
+            project_id: projectId,
             allocation_percentage: Number(percentage),
           });
         } else {
           await api.createAssetAllocation({
-            asset_id: Number(assetId),
-            project_id: Number(projectId),
+            asset_id: assetId,
+            project_id: projectId,
             allocation_percentage: Number(percentage),
           });
         }

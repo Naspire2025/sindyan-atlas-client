@@ -57,7 +57,7 @@ export default function NewProjectModal({ isSubmitting: isMutationPending = fals
         ...form,
         status: form.status as CreateProjectPayload['status'],
         priority: form.priority as CreateProjectPayload['priority'],
-        owner_user_id: form.owner_user_id ? Number(form.owner_user_id) : null,
+        owner_user_id: form.owner_user_id || null,
         links: form.links.map(({ label, link_type, url }) => ({ label, link_type, url })),
       });
     } catch (submissionError) { setError((submissionError as Error).message); } finally { setIsSubmitting(false); }

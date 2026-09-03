@@ -10,8 +10,8 @@ import TaskStatusSelect from './TaskStatusSelect.js';
 export interface TaskCollectionProps {
   currentUser: User;
   tasks: Task[];
-  updatingId: number | null;
-  onSelectTask: (taskId: number) => void;
+  updatingId: string | null;
+  onSelectTask: (taskId: string) => void;
   onStatusChange: (task: Task, nextStatus: string) => Promise<void>;
 }
 
@@ -76,11 +76,11 @@ interface KanbanColumnProps {
   onDragEnd: () => void;
   onDragStart: (task: Task) => void;
   onDrop: () => void;
-  onSelectTask: (taskId: number) => void;
+  onSelectTask: (taskId: string) => void;
   onStatusChange: (task: Task, nextStatus: string) => Promise<void>;
   status: string;
   tasks: Task[];
-  updatingId: number | null;
+  updatingId: string | null;
 }
 
 function KanbanColumn({
@@ -149,10 +149,10 @@ interface KanbanCardProps {
   draggable: boolean;
   onDragEnd: () => void;
   onDragStart: (task: Task) => void;
-  onSelectTask: (taskId: number) => void;
+  onSelectTask: (taskId: string) => void;
   onStatusChange: (task: Task, nextStatus: string) => Promise<void>;
   task: Task;
-  updatingId: number | null;
+  updatingId: string | null;
 }
 
 function KanbanCard({
