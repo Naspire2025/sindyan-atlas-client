@@ -253,8 +253,7 @@ export interface SpendRecord {
   amount: number;
   category?: string;
   description?: string;
-  spend_date?: string;
-  effective_date?: string;
+  spent_on: string;
 }
 
 export interface FinancialSummary {
@@ -451,7 +450,7 @@ export interface CreateSpendRecordPayload {
   amount: number;
   category?: string;
   description?: string;
-  spend_date?: string;
+  spent_on: string;
 }
 
 export interface CapacityProfile {
