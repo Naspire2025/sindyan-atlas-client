@@ -5,6 +5,7 @@ import { queryKeys } from '../api/queryKeys.js';
 import type { CreateInvitationPayload, Invitation, UserRole } from '../types/api.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
+import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
 import PageHeader from './PageHeader.js';
@@ -117,9 +118,9 @@ function InvitationSection({ title, count, items, onResend, onRevoke }: Invitati
       {items.length === 0 ? (
         <p className="invitation-empty">No {title.toLowerCase()} invitations.</p>
       ) : (
-        <div className="detail-list">
+        <DetailList>
           {items.map((inv) => (
-            <div className="detail-list-row" key={inv.id}>
+            <DetailRow key={inv.id}>
               <span className="avatar">{inv.email?.slice(0, 2).toUpperCase() || '—'}</span>
               <span className="detail-list-copy">
                 <strong>{inv.email}</strong>
@@ -137,9 +138,9 @@ function InvitationSection({ title, count, items, onResend, onRevoke }: Invitati
                   {inv.status}
                 </span>
               </div>
-            </div>
+            </DetailRow>
           ))}
-        </div>
+        </DetailList>
       )}
     </div>
   );

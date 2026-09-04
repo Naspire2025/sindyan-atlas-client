@@ -13,6 +13,7 @@ import AllocationModal from './AllocationModal.js';
 import AssetModal from './AssetModal.js';
 import AvailabilityModal from './AvailabilityModal.js';
 import ConfirmDialog from './ConfirmDialog.js';
+import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
 import { SearchField, SelectField } from './FilterBar.js';
 import Icon from './Icon.js';
@@ -566,11 +567,11 @@ function AllocationsTab({
                 <h3>Member allocations</h3>
                 <span className="count-pill">{filteredMembers.length}</span>
               </div>
-              <div className="detail-list">
+              <DetailList>
                 {filteredMembers.map((alloc) => {
                   const pct = alloc.allocation_percentage ?? alloc.percentage ?? 0;
                   return (
-                    <div className="detail-list-row" key={alloc.id}>
+                    <DetailRow key={alloc.id}>
                       <span className="avatar">
                         {(alloc.user_name || '—').slice(0, 2).toUpperCase()}
                       </span>
@@ -596,10 +597,10 @@ function AllocationsTab({
                           Remove
                         </button>
                       </div>
-                    </div>
+                    </DetailRow>
                   );
                 })}
-              </div>
+              </DetailList>
             </div>
           )}
 
@@ -609,11 +610,11 @@ function AllocationsTab({
                 <h3>Asset allocations</h3>
                 <span className="count-pill">{filteredAssets.length}</span>
               </div>
-              <div className="detail-list">
+              <DetailList>
                 {filteredAssets.map((alloc) => {
                   const pct = alloc.allocation_percentage ?? alloc.percentage ?? 0;
                   return (
-                    <div className="detail-list-row" key={alloc.id}>
+                    <DetailRow key={alloc.id}>
                       <span className="avatar">
                         {(alloc.asset_name || '—').slice(0, 2).toUpperCase()}
                       </span>
@@ -639,10 +640,10 @@ function AllocationsTab({
                           Remove
                         </button>
                       </div>
-                    </div>
+                    </DetailRow>
                   );
                 })}
-              </div>
+              </DetailList>
             </div>
           )}
         </>
@@ -736,9 +737,9 @@ function AssetsTab({
           message="Shared assets and resources registered for your organization will appear here."
         />
       ) : (
-        <div className="detail-list">
+        <DetailList>
           {filteredAssets.map((asset) => (
-            <div className="detail-list-row" key={asset.id}>
+            <DetailRow key={asset.id}>
               <span className="avatar">{(asset.name || '—').slice(0, 2).toUpperCase()}</span>
               <span className="detail-list-copy">
                 <strong>{asset.name}</strong>
@@ -758,9 +759,9 @@ function AssetsTab({
                   Delete
                 </button>
               </div>
-            </div>
+            </DetailRow>
           ))}
-        </div>
+        </DetailList>
       )}
     </>
   );
@@ -839,9 +840,9 @@ function AvailabilityTab({
           message="No vacations, leave, or planned capacity restrictions are scheduled for this team member."
         />
       ) : (
-        <div className="detail-list">
+        <DetailList>
           {records.map((rec: Availability) => (
-            <div className="detail-list-row" key={rec.id}>
+            <DetailRow key={rec.id}>
               <span className="avatar avatar-accent">
                 {rec.status === 'unavailable' ? 'LV' : 'LM'}
               </span>
@@ -862,9 +863,9 @@ function AvailabilityTab({
                   Delete
                 </button>
               </div>
-            </div>
+            </DetailRow>
           ))}
-        </div>
+        </DetailList>
       )}
     </>
   );

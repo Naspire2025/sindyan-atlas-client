@@ -38,6 +38,7 @@ import {
   getProjectHealth,
 } from "../utils/project.js";
 import ConfirmDialog from "./ConfirmDialog.js";
+import { DetailList, DetailRow } from "./DetailList.js";
 import DialogShell from "./DialogShell.js";
 import EmptyState from "./EmptyState.js";
 import { SearchField, SelectField } from "./FilterBar.js";
@@ -944,9 +945,9 @@ function TasksSection({
       </div>
       {tasks.length ? (
         view === "list" ? (
-          <div className="detail-list">
+          <DetailList>
             {tasks.map((task) => (
-              <div className="detail-list-row" key={task.id}>
+              <DetailRow key={task.id}>
                 <span className={`task-check status-${task.status}`} />
                 <button
                   className="detail-list-copy detail-list-link"
@@ -971,9 +972,9 @@ function TasksSection({
                     {task.assignee_name || "Assignee"}
                   </button>
                 )}
-              </div>
+              </DetailRow>
             ))}
-          </div>
+          </DetailList>
         ) : (
           <TaskKanbanBoard
             currentUser={currentUser}
@@ -1035,7 +1036,7 @@ function MilestonesSection({
       onAction={() => setIsCreateOpen(true)}
     >
       {project.milestones?.length ? (
-        <div className="detail-list">
+        <DetailList>
           {project.milestones.map((milestone) => {
             const tasks =
               project.tasks?.filter(
@@ -1046,7 +1047,7 @@ function MilestonesSection({
               ? Math.round((done / tasks.length) * 100)
               : 0;
             return (
-              <div className="detail-list-row" key={milestone.id}>
+              <DetailRow key={milestone.id}>
                 <span className="milestone-mark" />
                 <span className="detail-list-copy">
                   <button
@@ -1084,10 +1085,10 @@ function MilestonesSection({
                     </button>
                   </div>
                 )}
-              </div>
+              </DetailRow>
             );
           })}
-        </div>
+        </DetailList>
       ) : (
         <EmptyState
           icon="calendar"
@@ -1174,9 +1175,9 @@ function LinksSection({
             Loading links…
           </div>
         ) : links.length ? (
-          <div className="detail-list">
+          <DetailList>
             {links.map((link) => (
-              <div className="detail-list-row" key={link.id}>
+              <DetailRow key={link.id}>
                 <Icon name="external" size={16} />
                 <span className="detail-list-copy">
                   <a href={link.url} target="_blank" rel="noopener noreferrer">
@@ -1202,9 +1203,9 @@ function LinksSection({
                     </button>
                   </div>
                 )}
-              </div>
+              </DetailRow>
             ))}
-          </div>
+          </DetailList>
         ) : (
           <EmptyState
             icon="external"
@@ -1303,7 +1304,7 @@ function VaultResourcesSection({
           message={resourcesQuery.error.message}
         />
       ) : resources.length ? (
-        <div className="detail-list">
+        <DetailList>
           {resources.map((resource) => (
             <VaultResourceRow
               canReview={canReview}
@@ -1314,7 +1315,7 @@ function VaultResourcesSection({
               onReview={handleReview}
             />
           ))}
-        </div>
+        </DetailList>
       ) : (
         <EmptyState
           icon="lock"
@@ -1343,7 +1344,7 @@ function VaultResourceRow({
 }: VaultResourceRowProps) {
   const files = resource.files || [];
   return (
-    <div className="detail-list-row vault-entry-row">
+    <DetailRow className="vault-entry-row">
       <Icon
         name={
           resource.entry_type === "external_link"
@@ -1416,7 +1417,7 @@ function VaultResourceRow({
           Open <Icon name="external" size={13} />
         </a>
       )}
-    </div>
+    </DetailRow>
   );
 }
 
@@ -1523,9 +1524,9 @@ function RisksIssuesSection({
               Loading risks…
             </div>
           ) : risks.length ? (
-            <div className="detail-list">
+            <DetailList>
               {risks.map((risk) => (
-                <div className="detail-list-row" key={risk.id}>
+                <DetailRow key={risk.id}>
                   <span
                     className={`priority-mark priority-${risk.severity || "medium"}`}
                   />
@@ -1559,9 +1560,9 @@ function RisksIssuesSection({
                       </button>
                     </div>
                   )}
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           ) : (
             <EmptyState
               icon="alert"
@@ -1575,9 +1576,9 @@ function RisksIssuesSection({
             Loading issues…
           </div>
         ) : issues.length ? (
-          <div className="detail-list">
+          <DetailList>
             {issues.map((issue) => (
-              <div className="detail-list-row" key={issue.id}>
+              <DetailRow key={issue.id}>
                 <span
                   className={`priority-mark priority-${issue.severity || "medium"}`}
                 />
@@ -1610,9 +1611,9 @@ function RisksIssuesSection({
                     </button>
                   </div>
                 )}
-              </div>
+              </DetailRow>
             ))}
-          </div>
+          </DetailList>
         ) : (
           <EmptyState
             icon="alert"
@@ -1699,9 +1700,9 @@ function TeamSection({
       onAction={onAdd}
     >
       {project.team_members?.length ? (
-        <div className="detail-list">
+        <DetailList>
           {project.team_members.map((member) => (
-            <div className="detail-list-row" key={member.id}>
+            <DetailRow key={member.id}>
               <span className="avatar">{getInitials(member.name)}</span>
               <span className="detail-list-copy">
                 <button
@@ -1718,9 +1719,9 @@ function TeamSection({
                   ? "Project lead"
                   : "Member"}
               </span>
-            </div>
+            </DetailRow>
           ))}
-        </div>
+        </DetailList>
       ) : (
         <EmptyState
           icon="users"
@@ -1739,7 +1740,7 @@ interface MilestoneRowsProps {
 
 function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
   return (
-    <div className="detail-list">
+    <DetailList>
       {project.milestones!.map((milestone) => {
         const tasks =
           project.tasks?.filter((task) => task.milestone_id === milestone.id) ||
@@ -1749,7 +1750,7 @@ function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
           ? Math.round((done / tasks.length) * 100)
           : 0;
         return (
-          <div className="detail-list-row" key={milestone.id}>
+          <DetailRow key={milestone.id}>
             <span className="milestone-mark" />
             <span className="detail-list-copy">
               <button
@@ -1768,10 +1769,10 @@ function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
               <span style={{ width: `${progress}%` }} />
             </span>
             <strong className="progress-number">{progress}%</strong>
-          </div>
+          </DetailRow>
         );
       })}
-    </div>
+    </DetailList>
   );
 }
 
@@ -1890,9 +1891,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             Loading…
           </div>
         ) : budgetLines.length ? (
-          <div className="detail-list">
+          <DetailList>
             {budgetLines.map((line) => (
-              <div className="detail-list-row" key={line.id}>
+              <DetailRow key={line.id}>
                 <span className="detail-list-copy">
                   <strong>{line.category}</strong>
                   <small>
@@ -1923,9 +1924,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                     Delete
                   </button>
                 </div>
-              </div>
+              </DetailRow>
             ))}
-          </div>
+          </DetailList>
         ) : (
           <EmptyState
             icon="projects"
@@ -1957,9 +1958,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             Loading…
           </div>
         ) : spendRecords.length ? (
-          <div className="detail-list">
+          <DetailList>
             {spendRecords.map((record) => (
-              <div className="detail-list-row" key={record.id}>
+              <DetailRow key={record.id}>
                 <span className="detail-list-copy">
                   <strong>
                     {record.description || record.category || "Spend record"}
@@ -1987,9 +1988,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                     Delete
                   </button>
                 </div>
-              </div>
+              </DetailRow>
             ))}
-          </div>
+          </DetailList>
         ) : (
           <EmptyState
             icon="projects"

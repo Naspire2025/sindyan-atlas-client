@@ -6,6 +6,7 @@ import { VAULT_ENTRY_TYPES } from '../constants.js';
 import type { Project, User, VaultEntry, VaultEntryType, VaultFile } from '../types/api.js';
 import { canRevealSecret, isAdmin } from '../auth/permissions.js';
 import ConfirmDialog from './ConfirmDialog.js';
+import { DetailList, DetailRow } from './DetailList.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
@@ -115,7 +116,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
             action={!search && !typeFilter ? <button className="button button-secondary" type="button" onClick={() => setIsCreateOpen(true)}><Icon name="plus" size={14} />Add resource</button> : null}
           />
         ) : (
-          <div className="detail-list">
+          <DetailList>
             {filtered.map((entry) => (
               <VaultEntryRow
                 key={entry.id}
@@ -127,7 +128,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
                 onReveal={() => setRevealTarget(entry)}
               />
             ))}
-          </div>
+          </DetailList>
         )}
       </section>
 
@@ -164,7 +165,7 @@ function VaultEntryRow({ currentUser, entry, projects, onEdit, onDelete, onRevea
   const files = entry.files || [];
 
   return (
-    <div className="detail-list-row vault-entry-row">
+    <DetailRow className="vault-entry-row">
       <span className="vault-entry-icon">
         <Icon name={hasSecret ? 'lock' : entry.entry_type === 'external_link' ? 'external' : 'check'} size={16} />
       </span>
@@ -193,7 +194,7 @@ function VaultEntryRow({ currentUser, entry, projects, onEdit, onDelete, onRevea
         <button className="text-button" type="button" onClick={onEdit}>Edit</button>
         <button className="text-button text-button-danger" type="button" onClick={onDelete}>Delete</button>
       </div>
-    </div>
+    </DetailRow>
   );
 }
 

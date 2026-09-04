@@ -6,6 +6,7 @@ import { canManageProject } from '../auth/permissions.js';
 import { PRIORITIES, TASK_STATUSES, getLabel } from '../constants.js';
 import type { MilestoneDetail, Project, ProjectRole, User } from '../types/api.js';
 import { formatDate } from '../utils/project.js';
+import { DetailList, DetailRow } from './DetailList.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
@@ -172,9 +173,9 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
           {tasks.length === 0 ? (
             <EmptyState icon="check" title="No tasks" message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>Add task</button> : undefined} />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {tasks.map((task) => (
-                <div className="detail-list-row" key={task.id}>
+                <DetailRow key={task.id}>
                   <span className={`task-check status-${task.status}`} />
                   <button className="detail-list-copy detail-list-link" type="button" onClick={() => onSelectTask(task.id)}>
                     <strong>{task.title}</strong>
@@ -183,9 +184,9 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
                   {task.assignee_user_id && (
                     <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button>
                   )}
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>
@@ -202,18 +203,18 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
           {milestone.members.length === 0 ? (
             <EmptyState icon="users" title="No people" message="No team members are assigned to tasks on this milestone." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsMemberOpen(true)}>Add people</button> : undefined} />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {milestone.members.map((member) => (
-                <div className="detail-list-row" key={member.user_id}>
+                <DetailRow key={member.user_id}>
                   <span className="avatar">{member.name?.slice(0, 2).toUpperCase() || '—'}</span>
                   <span className="detail-list-copy">
                     <button className="text-button user-link" type="button" onClick={() => onSelectMember(member.user_id)}>{member.name}</button>
                     <small>{member.email || 'No email'}</small>
                   </span>
                   <span className="role-pill">{member.project_role === 'project_lead' ? 'Project lead' : 'Member'}</span>
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>

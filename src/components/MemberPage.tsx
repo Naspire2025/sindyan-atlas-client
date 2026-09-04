@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import type { MemberSummary } from '../types/api.js';
 import { formatDate } from '../utils/project.js';
+import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
 import PageHeader from './PageHeader.js';
@@ -119,9 +120,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
           {summary.projects.length === 0 ? (
             <EmptyState icon="projects" title="No projects" message="Not part of any project yet." />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {summary.projects.map((project) => (
-                <div className="detail-list-row" key={project.project_id}>
+                <DetailRow key={project.project_id}>
                   <button
                     className="text-button"
                     type="button"
@@ -133,9 +134,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
                     <small>{roleLabel(project.project_role)}</small>
                   </div>
                   <span className="role-pill">{project.status}</span>
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>
@@ -151,9 +152,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
           {summary.assignments.tasks.length === 0 ? (
             <EmptyState icon="check" title="No tasks assigned" message="No tasks assigned to this member." />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {summary.assignments.tasks.map((task) => (
-                <div className="detail-list-row" key={`task-${task.id}`}>
+                <DetailRow key={`task-${task.id}`}>
                   <button
                     className="text-button"
                     type="button"
@@ -168,9 +169,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
                     </small>
                   </div>
                   <span className="role-pill">{task.priority}</span>
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>
@@ -186,9 +187,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
           {summary.assignments.risks.length === 0 ? (
             <EmptyState icon="alert" title="No risks owned" message="No risks are owned by this member." />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {summary.assignments.risks.map((risk) => (
-                <div className="detail-list-row" key={`risk-${risk.id}`}>
+                <DetailRow key={`risk-${risk.id}`}>
                   <span className="detail-list-copy">
                     <strong>{risk.title}</strong>
                     <small>
@@ -197,9 +198,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
                     </small>
                   </span>
                   <span className="role-pill">{risk.severity}</span>
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>
@@ -215,9 +216,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
           {summary.assignments.issues.length === 0 ? (
             <EmptyState icon="alert" title="No issues owned" message="No issues are owned by this member." />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {summary.assignments.issues.map((issue) => (
-                <div className="detail-list-row" key={`issue-${issue.id}`}>
+                <DetailRow key={`issue-${issue.id}`}>
                   <span className="detail-list-copy">
                     <strong>{issue.title}</strong>
                     <small>
@@ -228,9 +229,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
                     </small>
                   </span>
                   <span className="role-pill">{issue.priority}</span>
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>
@@ -246,9 +247,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
           {summary.assignments.allocations.length === 0 ? (
             <EmptyState icon="calendar" title="No allocations" message="No time allocated across projects." />
           ) : (
-            <div className="detail-list">
+            <DetailList>
               {summary.assignments.allocations.map((allocation, index) => (
-                <div className="detail-list-row" key={`allocation-${index}`}>
+                <DetailRow key={`allocation-${index}`}>
                   <button
                     className="text-button"
                     type="button"
@@ -262,9 +263,9 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
                     </small>
                   </div>
                   <span className="role-pill">{allocation.allocation_percent}%</span>
-                </div>
+                </DetailRow>
               ))}
-            </div>
+            </DetailList>
           )}
         </div>
       </div>

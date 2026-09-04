@@ -2541,6 +2541,9 @@ a {
   gap: 10px;
   border-bottom: 1px solid var(--color-graphite);
 }
+.detail-list .detail-list-row:last-child {
+  border-bottom: none;
+}
 .detail-list-copy {
   min-width: 0;
   flex: 1;
