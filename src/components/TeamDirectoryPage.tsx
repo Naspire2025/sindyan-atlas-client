@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
-import type { User, UserRole } from '../types/api.js';
+import type { Project, User, UserRole, WorkloadItem } from '../types/api.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
@@ -32,6 +32,35 @@ export default function TeamDirectoryPage({ onMenu, onSelectMember }: TeamDirect
     queryKey: queryKeys.users(),
     queryFn: ({ signal }) => api.listUsers({ signal }),
   });
+
+  const workloadQuery = useQuery({
+    queryKey: queryKeys.workload(),
+    queryFn: ({ signal }) => api.getWorkload(undefined, signal),
+  });
+
+  const projectsQuery = useQuery({
+    queryKey: queryKeys.projects(),
+    queryFn: ({ signal }) => api.listProjects({ signal }),
+  });
+
+  const workloadMap = useMemo(() => {
+    const map = new Map<string, WorkloadItem>();
+    (workloadQuery.data || []).forEach((item) => {
+      const key = item.user_id || item.id;
+      if (key) map.set(key, item);
+    });
+    return map;
+  }, [workloadQuery.data]);
+
+  const projectCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    (projectsQuery.data || []).forEach((project: Project) => {
+      (project.team_members || []).forEach((member) => {
+        counts.set(member.user_id, (counts.get(member.user_id) || 0) + 1);
+      });
+    });
+    return counts;
+  }, [projectsQuery.data]);
 
   const updateUser = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<User> }) => api.updateUser(id, data),
@@ -84,24 +113,42 @@ export default function TeamDirectoryPage({ onMenu, onSelectMember }: TeamDirect
           <EmptyState icon="users" title="No team members found" message={search ? 'Try adjusting your search.' : 'No team members have been invited yet.'} />
         ) : (
           <div className="member-grid">
-            {filteredUsers.map((user) => (
-              <article className="member-card" key={user.id}>
-                <span className="avatar avatar-large">{user.name?.slice(0, 2).toUpperCase() || '—'}</span>
-                <div className="member-copy">
-                  <button className="text-button member-name-button" type="button" onClick={() => onSelectMember(user.id)}>{user.name}</button>
-                  <span>{user.email}</span>
-                </div>
-                <span className="role-pill">{user.role === 'admin' ? 'Admin' : 'Member'}</span>
-                <span className={`status-badge status-${user.status === 'active' ? 'active' : 'cancelled'}`}><span className="status-dot" />{user.status}</span>
-                <div className="member-projects">
-                  <span>Actions</span>
-                  <button type="button" onClick={() => setEditTarget(user)}>Edit role</button>
-                  {user.status === 'active' && user.role !== 'admin' && (
-                    <button type="button" onClick={() => setSuspendTarget(user)}>Suspend</button>
-                  )}
-                </div>
-              </article>
-            ))}
+            {filteredUsers.map((user) => {
+              const workload = workloadMap.get(user.id);
+              const allocated = workload?.allocated_hours ?? null;
+              const capacity = workload?.capacity_hours ?? null;
+              const projectCount = projectCounts.get(user.id) || 0;
+              const isOver = allocated !== null && capacity !== null && allocated > capacity;
+              return (
+                <article className="member-card" key={user.id}>
+                  <span className="avatar avatar-large">{user.name?.slice(0, 2).toUpperCase() || '—'}</span>
+                  <div className="member-copy">
+                    <button className="text-button member-name-button" type="button" onClick={() => onSelectMember(user.id)}>{user.name}</button>
+                    <span>{user.email}</span>
+                  </div>
+                  <span className="role-pill">{user.role === 'admin' ? 'Admin' : 'Member'}</span>
+                  <span className={`status-badge status-${user.status === 'active' ? 'active' : 'cancelled'}`}><span className="status-dot" />{user.status}</span>
+                  <div className="member-workload">
+                    {workload ? (
+                      <span className={`status-badge ${isOver ? 'status-overallocated' : 'status-active'}`}>
+                        <span className="status-dot" />
+                        {isOver ? `${allocated}h / ${capacity}h (over)` : `${allocated}h allocated`}
+                      </span>
+                    ) : (
+                      <span className="status-badge status-pending"><span className="status-dot" />No workload</span>
+                    )}
+                    <span className="status-badge">{projectCount} project{projectCount === 1 ? '' : 's'}</span>
+                  </div>
+                  <div className="member-projects">
+                    <span>Actions</span>
+                    <button type="button" onClick={() => setEditTarget(user)}>Edit role</button>
+                    {user.status === 'active' && user.role !== 'admin' && (
+                      <button type="button" onClick={() => setSuspendTarget(user)}>Suspend</button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

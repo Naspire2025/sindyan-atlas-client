@@ -17,13 +17,23 @@ interface SummaryCard {
 }
 
 export default function SummaryBar({ projects, overview, onSelect }: SummaryBarProps) {
-  const activeCount = overview.active_projects ?? projects.filter((project) => project.status === 'active').length;
-  const blockedCount = overview.blocked_projects ?? projects.filter((project) => project.status === 'blocked' || getTaskSummary(project).blocked > 0).length;
-  const overdueCount = overview.overdue_projects ?? projects.filter(isProjectOverdue).length;
+  const kpis = overview.kpis;
+  const activeCount = kpis?.active_projects ?? projects.filter((project) => project.status === 'active').length;
+  const blockedCount = kpis?.blocked_projects ?? projects.filter((project) => project.status === 'blocked' || getTaskSummary(project).blocked > 0).length;
+  const overdueCount = kpis?.overdue_projects ?? projects.filter(isProjectOverdue).length;
+  const completedCount = kpis?.completed_projects ?? projects.filter((project) => project.status === 'completed').length;
+  const atRiskCount = projects.filter((project) => {
+    const summary = getTaskSummary(project);
+    return summary.total > 0 && summary.blocked > 0;
+  }).length;
+  const healthScore = overview.health_score ?? 0;
+
   const cards: SummaryCard[] = [
-    { id: 'all', label: 'Total projects', value: overview.total_projects ?? projects.length, detail: 'Across the workspace', icon: 'projects' },
+    { id: 'all', label: 'Total projects', value: kpis?.total_projects ?? projects.length, detail: 'Across the workspace', icon: 'projects' },
     { id: 'active', label: 'Active', value: activeCount, detail: 'Currently in motion', icon: 'overview' },
-    { id: 'blocked', label: 'Need attention', value: blockedCount, detail: 'Blocked or flagged', icon: 'alert' },
+    { id: 'completed', label: 'Completed', value: completedCount, detail: 'Successfully delivered', icon: 'check' },
+    { id: 'at_risk', label: 'At risk', value: atRiskCount, detail: 'Needs attention', icon: 'alert' },
+    { id: 'blocked', label: 'Blocked', value: blockedCount, detail: 'Waiting on resolution', icon: 'alert' },
     { id: 'overdue', label: 'Past deadline', value: overdueCount, detail: 'Open and overdue', icon: 'calendar' },
   ];
 
@@ -37,6 +47,10 @@ export default function SummaryBar({ projects, overview, onSelect }: SummaryBarP
           <span className="summary-detail">{card.detail}</span>
         </button>
       ))}
+      <div className="summary-card health-score-card">
+        <span className="summary-value">{healthScore}%</span>
+        <span className="summary-label">Health score</span>
+      </div>
     </section>
   );
 }

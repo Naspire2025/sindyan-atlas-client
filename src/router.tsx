@@ -102,6 +102,21 @@ const milestoneRoute = createRoute({
   path: '/milestones/$milestoneId',
 });
 
+const risksIssuesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/risks-issues',
+});
+
+const riskRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/risks/$riskId',
+});
+
+const issueRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/issues/$issueId',
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/{$}',
@@ -123,6 +138,9 @@ const routeTree = rootRoute.addChildren([
   invitationsRoute,
   accountRoute,
   milestoneRoute,
+  risksIssuesRoute,
+  riskRoute,
+  issueRoute,
   notFoundRoute,
 ]);
 

@@ -4,6 +4,7 @@ const PAGE_PATHS: Record<string, string> = {
   overview: '/',
   projects: '/projects/all',
   tasks: '/tasks',
+  risksIssues: '/risks-issues',
   team: '/team',
   vault: '/vault',
   resources: '/resources',
@@ -46,6 +47,12 @@ export function routeFromPath(
   const milestoneId = matchSlug(normalized, '/milestones/', UUID_RE);
   if (milestoneId) return { page: 'milestone', milestoneId, projectId: null, filter: 'all' };
 
+  const riskId = matchSlug(normalized, '/risks/', UUID_RE);
+  if (riskId) return { page: 'risk', riskId, projectId: null, filter: 'all' };
+
+  const issueId = matchSlug(normalized, '/issues/', UUID_RE);
+  if (issueId) return { page: 'issue', issueId, projectId: null, filter: 'all' };
+
   if (normalized === '/projects' || normalized === '/projects/all') {
     return { page: 'projects', projectId: null, filter: search.view || 'all' };
   }
@@ -85,6 +92,14 @@ export function getMemberPath(memberId: string): string {
 
 export function getMilestonePath(milestoneId: string): string {
   return `/milestones/${milestoneId}`;
+}
+
+export function getRiskPath(riskId: string): string {
+  return `/risks/${riskId}`;
+}
+
+export function getIssuePath(issueId: string): string {
+  return `/issues/${issueId}`;
 }
 
 export function normalizePath(path: string): string {

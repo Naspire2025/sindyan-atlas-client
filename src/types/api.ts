@@ -217,6 +217,7 @@ export interface ProjectLink {
 export interface Risk {
   id: string;
   project_id: string;
+  project_name?: string;
   title: string;
   description?: string;
   severity?: RiskSeverity;
@@ -225,16 +226,24 @@ export interface Risk {
   mitigation_note?: string;
   mitigation_progress?: number;
   owner_user_id?: string;
+  owner_name?: string;
   due_date?: string;
 }
 
 export interface Issue {
   id: string;
   project_id: string;
+  project_name?: string;
   title: string;
   description?: string;
-  severity?: RiskSeverity;
-  status?: IssueStatus;
+  priority: string;
+  status: IssueStatus;
+  owner_user_id?: string;
+  owner_name?: string;
+  target_resolution_date?: string;
+  resolution_progress?: number;
+  resolution_note?: string;
+  created_by_user_id?: string;
 }
 
 export interface BudgetLine {
@@ -261,6 +270,7 @@ export interface FinancialSummary {
   budget_currency?: string;
   total_planned: number;
   total_spent: number;
+  projected_final_cost?: number;
   remaining?: number;
   variance?: number;
   currency: string;
@@ -288,10 +298,21 @@ export interface DashboardAttentionItem {
 }
 
 export interface DashboardOverview {
-  total_projects?: number;
-  active_projects?: number;
-  blocked_projects?: number;
-  overdue_projects?: number;
+  health_score: number;
+  kpis: {
+    total_projects: number;
+    active_projects: number;
+    completed_projects: number;
+    blocked_projects: number;
+    overdue_projects: number;
+    total_tasks: number;
+    done_tasks: number;
+    blocked_tasks: number;
+    overdue_tasks: number;
+    open_risks: number;
+    open_issues: number;
+  };
+  projects: Project[];
 }
 
 export interface VaultEntry {
@@ -339,6 +360,7 @@ export interface WorkloadItem {
   email?: string;
   allocated_hours?: number;
   capacity_hours?: number;
+  allocated_projects?: number;
 }
 
 export interface Asset {
@@ -468,19 +490,25 @@ export interface CreateSpendRecordPayload {
 export interface CapacityProfile {
   id: string;
   user_id: string;
-  start_date: string;
-  end_date: string;
-  capacity_hours: number;
-  notes?: string;
+  user_name?: string;
+  user_email?: string;
+  effective_from: string;
+  weekly_capacity_hours: number;
+  created_by_user_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Availability {
   id: string;
   user_id: string;
-  start_date: string;
-  end_date: string;
-  status: 'available' | 'unavailable' | 'limited';
-  notes?: string;
+  starts_on: string;
+  ends_on: string;
+  capacity_hours: number;
+  availability_status: 'available' | 'unavailable' | 'reduced_capacity';
+  note?: string;
+  created_by_user_id?: string;
+  created_at?: string;
 }
 
 export interface ProjectAllocation {

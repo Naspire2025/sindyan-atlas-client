@@ -74,6 +74,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: 'overview', adminOnly: false },
   { id: 'projects', label: 'Projects', icon: 'projects', adminOnly: false },
   { id: 'tasks', label: 'My tasks', icon: 'check', adminOnly: false },
+  { id: 'risksIssues', label: 'Risks & issues', icon: 'alert', adminOnly: true },
   { id: 'team', label: 'Team', icon: 'users', adminOnly: true },
   { id: 'invitations', label: 'Invitations', icon: 'send', adminOnly: true },
   { id: 'resources', label: 'Resources', icon: 'filter', adminOnly: true },

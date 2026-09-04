@@ -232,9 +232,10 @@ export const api = {
   updateSpendRecord: (id: string, data: Partial<CreateSpendRecordPayload>): Promise<SpendRecord> => jsonRequest(`/spend-records/${id}`, 'PATCH', data) as Promise<SpendRecord>,
   deleteSpendRecord: (id: string): Promise<null> => request(`/spend-records/${id}`, { method: 'DELETE' }) as Promise<null>,
 
-  getWorkload: (signal?: AbortSignal): Promise<WorkloadItem[]> => request('/resources/workload', { signal }) as Promise<WorkloadItem[]>,
+  getWorkload: (query?: { starts_on?: string; ends_on?: string }, signal?: AbortSignal): Promise<WorkloadItem[]> => list('/resources/workload', query, signal) as Promise<WorkloadItem[]>,
 
   listCapacityProfiles: (userId: string, signal?: AbortSignal): Promise<CapacityProfile[]> => request(`/users/${userId}/capacity-profiles`, { signal }) as Promise<CapacityProfile[]>,
+  listAllCapacityProfiles: (signal?: AbortSignal): Promise<CapacityProfile[]> => request('/resources/capacity-profiles', { signal }) as Promise<CapacityProfile[]>,
   createCapacityProfile: (userId: string, data: Omit<CapacityProfile, 'id' | 'user_id'>): Promise<CapacityProfile> => jsonRequest(`/users/${userId}/capacity-profiles`, 'POST', data) as Promise<CapacityProfile>,
   updateCapacityProfile: (userId: string, profileId: string, data: Partial<CapacityProfile>): Promise<CapacityProfile> => jsonRequest(`/users/${userId}/capacity-profiles/${profileId}`, 'PATCH', data) as Promise<CapacityProfile>,
 
@@ -258,12 +259,15 @@ export const api = {
   updateAssetAllocation: (id: string, data: Partial<AssetAllocation>): Promise<AssetAllocation> => jsonRequest(`/asset-allocations/${id}`, 'PATCH', data) as Promise<AssetAllocation>,
   deleteAssetAllocation: (id: string): Promise<null> => request(`/asset-allocations/${id}`, { method: 'DELETE' }) as Promise<null>,
   getProjectAllocations: (projectId: string, signal?: AbortSignal): Promise<ProjectAllocation[]> => request(`/projects/${projectId}/allocations`, { signal }) as Promise<ProjectAllocation[]>,
+  getProjectWorkload: (projectId: string, query?: { starts_on?: string; ends_on?: string }, signal?: AbortSignal): Promise<WorkloadItem[]> => list(`/projects/${projectId}/workload`, query, signal) as Promise<WorkloadItem[]>,
 
   listRisks: (projectId: string, signal?: AbortSignal): Promise<Risk[]> => request(`/projects/${projectId}/risks`, { signal }) as Promise<Risk[]>,
+  listAllRisks: (signal?: AbortSignal): Promise<Risk[]> => request('/risks', { signal }) as Promise<Risk[]>,
   createRisk: (projectId: string, data: Omit<Risk, 'id' | 'project_id'>): Promise<Risk> => jsonRequest(`/projects/${projectId}/risks`, 'POST', data) as Promise<Risk>,
   updateRisk: (id: string, data: Partial<Risk>): Promise<Risk> => jsonRequest(`/risks/${id}`, 'PATCH', data) as Promise<Risk>,
   deleteRisk: (id: string): Promise<null> => request(`/risks/${id}`, { method: 'DELETE' }) as Promise<null>,
   listIssues: (projectId: string, signal?: AbortSignal): Promise<Issue[]> => request(`/projects/${projectId}/issues`, { signal }) as Promise<Issue[]>,
+  listAllIssues: (signal?: AbortSignal): Promise<Issue[]> => request('/issues', { signal }) as Promise<Issue[]>,
   createIssue: (projectId: string, data: Omit<Issue, 'id' | 'project_id'>): Promise<Issue> => jsonRequest(`/projects/${projectId}/issues`, 'POST', data) as Promise<Issue>,
   updateIssue: (id: string, data: Partial<Issue>): Promise<Issue> => jsonRequest(`/issues/${id}`, 'PATCH', data) as Promise<Issue>,
   deleteIssue: (id: string): Promise<null> => request(`/issues/${id}`, { method: 'DELETE' }) as Promise<null>,

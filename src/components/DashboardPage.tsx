@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import type { DashboardOverview, DashboardAttentionItem, Project, Task } from '../types/api.js';
-import { getProjectHealth, isPastDate, isProjectOverdue } from '../utils/project.js';
+import { formatDate, getProjectHealth, isPastDate, isProjectOverdue } from '../utils/project.js';
 import EmptyState from './EmptyState.js';
 import Icon from './Icon.js';
 import PageHeader from './PageHeader.js';
@@ -16,18 +17,25 @@ interface DashboardPageProps {
   onNavigate: (page: string, filter?: string) => void;
   onSelectProject: (projectId: string) => void;
   onSelectTask: (taskId: string) => void;
+  onSelectRisk?: (riskId: string) => void;
+  onSelectIssue?: (issueId: string) => void;
 }
 
 interface AttentionItem {
   key: string | number;
   projectId?: string;
   taskId?: string;
+  riskId?: string;
+  issueId?: string;
+  milestoneId?: string;
   title: string;
   detail: string;
   tone: 'danger' | 'warning';
 }
 
-export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onSelectProject, onSelectTask }: DashboardPageProps) {
+export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onSelectProject, onSelectTask, onSelectRisk, onSelectIssue }: DashboardPageProps) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const overviewQuery = useQuery({
     queryKey: queryKeys.dashboardOverview,
     queryFn: ({ signal }) => api.getDashboardOverview(signal),
@@ -45,6 +53,9 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         key: item.id || `attention-${index}`,
         projectId: item.project_id,
         taskId: item.item_type === 'task' ? item.id : undefined,
+        riskId: item.item_type === 'risk' ? item.id : undefined,
+        issueId: item.item_type === 'issue' ? item.id : undefined,
+        milestoneId: item.item_type === 'milestone' ? item.id : undefined,
         title: item.title || item.name || 'Needs attention',
         detail: item.reason || item.description || item.detail || 'Requires review',
         tone: (item.severity === 'high' || item.severity === 'critical' ? 'danger' : 'warning') as 'danger' | 'warning',
@@ -52,6 +63,19 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
     : clientAttention;
 
   const handleSummarySelect = (filter: string) => onNavigate('projects', filter);
+
+  const highlightedProject = projects
+    .filter((project) => project.status === 'active' && project.deadline)
+    .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())[0];
+
+  const filteredProjects = projects.filter((project) => {
+    if (statusFilter && project.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      return `${project.name} ${project.description || ''} ${project.owner_name || ''}`.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   return (
     <>
@@ -67,6 +91,24 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
           </button>
         }
       />
+
+      <div className="dashboard-toolbar">
+        <label className="search-field">
+          <Icon name="search" />
+          <span className="sr-only">Search projects</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects" />
+        </label>
+        <label className="select-field">
+          <span className="sr-only">Filter by status</span>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="completed">Completed</option>
+            <option value="blocked">Blocked</option>
+            <option value="on_hold">On hold</option>
+          </select>
+        </label>
+      </div>
 
       <SummaryBar
         projects={projects}
@@ -90,7 +132,12 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
                   key={item.key}
                   className="attention-item"
                   type="button"
-                  onClick={() => item.taskId ? onSelectTask(item.taskId) : item.projectId && onSelectProject(item.projectId)}
+                  onClick={() => {
+                    if (item.taskId) { onSelectTask(item.taskId); return; }
+                    if (item.riskId && onSelectRisk) { onSelectRisk(item.riskId); return; }
+                    if (item.issueId && onSelectIssue) { onSelectIssue(item.issueId); return; }
+                    if (item.projectId) onSelectProject(item.projectId);
+                  }}
                 >
                   <span className={`attention-icon attention-${item.tone}`}>
                     <Icon name="alert" size={15} />
@@ -123,6 +170,29 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         </div>
       </section>
 
+      {highlightedProject && (
+        <section className="panel highlighted-project-panel">
+          <div className="section-header">
+            <div>
+              <span className="eyebrow">Upcoming deadline</span>
+              <h2>Needs focus</h2>
+            </div>
+          </div>
+          <button
+            className="highlighted-project-card"
+            type="button"
+            onClick={() => onSelectProject(highlightedProject.id)}
+          >
+            <span className={`project-glyph priority-${highlightedProject.priority}`} />
+            <span className="highlighted-project-info">
+              <strong>{highlightedProject.name}</strong>
+              <small>Target: {formatDate(highlightedProject.deadline)} · {getProjectHealth(highlightedProject).replace('_', ' ')}</small>
+            </span>
+            <Icon name="arrow" size={15} />
+          </button>
+        </section>
+      )}
+
       <section className="panel portfolio-panel">
         <div className="section-header">
           <div>
@@ -133,12 +203,12 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
             See all projects <Icon name="arrow" size={14} />
           </button>
         </div>
-        {projects.length > 0 ? (
-          <ProjectTable projects={projects.slice(0, 6)} onSelect={onSelectProject} />
+        {filteredProjects.length > 0 ? (
+          <ProjectTable projects={filteredProjects.slice(0, 6)} onSelect={onSelectProject} />
         ) : (
           <EmptyState
-            title="No projects yet"
-            message="Create the first project to begin tracking progress."
+            title="No projects found"
+            message={search || statusFilter ? 'Adjust your search filters.' : 'Create the first project to begin tracking progress.'}
           />
         )}
       </section>

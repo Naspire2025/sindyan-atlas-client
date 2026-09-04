@@ -17,6 +17,7 @@ import DashboardPage from "./components/DashboardPage.jsx";
 import DashboardShell from "./components/DashboardShell.jsx";
 import Icon from "./components/Icon.jsx";
 import InvitationsPage from "./components/InvitationsPage.jsx";
+import IssuePage from "./components/IssuePage.jsx";
 import MemberPage from "./components/MemberPage.jsx";
 import MilestonePage from "./components/MilestonePage.jsx";
 import NotFoundPage from "./components/NotFoundPage.jsx";
@@ -24,15 +25,19 @@ import NewProjectModal from "./components/NewProjectModal.jsx";
 import ProjectPage from "./components/ProjectPage.jsx";
 import ProjectsPage from "./components/ProjectsPage.jsx";
 import ResourcesPage from "./components/ResourcesPage.jsx";
+import RiskPage from "./components/RiskPage.jsx";
+import RisksIssuesPage from "./components/RisksIssuesPage.jsx";
 import TaskPage from "./components/TaskPage.jsx";
 import TasksPage from "./components/TasksPage.jsx";
 import TeamDirectoryPage from "./components/TeamDirectoryPage.jsx";
 import VaultPage from "./components/VaultPage.jsx";
 import {
+  getIssuePath,
   getMemberPath,
   getMilestonePath,
   getPagePath,
   getProjectPath,
+  getRiskPath,
   getTaskPath,
   routeFromPath,
 } from "./routing.js";
@@ -137,6 +142,8 @@ function AuthenticatedApp({ route }: AuthenticatedAppProps) {
           onSelectMilestone={(milestoneId) =>
             appNavigate({ to: getMilestonePath(milestoneId) })
           }
+          onSelectRisk={(riskId) => appNavigate({ to: getRiskPath(riskId) })}
+          onSelectIssue={(issueId) => appNavigate({ to: getIssuePath(issueId) })}
           onSelectTask={(taskId) => appNavigate({ to: getTaskPath(taskId) })}
           onUpdateTask={(taskId, task) =>
             updateTask.mutateAsync({ taskId, task })
@@ -170,6 +177,8 @@ interface PageContentProps {
   onSelectProject: (projectId: string) => void;
   onSelectMember: (userId: string) => void;
   onSelectMilestone: (milestoneId: string) => void;
+  onSelectRisk: (riskId: string) => void;
+  onSelectIssue: (issueId: string) => void;
   onSelectTask: (taskId: string) => void;
   onUpdateTask: (
     taskId: string,
@@ -193,6 +202,8 @@ function PageContent({
   onSelectMember,
   onSelectMilestone,
   onSelectProject,
+  onSelectRisk,
+  onSelectIssue,
   onSelectTask,
   onUpdateTask,
   onWorkspaceChanged,
@@ -218,6 +229,28 @@ function PageContent({
     if (!canManageTeam) return <PermissionDeniedPage onMenu={onMenu} />;
     return <ResourcesPage {...sharedPageProps} />;
   }
+  if (route.page === "risksIssues") {
+    if (!canManageTeam) return <PermissionDeniedPage onMenu={onMenu} />;
+    return <RisksIssuesPage {...sharedPageProps} onSelectProject={onSelectProject} />;
+  }
+  if (route.page === "risk")
+    return (
+      <RiskPage
+        {...sharedPageProps}
+        key={route.riskId}
+        riskId={route.riskId ?? ""}
+        onSelectProject={onSelectProject}
+      />
+    );
+  if (route.page === "issue")
+    return (
+      <IssuePage
+        {...sharedPageProps}
+        key={route.issueId}
+        issueId={route.issueId ?? ""}
+        onSelectProject={onSelectProject}
+      />
+    );
   if (route.page === "project")
     return (
       <ProjectPage
@@ -314,6 +347,8 @@ function PageContent({
       onNavigate={navigate}
       onSelectProject={onSelectProject}
       onSelectTask={onSelectTask}
+      onSelectRisk={onSelectRisk}
+      onSelectIssue={onSelectIssue}
     />
   );
 }

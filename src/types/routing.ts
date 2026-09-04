@@ -53,6 +53,20 @@ export interface MilestoneRoute {
   memberId?: undefined;
 }
 
+export interface RiskRoute {
+  page: 'risk';
+  riskId: string;
+  projectId: null;
+  filter: string;
+}
+
+export interface IssueRoute {
+  page: 'issue';
+  issueId: string;
+  projectId: null;
+  filter: string;
+}
+
 export interface StandardRoute {
   page: string;
   projectId: null;
@@ -61,9 +75,11 @@ export interface StandardRoute {
   taskId?: undefined;
   memberId?: undefined;
   milestoneId?: undefined;
+  riskId?: undefined;
+  issueId?: undefined;
 }
 
-export type Route = LoginRoute | AcceptInvitationRoute | ProjectRoute | TaskRoute | MemberRoute | MilestoneRoute | StandardRoute;
+export type Route = LoginRoute | AcceptInvitationRoute | ProjectRoute | TaskRoute | MemberRoute | MilestoneRoute | RiskRoute | IssueRoute | StandardRoute;
 
 export interface ProjectFilters {
   search: string;

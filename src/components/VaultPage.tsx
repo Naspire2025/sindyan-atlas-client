@@ -42,10 +42,11 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
   const [typeFilter, setTypeFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [ownerFilter, setOwnerFilter] = useState('');
 
   const entriesQuery = useQuery({
-    queryKey: queryKeys.vaultEntries({ project_id: projectFilter }),
-    queryFn: ({ signal }) => api.listVaultEntries({ signal, project_id: projectFilter }),
+    queryKey: queryKeys.vaultEntries({ project_id: projectFilter, owner_user_id: ownerFilter }),
+    queryFn: ({ signal }) => api.listVaultEntries({ signal, project_id: projectFilter, owner_user_id: ownerFilter }),
   });
 
   const deleteEntry = useMutation({
@@ -67,6 +68,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
     });
   }, [entries, search, typeFilter, categoryFilter]);
   const projectsQuery = useQuery({ queryKey: queryKeys.projects(), queryFn: ({ signal }) => api.listProjects({ signal }) });
+  const usersQuery = useQuery({ queryKey: queryKeys.users(), queryFn: ({ signal }) => api.listUsers({ signal }) });
   const categories = [...new Set(entries.map((entry) => entry.category).filter(Boolean))];
 
   return (
@@ -101,6 +103,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
             />
             <SelectField value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} label="Filter by category" options={categories.filter((category): category is string => Boolean(category)).map((category) => ({ value: category, label: category }))} placeholder="All categories" />
             <SelectField value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} label="Filter by project" options={(projectsQuery.data || []).map((project) => ({ value: String(project.id), label: project.name }))} placeholder="All projects" />
+            <SelectField value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} label="Filter by owner" options={(usersQuery.data || []).map((user) => ({ value: user.id, label: user.name }))} placeholder="All owners" />
           </div>
         </div>
 

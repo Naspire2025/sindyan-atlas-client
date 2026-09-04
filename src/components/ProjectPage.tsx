@@ -22,10 +22,6 @@ import type {
   Priority,
   MilestoneStatus,
   ProjectRole,
-  RiskSeverity,
-  IssueStatus,
-  RiskProbability,
-  RiskStatus,
   CreateTaskPayload,
   CreateMilestonePayload,
   VaultEntry,
@@ -43,7 +39,9 @@ import DialogShell from "./DialogShell.js";
 import EmptyState from "./EmptyState.js";
 import { SearchField, SelectField } from "./FilterBar.js";
 import Icon from "./Icon.js";
+import IssueDialog from "./IssueDialog.js";
 import PhaseModal from "./PhaseModal.js";
+import RiskDialog from "./RiskDialog.js";
 import StatusBadge from "./StatusBadge.js";
 import TaskKanbanBoard from "./TaskKanbanBoard.js";
 
@@ -1428,9 +1426,7 @@ interface RisksIssuesSectionProps {
   projectId: string;
 }
 
-interface RiskOrIssue extends Risk {
-  _type: "risk" | "issue";
-}
+type RiskOrIssue = ({ _type: "risk" } & Risk) | ({ _type: "issue" } & Issue);
 
 function RisksIssuesSection({
   canManageProject,
@@ -1580,12 +1576,12 @@ function RisksIssuesSection({
             {issues.map((issue) => (
               <DetailRow key={issue.id}>
                 <span
-                  className={`priority-mark priority-${issue.severity || "medium"}`}
+                  className={`priority-mark priority-${issue.priority || "medium"}`}
                 />
                 <span className="detail-list-copy">
                   <strong>{issue.title}</strong>
                   <small>
-                    {issue.severity || "Medium"} severity ·{" "}
+                    {issue.priority || "Medium"} priority ·{" "}
                     {issue.status || "open"}
                   </small>
                 </span>
@@ -1867,6 +1863,12 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
           <strong>{variance}%</strong>
           <span>Variance</span>
         </div>
+        {summary?.projected_final_cost !== undefined && summary.projected_final_cost !== null && (
+          <div className="project-stat">
+            <strong>{formatCurrency(summary.projected_final_cost)}</strong>
+            <span>Projected final cost</span>
+          </div>
+        )}
       </div>
 
       <div className="project-section-card">
@@ -1892,40 +1894,55 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
           </div>
         ) : budgetLines.length ? (
           <DetailList>
-            {budgetLines.map((line) => (
-              <DetailRow key={line.id}>
-                <span className="detail-list-copy">
-                  <strong>{line.category}</strong>
-                  <small>
-                    {formatCurrency(line.planned_amount, line.currency)} ·{" "}
-                    {line.note || "No note"}
-                  </small>
-                </span>
-                <div className="milestone-actions">
-                  <button
-                    className="text-button"
-                    type="button"
-                    onClick={() => setEditBudgetLine(line)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="text-button text-button-danger"
-                    type="button"
-                    onClick={() =>
-                      setDeleteTarget({
-                        _type: "budgetLine",
-                        id: line.id,
-                        category: line.category,
-                        amount: line.planned_amount,
-                      })
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
-              </DetailRow>
-            ))}
+            {budgetLines.map((line) => {
+              const lineSpent = spendRecords
+                .filter((record) => record.category === line.category)
+                .reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
+              const over = lineSpent > line.planned_amount;
+              const pct = line.planned_amount > 0 ? Math.min(100, Math.round((lineSpent / line.planned_amount) * 100)) : 0;
+              return (
+                <DetailRow key={line.id}>
+                  <span className="detail-list-copy">
+                    <strong>{line.category}</strong>
+                    <span className="variance-bar" aria-hidden="true">
+                      <span style={{ width: `${pct}%` }} />
+                    </span>
+                    <small>
+                      {formatCurrency(line.planned_amount, line.currency)} budget{line.note ? ` · ${line.note}` : ""}
+                    </small>
+                  </span>
+                  <div className="variance-figures">
+                    <span>{formatCurrency(lineSpent, line.currency)} <em>spent</em></span>
+                    <span className={`variance-badge ${over ? "is-over" : "is-ok"}`}>
+                      {over ? "Over by" : "Under by"} {formatCurrency(Math.abs(line.planned_amount - lineSpent), line.currency)}
+                    </span>
+                  </div>
+                  <div className="milestone-actions">
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => setEditBudgetLine(line)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="text-button text-button-danger"
+                      type="button"
+                      onClick={() =>
+                        setDeleteTarget({
+                          _type: "budgetLine",
+                          id: line.id,
+                          category: line.category,
+                          amount: line.planned_amount,
+                        })
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </DetailRow>
+              );
+            })}
           </DetailList>
         ) : (
           <EmptyState
@@ -3098,369 +3115,6 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
               setForm((c) => ({ ...c, link_type: e.target.value }))
             }
             placeholder="e.g. Documentation"
-          />
-        </div>
-        <footer className="dialog-actions">
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            className="button button-primary"
-            type="submit"
-            disabled={saveMutation.isPending}
-          >
-            {saveMutation.isPending ? "Saving…" : "Save"}
-          </button>
-        </footer>
-      </form>
-    </DialogShell>
-  );
-}
-
-interface RiskDialogProps {
-  onClose: () => void;
-  project: Project;
-  projectId: string;
-  risk?: Risk;
-}
-
-function RiskDialog({ onClose, project, projectId, risk }: RiskDialogProps) {
-  const queryClient = useQueryClient();
-  const isEditing = Boolean(risk);
-  const [form, setForm] = useState({
-    title: risk?.title || "",
-    description: risk?.description || "",
-    severity: risk?.severity || "medium",
-    probability: risk?.probability || "medium",
-    status: risk?.status || "open",
-    mitigation_note: risk?.mitigation_note || "",
-    mitigation_progress: risk?.mitigation_progress ?? 0,
-    owner_user_id: risk?.owner_user_id || "",
-    due_date: risk?.due_date || "",
-  });
-  const [error, setError] = useState("");
-
-  const saveMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      isEditing
-        ? api.updateRisk(risk!.id, data as Partial<Risk>)
-        : api.createRisk(projectId, data as Omit<Risk, "id" | "project_id">),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.projectRisks(projectId),
-      });
-      onClose();
-    },
-    onError: (err: Error) => setError(err.message),
-  });
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!form.title.trim()) {
-      setError("Title is required.");
-      return;
-    }
-    saveMutation.mutate({ ...form, project_id: projectId });
-  };
-
-  return (
-    <DialogShell title={isEditing ? "Edit risk" : "Log risk"} onClose={onClose}>
-      <form className="dialog-form" onSubmit={handleSubmit}>
-        {error && (
-          <div className="error-banner" role="alert">
-            {error}
-          </div>
-        )}
-        <div className="field-group">
-          <label htmlFor="risk-title">Title</label>
-          <input
-            id="risk-title"
-            required
-            value={form.title}
-            onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
-          />
-        </div>
-        <div className="field-group">
-          <label htmlFor="risk-desc">Description</label>
-          <textarea
-            id="risk-desc"
-            value={form.description}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, description: e.target.value }))
-            }
-            placeholder="Describe the risk…"
-          />
-        </div>
-        <div className="field-row">
-          <div className="field-group">
-            <label htmlFor="risk-severity">Severity</label>
-            <select
-              id="risk-severity"
-              value={form.severity}
-              onChange={(e) =>
-                setForm((c) => ({
-                  ...c,
-                  severity: e.target.value as RiskSeverity,
-                }))
-              }
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
-          </div>
-          <div className="field-group">
-            <label htmlFor="risk-prob">Probability</label>
-            <select
-              id="risk-prob"
-              value={form.probability}
-              onChange={(e) =>
-                setForm((c) => ({
-                  ...c,
-                  probability: e.target.value as RiskProbability,
-                }))
-              }
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="very_high">Very high</option>
-            </select>
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field-group">
-            <label htmlFor="risk-status">Status</label>
-            <select
-              id="risk-status"
-              value={form.status}
-              onChange={(e) =>
-                setForm((c) => ({ ...c, status: e.target.value as RiskStatus }))
-              }
-            >
-              <option value="open">Open</option>
-              <option value="mitigating">Mitigating</option>
-              <option value="escalated">Escalated</option>
-              <option value="resolved">Resolved</option>
-            </select>
-          </div>
-          <div className="field-group">
-            <label htmlFor="risk-date">Due date</label>
-            <input
-              id="risk-date"
-              type="date"
-              value={form.due_date}
-              onChange={(e) =>
-                setForm((c) => ({ ...c, due_date: e.target.value }))
-              }
-            />
-          </div>
-        </div>
-        <div className="field-group">
-          <label htmlFor="risk-owner">Owner</label>
-          <select
-            id="risk-owner"
-            value={form.owner_user_id}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, owner_user_id: e.target.value }))
-            }
-          >
-            <option value="">Unassigned</option>
-            {(project?.team_members || []).map((member) => (
-              <option key={member.user_id} value={member.user_id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field-group">
-          <label htmlFor="risk-mitigation">Mitigation plan</label>
-          <textarea
-            id="risk-mitigation"
-            value={form.mitigation_note}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, mitigation_note: e.target.value }))
-            }
-            placeholder="How will this risk be addressed?"
-          />
-        </div>
-        <footer className="dialog-actions">
-          <button
-            className="button button-secondary"
-            type="button"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-          <button
-            className="button button-primary"
-            type="submit"
-            disabled={saveMutation.isPending}
-          >
-            {saveMutation.isPending ? "Saving…" : "Save"}
-          </button>
-        </footer>
-      </form>
-    </DialogShell>
-  );
-}
-
-interface IssueDialogProps {
-  issue?: Issue;
-  onClose: () => void;
-  project: Project;
-  projectId: string;
-}
-
-function IssueDialog({ issue, onClose, project, projectId }: IssueDialogProps) {
-  const queryClient = useQueryClient();
-  const isEditing = Boolean(issue);
-  const [form, setForm] = useState({
-    title: issue?.title || "",
-    description: issue?.description || "",
-    priority: issue?.severity || "medium",
-    status: issue?.status || "open",
-    resolution_note: "",
-    resolution_progress: 0,
-    owner_user_id: "",
-    target_resolution_date: "",
-  });
-  const [error, setError] = useState("");
-
-  const saveMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      isEditing
-        ? api.updateIssue(issue!.id, data as Partial<Issue>)
-        : api.createIssue(projectId, data as Omit<Issue, "id" | "project_id">),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.projectIssues(projectId),
-      });
-      onClose();
-    },
-    onError: (err: Error) => setError(err.message),
-  });
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!form.title.trim()) {
-      setError("Title is required.");
-      return;
-    }
-    saveMutation.mutate({ ...form, project_id: projectId });
-  };
-
-  return (
-    <DialogShell
-      title={isEditing ? "Edit issue" : "Report issue"}
-      onClose={onClose}
-    >
-      <form className="dialog-form" onSubmit={handleSubmit}>
-        {error && (
-          <div className="error-banner" role="alert">
-            {error}
-          </div>
-        )}
-        <div className="field-group">
-          <label htmlFor="issue-title">Title</label>
-          <input
-            id="issue-title"
-            required
-            value={form.title}
-            onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
-          />
-        </div>
-        <div className="field-group">
-          <label htmlFor="issue-desc">Description</label>
-          <textarea
-            id="issue-desc"
-            value={form.description}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, description: e.target.value }))
-            }
-            placeholder="Describe the issue…"
-          />
-        </div>
-        <div className="field-row">
-          <div className="field-group">
-            <label htmlFor="issue-priority">Priority</label>
-            <select
-              id="issue-priority"
-              value={form.priority}
-              onChange={(e) =>
-                setForm((c) => ({
-                  ...c,
-                  priority: e.target.value as RiskSeverity,
-                }))
-              }
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
-          </div>
-          <div className="field-group">
-            <label htmlFor="issue-status">Status</label>
-            <select
-              id="issue-status"
-              value={form.status}
-              onChange={(e) =>
-                setForm((c) => ({
-                  ...c,
-                  status: e.target.value as IssueStatus,
-                }))
-              }
-            >
-              <option value="open">Open</option>
-              <option value="mitigating">Mitigating</option>
-              <option value="escalated">Escalated</option>
-              <option value="resolved">Resolved</option>
-            </select>
-          </div>
-        </div>
-        <div className="field-group">
-          <label htmlFor="issue-owner">Owner</label>
-          <select
-            id="issue-owner"
-            value={form.owner_user_id}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, owner_user_id: e.target.value }))
-            }
-          >
-            <option value="">Unassigned</option>
-            {(project?.team_members || []).map((member) => (
-              <option key={member.user_id} value={member.user_id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field-group">
-          <label htmlFor="issue-date">Target resolution date</label>
-          <input
-            id="issue-date"
-            type="date"
-            value={form.target_resolution_date}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, target_resolution_date: e.target.value }))
-            }
-          />
-        </div>
-        <div className="field-group">
-          <label htmlFor="issue-resolution">Resolution notes</label>
-          <textarea
-            id="issue-resolution"
-            value={form.resolution_note}
-            onChange={(e) =>
-              setForm((c) => ({ ...c, resolution_note: e.target.value }))
-            }
-            placeholder="How was this issue resolved?"
           />
         </div>
         <footer className="dialog-actions">
