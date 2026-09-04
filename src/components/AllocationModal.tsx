@@ -34,11 +34,26 @@ export default function AllocationModal({
   );
   const [percentage, setPercentage] = useState<number>(
     editMemberTarget?.allocation_percentage ??
+      editMemberTarget?.allocation_percent ??
       editMemberTarget?.percentage ??
       editAssetTarget?.allocation_percentage ??
+      editAssetTarget?.allocation_percent ??
       editAssetTarget?.percentage ??
       100
   );
+  const [startsOn, setStartsOn] = useState<string>(
+    () => editMemberTarget?.starts_on || editAssetTarget?.starts_on || new Date().toISOString().slice(0, 10)
+  );
+  const [endsOn, setEndsOn] = useState<string>(
+    () => editMemberTarget?.ends_on || editAssetTarget?.ends_on || new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
+  );
+  const [plannedHours, setPlannedHours] = useState<string>(
+    editMemberTarget?.planned_hours !== undefined && editMemberTarget?.planned_hours !== null
+      ? String(editMemberTarget.planned_hours)
+      : ''
+  );
+  const [note, setNote] = useState<string>(editAssetTarget?.note || '');
+
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,35 +91,40 @@ export default function AllocationModal({
       return;
     }
 
+    if (endsOn && startsOn && endsOn < startsOn) {
+      setError('End date must not be earlier than start date.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       if (allocationType === 'member') {
+        const payload = {
+          user_id: userId,
+          project_id: projectId,
+          allocation_percentage: Number(percentage),
+          starts_on: startsOn,
+          ends_on: endsOn,
+          planned_hours: plannedHours ? Number(plannedHours) : undefined,
+        };
         if (editMemberTarget) {
-          await api.updateMemberAllocation(editMemberTarget.id, {
-            user_id: userId,
-            project_id: projectId,
-            allocation_percentage: Number(percentage),
-          });
+          await api.updateMemberAllocation(editMemberTarget.id, payload);
         } else {
-          await api.createMemberAllocation({
-            user_id: userId,
-            project_id: projectId,
-            allocation_percentage: Number(percentage),
-          });
+          await api.createMemberAllocation(payload);
         }
       } else {
+        const payload = {
+          asset_id: assetId,
+          project_id: projectId,
+          allocation_percentage: Number(percentage),
+          starts_on: startsOn,
+          ends_on: endsOn,
+          note: note || undefined,
+        };
         if (editAssetTarget) {
-          await api.updateAssetAllocation(editAssetTarget.id, {
-            asset_id: assetId,
-            project_id: projectId,
-            allocation_percentage: Number(percentage),
-          });
+          await api.updateAssetAllocation(editAssetTarget.id, payload);
         } else {
-          await api.createAssetAllocation({
-            asset_id: assetId,
-            project_id: projectId,
-            allocation_percentage: Number(percentage),
-          });
+          await api.createAssetAllocation(payload);
         }
       }
       onSuccess();
@@ -121,7 +141,7 @@ export default function AllocationModal({
   return (
     <DialogShell
       title={isEditing ? 'Edit Allocation' : 'Create Project Allocation'}
-      description="Assign team members or shared assets to project work loads."
+      description="Assign team members or shared assets to project workloads and track planned capacity."
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -199,18 +219,71 @@ export default function AllocationModal({
           </select>
         </div>
 
-        <div className="field-group">
-          <label htmlFor="alloc-percentage">Allocation percentage (%)</label>
-          <input
-            id="alloc-percentage"
-            type="number"
-            min="1"
-            max="100"
-            required
-            value={percentage}
-            onChange={(e) => setPercentage(Number(e.target.value))}
-          />
+        <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="field-group">
+            <label htmlFor="alloc-percentage">Allocation capacity (%)</label>
+            <input
+              id="alloc-percentage"
+              type="number"
+              min="1"
+              max="100"
+              required
+              value={percentage}
+              onChange={(e) => setPercentage(Number(e.target.value))}
+            />
+          </div>
+
+          {allocationType === 'member' && (
+            <div className="field-group">
+              <label htmlFor="alloc-hours">Planned hours (optional)</label>
+              <input
+                id="alloc-hours"
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="e.g. 40"
+                value={plannedHours}
+                onChange={(e) => setPlannedHours(e.target.value)}
+              />
+            </div>
+          )}
         </div>
+
+        <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="field-group">
+            <label htmlFor="alloc-start">Start date</label>
+            <input
+              id="alloc-start"
+              type="date"
+              required
+              value={startsOn}
+              onChange={(e) => setStartsOn(e.target.value)}
+            />
+          </div>
+          <div className="field-group">
+            <label htmlFor="alloc-end">End date</label>
+            <input
+              id="alloc-end"
+              type="date"
+              required
+              value={endsOn}
+              onChange={(e) => setEndsOn(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {allocationType === 'asset' && (
+          <div className="field-group">
+            <label htmlFor="alloc-note">Usage Note (optional)</label>
+            <input
+              id="alloc-note"
+              type="text"
+              placeholder="e.g. Reserved for Phase 2 data processing"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+        )}
 
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>
