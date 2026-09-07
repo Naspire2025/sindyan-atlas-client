@@ -19,7 +19,7 @@ import { SearchField, SelectField } from './FilterBar.js';
 import { getAllocationPercentage, getPeakAllocationPercentage } from '../utils/allocation.js';
 
 import PageHeader from './PageHeader.js';
-import { Calendar, Layers, Pencil, Plus, Search, Trash2, TriangleAlert, Users } from 'lucide-react';
+import { Layers, Pencil, Plus, Search, Trash2, TriangleAlert, Users } from 'lucide-react';
 
 interface ResourcesPageProps {
   onMenu: () => void;
@@ -35,6 +35,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
 
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   const [editAvailabilityTarget, setEditAvailabilityTarget] = useState<Availability | null>(null);
+  const [availabilityUserId, setAvailabilityUserId] = useState('');
   const [deleteAvailabilityTarget, setDeleteAvailabilityTarget] = useState<{ userId: string; id: string } | null>(null);
 
   const [isCapacityProfileOpen, setIsCapacityProfileOpen] = useState(false);
@@ -81,7 +82,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
 
   const deleteAvailabilityMutation = useMutation({
     mutationFn: ({ userId, id }: { userId: string; id: string }) => api.deleteAvailability(userId, id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['availability'] }); setDeleteAvailabilityTarget(null); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['availability'] }); queryClient.invalidateQueries({ queryKey: queryKeys.allAvailability }); setDeleteAvailabilityTarget(null); },
   });
 
   const deleteCapacityProfileMutation = useMutation({
@@ -114,7 +115,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
             <button
               className="button button-primary"
               type="button"
-              onClick={() => { setEditAvailabilityTarget(null); setIsAvailabilityOpen(true); }}
+              onClick={() => { setEditAvailabilityTarget(null); setAvailabilityUserId(''); setIsAvailabilityOpen(true); }}
             >
               <Plus />
               Record leave / unavailability
@@ -170,7 +171,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
         {activeTab === 'Availability' && (
           <AvailabilityTab
             users={users}
-            onNewUnavailability={() => { setEditAvailabilityTarget(null); setIsAvailabilityOpen(true); }}
+            onNewUnavailability={(userId = '') => { setEditAvailabilityTarget(null); setAvailabilityUserId(userId); setIsAvailabilityOpen(true); }}
             onEditAvailability={(rec) => { setEditAvailabilityTarget(rec); setIsAvailabilityOpen(true); }}
             onDeleteAvailability={(userId, id) => setDeleteAvailabilityTarget({ userId, id })}
           />
@@ -199,8 +200,9 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
       {isAvailabilityOpen && (
         <AvailabilityModal
           editTarget={editAvailabilityTarget}
-          onClose={() => { setIsAvailabilityOpen(false); setEditAvailabilityTarget(null); }}
-          onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['availability'] }); }}
+          selectedUserId={availabilityUserId}
+          onClose={() => { setIsAvailabilityOpen(false); setEditAvailabilityTarget(null); setAvailabilityUserId(''); }}
+          onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['availability'] }); queryClient.invalidateQueries({ queryKey: queryKeys.allAvailability }); }}
         />
       )}
 
@@ -429,7 +431,7 @@ function formatPercentage(value: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
 }
 
-function CapacityBadge({ peakPercentage, noun = 'capacity' }: { peakPercentage: number; noun?: string }) {
+function CapacityBadge({ peakPercentage }: { peakPercentage: number }) {
   if (peakPercentage > 100) {
     return (
       <span className="rounded-badge bg-coral-red/15 px-2 py-1 text-[10px] text-[#f09a9a]">
@@ -438,7 +440,7 @@ function CapacityBadge({ peakPercentage, noun = 'capacity' }: { peakPercentage: 
     );
   }
   if (peakPercentage === 100) {
-    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">At {noun} · 100% peak</span>;
+    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">At capacity · 100% peak</span>;
   }
   return (
     <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-fog">
@@ -566,153 +568,102 @@ function AssignmentsTab({
 /* -------------------------------------------------------------------------- */
 interface AvailabilityTabProps {
   users: { id: string; name: string; email: string }[];
-  onNewUnavailability: () => void;
+  onNewUnavailability: (userId?: string) => void;
   onEditAvailability: (rec: Availability) => void;
   onDeleteAvailability: (userId: string, id: string) => void;
 }
 
 function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDeleteAvailability }: AvailabilityTabProps) {
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-
-  const targetUserId = selectedUserId || '';
-
   const availabilityQuery = useQuery({
-    queryKey: ['availability', targetUserId],
-    queryFn: ({ signal }) => targetUserId ? api.listAvailability(targetUserId, signal) : Promise.resolve([]),
-    enabled: Boolean(targetUserId),
+    queryKey: queryKeys.allAvailability,
+    queryFn: ({ signal }) => api.listAllAvailability(signal),
   });
 
   const records = availabilityQuery.data || [];
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  const earliestDate = records.length > 0
-    ? records.reduce((earliest, rec) => rec.starts_on < earliest ? rec.starts_on : earliest, records[0].starts_on)
-    : todayStr;
-
-  const latestDate = records.length > 0
-    ? records.reduce((latest, rec) => rec.ends_on > latest ? rec.ends_on : latest, records[0].ends_on)
-    : todayStr;
-
-  function getBarStyle(rec: Availability) {
-    const rangeStart = new Date(earliestDate).getTime();
-    const totalSpan = (new Date(latestDate).getTime() - rangeStart) / (1000 * 60 * 60 * 24);
-    const recStart = (new Date(rec.starts_on).getTime() - rangeStart) / (1000 * 60 * 60 * 24);
-    const recEnd = (new Date(rec.ends_on).getTime() - rangeStart) / (1000 * 60 * 60 * 24);
-    const leftPct = totalSpan > 0 ? (recStart / totalSpan) * 100 : 0;
-    const widthPct = totalSpan > 0 ? ((recEnd - recStart + 1) / totalSpan) * 100 : 100;
-    const bgColor = rec.availability_status === 'unavailable' ? 'var(--color-coral-red)' : '#d8a52f';
-    return { left: `${leftPct}%`, width: `${Math.max(widthPct, 2)}%`, backgroundColor: bgColor };
+  const recordsByUser = new Map<string, Availability[]>();
+  for (const rec of records) {
+    const userRecords = recordsByUser.get(rec.user_id) || [];
+    userRecords.push(rec);
+    recordsByUser.set(rec.user_id, userRecords);
   }
+
+  function statusLabel(rec: Availability) {
+    if (rec.availability_status === 'unavailable') return 'Leave / Vacation';
+    if (rec.availability_status === 'reduced_capacity') return 'Reduced capacity';
+    return 'Available';
+  }
+
+  if (availabilityQuery.isLoading) return <div className="loading-state"><span className="spinner" /> Loading availability roster…</div>;
+  if (availabilityQuery.error) return <EmptyState icon={TriangleAlert} title="Failed to load availability" message={availabilityQuery.error.message} />;
 
   return (
     <>
-      <div className="project-toolbar">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <span className="eyebrow">Capacity & Time-off</span>
-          <h2>Availability Schedule</h2>
+          <h2>
+            {users.length} {users.length === 1 ? 'Member' : 'Members'} · {records.length} Availability Windows
+          </h2>
         </div>
-        <div className="toolbar-fields">
-          <SelectField
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
-            label="Select member"
-            options={users.map((u) => ({ value: String(u.id), label: `${u.name} (${u.email})` }))}
-            placeholder="Select team member…"
-          />
-          <button className="button button-secondary button-small" type="button" onClick={onNewUnavailability} disabled={!targetUserId}>
-            <Plus size={13} /> Record leave
-          </button>
-        </div>
+        <button className="button button-secondary button-small" type="button" onClick={() => onNewUnavailability()}>
+          <Plus size={13} /> Record leave / unavailability
+        </button>
       </div>
 
-      {!targetUserId ? (
-        <EmptyState
-          icon={Calendar}
-          title="Select a team member"
-          message="Choose a team member above to view planned capacity and unavailability windows."
-        />
-      ) : availabilityQuery.isLoading ? (
-        <div className="loading-state"><span className="spinner" /> Loading availability schedule…</div>
-      ) : availabilityQuery.error ? (
-        <EmptyState icon={TriangleAlert} title="Failed to load availability" message={availabilityQuery.error.message} />
-      ) : records.length === 0 ? (
-        <EmptyState
-          icon={Calendar}
-          title="No unavailability recorded"
-          message="No vacations, leave, or planned capacity restrictions are scheduled for this team member."
-        />
+      {users.length === 0 ? (
+        <EmptyState icon={Users} title="No team members" message="Availability will appear here once team members are added." />
       ) : (
-        <>
-          <div style={{ padding: '16px', marginBottom: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12, color: 'var(--color-text-secondary)' }}>
-              <span>{earliestDate}</span>
-              <span>{latestDate}</span>
-            </div>
-            <div style={{ position: 'relative', height: records.length * 36 + 8, background: 'var(--color-surface-elevated)', borderRadius: 6, border: '1px solid var(--color-border)' }}>
-              {records.map((rec) => {
-                const topIndex = records.indexOf(rec);
-                return (
-                  <div
-                    key={rec.id}
-                    title={`${rec.availability_status === 'unavailable' ? 'Leave' : 'Reduced capacity'}: ${rec.starts_on} → ${rec.ends_on}${rec.note ? ` (${rec.note})` : ''}`}
-                    style={{
-                      position: 'absolute',
-                      top: topIndex * 36 + 4,
-                      left: getBarStyle(rec).left,
-                      width: getBarStyle(rec).width,
-                      height: 28,
-                      backgroundColor: getBarStyle(rec).backgroundColor,
-                      opacity: 0.85,
-                      borderRadius: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '0 8px',
-                      fontSize: 11,
-                      color: '#fff',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => onEditAvailability(rec)}
-                  >
-                    {rec.starts_on} → {rec.ends_on}
+        <div className="space-y-2">
+          {users.map((member) => {
+            const memberRecords = recordsByUser.get(member.id) || [];
+            const hasRestrictions = memberRecords.some((rec) => rec.availability_status !== 'available');
+            return (
+              <article className="overflow-hidden rounded-control border border-graphite bg-white/[0.015]" key={member.id}>
+                <header className="flex items-center justify-between gap-3 border-b border-graphite px-3.5 py-3 max-[600px]:items-start">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="avatar">{member.name.slice(0, 2).toUpperCase()}</span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[12px] font-[510] text-bone">{member.name}</h3>
+                      <p className="mt-0.5 truncate text-[9px] text-ash">{member.email || 'No email listed'}</p>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <DetailList>
-            {records.map((rec: Availability) => (
-              <DetailRow key={rec.id}>
-                <span className="avatar avatar-accent">
-                  {rec.availability_status === 'unavailable' ? 'LV' : 'LM'}
-                </span>
-                <span className="detail-list-copy">
-                  <strong>
-                    {rec.availability_status === 'unavailable' ? 'Planned Leave / Vacation' : 'Limited Capacity'}
-                  </strong>
-                  <small>
-                    {rec.starts_on} — {rec.ends_on} {rec.note ? `· ${rec.note}` : ''}
-                  </small>
-                </span>
-                <div className="invitation-actions">
-                  <button className="text-button" type="button" onClick={() => onEditAvailability(rec)}>
-                    Edit
+                  <button className="button button-secondary button-small" type="button" onClick={() => onNewUnavailability(member.id)}>
+                    <Plus size={13} /> Record leave
                   </button>
-                  <button
-                    className="text-button text-button-danger"
-                    type="button"
-                    onClick={() => onDeleteAvailability(rec.user_id || targetUserId, rec.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </DetailRow>
-            ))}
-          </DetailList>
-        </>
+                </header>
+                {memberRecords.length === 0 ? (
+                  <p className="px-3.5 py-3 text-[11px] text-ash">No restrictions scheduled.</p>
+                ) : (
+                  <ul className="m-0 list-none p-0">
+                    {memberRecords.map((rec) => (
+                      <li
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-graphite px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                        key={rec.id}
+                      >
+                        <div className="min-w-0">
+                          <strong className={`block truncate text-[11px] font-[510] ${rec.availability_status === 'unavailable' ? 'text-coral-red' : rec.availability_status === 'reduced_capacity' ? 'text-[#d8a52f]' : 'text-mist'}`}>
+                            {statusLabel(rec)}
+                          </strong>
+                          <small className="mt-0.5 block truncate text-[9px] text-ash">
+                            {rec.starts_on} — {rec.ends_on} · {rec.capacity_hours} hrs/week{rec.note ? ` · ${rec.note}` : ''}
+                          </small>
+                        </div>
+                        <span className="hidden text-[10px] text-ash sm:block">
+                          {rec.availability_status === 'available' ? 'Available' : hasRestrictions ? 'Restricted' : ''}
+                        </span>
+                        <div className="invitation-actions justify-end">
+                          <button className="icon-button" type="button" aria-label={`Edit ${statusLabel(rec)} window`} onClick={() => onEditAvailability(rec)}><Pencil size={14} /></button>
+                          <button className="icon-button" type="button" aria-label={`Delete ${statusLabel(rec)} window`} onClick={() => onDeleteAvailability(rec.user_id || member.id, rec.id)}><Trash2 size={14} /></button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            );
+          })}
+        </div>
       )}
     </>
   );

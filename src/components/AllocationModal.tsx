@@ -229,7 +229,7 @@ export default function AllocationModal({
 
   return (
     <DialogShell
-      title={isEditing ? 'Edit Allocation' : 'Create Project Allocation'}
+      title={isEditing ? 'Edit Allocation' : 'Create Member Allocation'}
       description="Assign a team member to a project workload and track planned capacity."
       onClose={onClose}
     >

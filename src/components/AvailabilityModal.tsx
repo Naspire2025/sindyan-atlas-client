@@ -7,12 +7,13 @@ import DialogShell from './DialogShell.js';
 
 interface AvailabilityModalProps {
   editTarget?: Availability | null;
+  selectedUserId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AvailabilityModal({ editTarget, onClose, onSuccess }: AvailabilityModalProps) {
-  const [userId, setUserId] = useState(editTarget?.user_id || '');
+export default function AvailabilityModal({ editTarget, selectedUserId, onClose, onSuccess }: AvailabilityModalProps) {
+  const [userId, setUserId] = useState(editTarget?.user_id || selectedUserId || '');
   const [startsOn, setStartsOn] = useState(editTarget?.starts_on || '');
   const [endsOn, setEndsOn] = useState(editTarget?.ends_on || '');
   const [availabilityStatus, setAvailabilityStatus] = useState<'unavailable' | 'reduced_capacity' | 'available'>(
@@ -94,7 +95,7 @@ export default function AvailabilityModal({ editTarget, onClose, onSuccess }: Av
               required
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
-              disabled={usersQuery.isLoading}
+              disabled={usersQuery.isLoading || Boolean(selectedUserId) && !isEditing}
             >
               <option value="">Select team member…</option>
               {(usersQuery.data || [])

@@ -237,7 +237,7 @@ export const api = {
   createCapacityProfile: (userId: string, data: Omit<CapacityProfile, 'id' | 'user_id'>): Promise<CapacityProfile> => jsonRequest(`/users/${userId}/capacity-profiles`, 'POST', data) as Promise<CapacityProfile>,
   updateCapacityProfile: (userId: string, profileId: string, data: Partial<CapacityProfile>): Promise<CapacityProfile> => jsonRequest(`/users/${userId}/capacity-profiles/${profileId}`, 'PATCH', data) as Promise<CapacityProfile>,
 
-  listAvailability: (userId: string, signal?: AbortSignal): Promise<Availability[]> => request(`/users/${userId}/availability`, { signal }) as Promise<Availability[]>,
+  listAllAvailability: (signal?: AbortSignal): Promise<Availability[]> => request('/resources/availability', { signal }) as Promise<Availability[]>,
   createAvailability: (userId: string, data: Omit<Availability, 'id' | 'user_id'>): Promise<Availability> => jsonRequest(`/users/${userId}/availability`, 'POST', data) as Promise<Availability>,
   updateAvailability: (userId: string, availabilityId: string, data: Partial<Availability>): Promise<Availability> => jsonRequest(`/users/${userId}/availability/${availabilityId}`, 'PATCH', data) as Promise<Availability>,
   deleteAvailability: (userId: string, availabilityId: string): Promise<null> => request(`/users/${userId}/availability/${availabilityId}`, { method: 'DELETE' }) as Promise<null>,

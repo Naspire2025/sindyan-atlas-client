@@ -33,5 +33,6 @@ export const queryKeys = {
   workload: (dateRange?: { starts_on?: string; ends_on?: string }) => ['resources', 'workload', dateRange] as const,
   capacityProfiles: (userId: string) => ['users', userId, 'capacityProfiles'] as const,
   allCapacityProfiles: ['resources', 'capacityProfiles'] as const,
+  allAvailability: ['resources', 'availability'] as const,
   memberAllocations: (filters?: Record<string, unknown>) => ['memberAllocations', filters] as const,
 };
