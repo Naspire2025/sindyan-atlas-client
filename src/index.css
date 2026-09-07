@@ -169,34 +169,36 @@ body {
 body.dialog-open {
   overflow: hidden;
 }
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-button {
-  color: inherit;
-}
-button,
-a,
-input,
-select,
-textarea {
-  outline: none;
-}
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  box-shadow:
-    0 0 0 2px var(--color-void),
-    0 0 0 4px var(--color-acid-lime);
-}
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button {
+    color: inherit;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    outline: none;
+  }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--color-void),
+      0 0 0 4px var(--color-acid-lime);
+  }
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
 }
 a {
   color: inherit;
@@ -1431,21 +1433,6 @@ a {
   margin-top: 3px;
   color: var(--color-ash);
   font-size: 10px;
-}
-.member-name-button {
-  display: block;
-  overflow: hidden;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-bone);
-  font-size: 12px;
-  font-weight: 510;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
 }
 .member-name-button:hover {
   color: var(--color-paper);
@@ -2683,6 +2670,8 @@ a {
 }
 
 .vault-entry-row {
+  align-items: flex-start;
+  padding: 10px 0;
   gap: 14px;
 }
 .vault-entry-icon {
@@ -2697,6 +2686,7 @@ a {
 }
 .vault-entry-actions {
   display: flex;
+  min-height: 32px;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
@@ -2717,12 +2707,13 @@ a {
   max-width: 100%;
   align-items: center;
   gap: 7px;
-  padding: 5px 7px;
+  padding: 4px 7px;
   border: 1px solid var(--color-graphite);
   border-radius: var(--radius-badge);
   background: rgba(255, 255, 255, 0.025);
   color: var(--color-fog);
   font-size: 10px;
+  line-height: 1;
 }
 .vault-file-chip span {
   overflow: hidden;
@@ -2730,16 +2721,34 @@ a {
   color: var(--color-mist);
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1;
 }
 .vault-file-chip small {
   display: inline;
   margin: 0;
   color: var(--color-ash);
+  font-size: 10px;
+  line-height: 1;
   text-transform: none;
+}
+.vault-file-chip .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 10px;
+  line-height: 1;
+}
+.vault-file-chip .text-button svg {
+  flex-shrink: 0;
 }
 .vault-file-chip em {
   color: #f09a9a;
   font-style: normal;
+  font-size: 10px;
+  line-height: 1;
 }
 .field-help {
   display: block;

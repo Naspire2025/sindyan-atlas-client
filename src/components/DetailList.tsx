@@ -1,12 +1,17 @@
-import { type ReactNode } from 'react';
+import { type ComponentPropsWithoutRef, type ReactNode } from 'react';
 
-interface DetailListProps {
-  children: ReactNode;
-}
+type DetailListProps = ComponentPropsWithoutRef<'div'>;
 
 /** Renders the shared detail-list list wrapper used across lists of items. */
-export function DetailList({ children }: DetailListProps) {
-  return <div className="detail-list">{children}</div>;
+export function DetailList({ children, className, ...props }: DetailListProps) {
+  return (
+    <div
+      className={`detail-list${className ? ` ${className}` : ''}`}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }
 
 interface DetailRowProps {

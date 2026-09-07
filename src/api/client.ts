@@ -163,8 +163,29 @@ function jsonRequest(path: string, method: string, data: unknown): Promise<unkno
 function list(path: string, query: Record<string, unknown> | undefined, signal: AbortSignal | undefined): Promise<unknown> { return request(withQuery(path, query), { signal }); }
 
 async function uploadToSignedUrl(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+  let response: Response;
+  try {
+    response = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+  } catch {
+    throw new ApiError('File storage could not be reached. Verify the R2 bucket CORS policy allows this app origin.', 0);
+  }
   if (!response.ok) throw new ApiError('File upload failed.', response.status);
+}
+
+async function fetchVaultFileContent(fileId: string): Promise<Blob> {
+  const response = await fetch(`${BASE_URL}/vault/files/${fileId}/content`, {
+    headers: buildHeaders('GET'),
+  });
+  if (response.status === 401) {
+    const error = new ApiError('Your session could not be established. Please sign in again.', 401);
+    await notifyUnauthorized(error);
+    throw error;
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(body.error || 'File preview could not be loaded.', response.status);
+  }
+  return response.blob();
 }
 
 export const api = {
@@ -273,5 +294,6 @@ export const api = {
   finalizeUpload: (fileId: string, data: Record<string, unknown>): Promise<{ file_id: string; storage_status: VaultFile['storage_status'] }> => jsonRequest(`/vault/files/${fileId}/finalize`, 'POST', data) as Promise<{ file_id: string; storage_status: VaultFile['storage_status'] }>,
   reviewVaultFile: (fileId: string, status: 'available' | 'rejected'): Promise<{ file_id: string; storage_status: VaultFile['storage_status'] }> => jsonRequest(`/vault/files/${fileId}/review`, 'POST', { status }) as Promise<{ file_id: string; storage_status: VaultFile['storage_status'] }>,
   getFileDownload: (fileId: string): Promise<{ download_url: string; filename?: string }> => request(`/vault/files/${fileId}/download`, { method: 'POST' }) as Promise<{ download_url: string; filename?: string }>,
+  fetchVaultFileContent,
   deleteVaultFile: (fileId: string): Promise<null> => request(`/vault/files/${fileId}`, { method: 'DELETE' }) as Promise<null>,
 };

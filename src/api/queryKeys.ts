@@ -27,7 +27,8 @@ export const queryKeys = {
   invitations: ['invitations'] as const,
   dashboardOverview: ['dashboard', 'overview'] as const,
   dashboardAttention: ['dashboard', 'attention'] as const,
-  vaultEntries: (filters?: Record<string, unknown>) => ['vaultEntries', filters] as const,
+  vaultEntries: (filters?: Record<string, unknown>) =>
+    filters ? (['vaultEntries', filters] as const) : (['vaultEntries'] as const),
   vaultEntry: (id: string) => ['vaultEntry', id] as const,
   vaultFiles: (entryId: string) => ['vaultFiles', entryId] as const,
   workload: (dateRange?: { starts_on?: string; ends_on?: string }) => ['resources', 'workload', dateRange] as const,

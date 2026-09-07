@@ -45,7 +45,7 @@ import PhaseModal from "./PhaseModal.js";
 import RiskDialog from "./RiskDialog.js";
 import StatusBadge from "./StatusBadge.js";
 import TaskKanbanBoard from "./TaskKanbanBoard.js";
-import { Calendar, ChevronDown, CircleCheck, ExternalLink, Layers, LayoutGrid, Lock, Menu, Plus, TriangleAlert, Users, X } from 'lucide-react';
+import { Calendar, ChevronDown, CircleCheck, Download, ExternalLink, Layers, LayoutGrid, Lock, Menu, Plus, Trash2, TriangleAlert, Users, X } from 'lucide-react';
 
 interface ProjectPageProps {
   currentUser: User;
@@ -1365,6 +1365,7 @@ function VaultResourceRow({
                 type="button"
                 onClick={() => onDownload(file)}
               >
+                <Download size={11} />
                 Download
               </button>
             )}
@@ -1392,6 +1393,7 @@ function VaultResourceRow({
                 type="button"
                 onClick={() => onDeleteFile(file.id)}
               >
+                <Trash2 size={11} />
                 Remove
               </button>
             )}
