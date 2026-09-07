@@ -3,7 +3,8 @@ import { TASK_STATUSES } from '../constants.js';
 import type { Task, User } from '../types/api.js';
 import { formatDate, isPastDate } from '../utils/project.js';
 import { getAllowedTaskStatuses } from '../utils/task.js';
-import Icon from './Icon.js';
+import { Calendar } from 'lucide-react';
+
 import StatusBadge from './StatusBadge.js';
 import TaskStatusSelect from './TaskStatusSelect.js';
 
@@ -179,7 +180,7 @@ function KanbanCard({
       </button>
       <div className="kanban-card-meta">
         <span className={`task-date ${isOverdue ? 'is-overdue' : ''}`}>
-          <Icon name="calendar" size={13} />
+          <Calendar size={13} />
           {formatDate(task.due_date)}
         </span>
         {task.milestone_title && <span className="kanban-milestone">{task.milestone_title}</span>}

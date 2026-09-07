@@ -4,11 +4,13 @@ import type { User, Task } from '../types/api.js';
 import { formatDate, isPastDate } from '../utils/project.js';
 import { getAllowedTaskStatuses, getTaskCompletion } from '../utils/task.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
 import StatusBadge from './StatusBadge.js';
 import TaskKanbanBoard from './TaskKanbanBoard.js';
 import TaskStatusSelect from './TaskStatusSelect.js';
+import { Calendar, CircleCheck, Search } from 'lucide-react';
 
 interface TasksPageProps {
   currentUser: User;
@@ -53,7 +55,7 @@ export default function TasksPage({ currentUser, tasks, onMenu, onSelectProject,
         {updateError && <div className="error-banner" role="alert">{updateError}</div>}
         <div className="project-toolbar">
           <div><span className="eyebrow">Work queue</span><h2>{visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}</h2></div>
-          <div className="toolbar-fields"><label className="search-field"><Icon name="search" /><span className="sr-only">Search tasks</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tasks, owners, or milestones" /></label><label className="select-field"><span className="sr-only">Filter tasks by status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option>{TASK_STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div>
+          <div className="toolbar-fields"><label className="search-field"><Search /><span className="sr-only">Search tasks</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tasks, owners, or milestones" /></label><label className="select-field"><span className="sr-only">Filter tasks by status</span><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">All statuses</option>{TASK_STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label></div>
         </div>
         <div className="task-view-toolbar">
           <div className="segmented-control" aria-label="Task view">
@@ -71,7 +73,7 @@ export default function TasksPage({ currentUser, tasks, onMenu, onSelectProject,
           view === 'list'
             ? <TaskList currentUser={currentUser} groups={taskGroups} updatingId={updatingId} onSelectProject={onSelectProject} onSelectTask={onSelectTask} onStatusChange={handleStatusChange} />
             : <TaskKanbanBoard currentUser={currentUser} tasks={visibleTasks} updatingId={updatingId} onSelectTask={onSelectTask} onStatusChange={handleStatusChange} />
-        ) : <EmptyState icon="check" title="No tasks found" message="There are no tasks matching the current filters." />}
+        ) : <EmptyState icon={CircleCheck} title="No tasks found" message="There are no tasks matching the current filters." />}
       </section>
     </>
   );
@@ -93,7 +95,7 @@ function TaskList({ currentUser, groups, updatingId, onSelectProject, onSelectTa
 function TaskListItem({ currentUser, task, updatingId, onSelectProject, onSelectTask, onStatusChange }: { currentUser: User; task: Task; updatingId: string | null; onSelectProject: (projectId: string) => void; onSelectTask: (taskId: string) => void; onStatusChange: (task: Task, nextStatus: string) => Promise<void> }) {
   const isOverdue = task.status !== 'done' && isPastDate(task.due_date);
   const statuses = getAllowedTaskStatuses(currentUser, task);
-  return <article className="task-list-item"><div className="task-primary"><button className="task-open" type="button" onClick={() => onSelectTask(task.id)}><span className={`task-check status-${task.status}`} /><span className="task-copy"><strong>{task.title}</strong><small>{task.assignee_name || 'Unassigned'}{task.milestone_title ? ` · ${task.milestone_title}` : ''}</small></span></button><button className="task-project-button" type="button" onClick={() => onSelectProject(task.project_id)}>{task.project_name || 'Project'}</button></div><span className={`task-date ${isOverdue ? 'is-overdue' : ''}`}><Icon name="calendar" size={14} />{formatDate(task.due_date)}</span><StatusBadge status={task.status} type="task" /><TaskStatusSelect task={task} statuses={statuses} isUpdating={updatingId === task.id} onStatusChange={onStatusChange} /></article>;
+  return <article className="task-list-item"><div className="task-primary"><button className="task-open" type="button" onClick={() => onSelectTask(task.id)}><span className={`task-check status-${task.status}`} /><span className="task-copy"><strong>{task.title}</strong><small>{task.assignee_name || 'Unassigned'}{task.milestone_title ? ` · ${task.milestone_title}` : ''}</small></span></button><button className="task-project-button" type="button" onClick={() => onSelectProject(task.project_id)}>{task.project_name || 'Project'}</button></div><span className={`task-date ${isOverdue ? 'is-overdue' : ''}`}><Calendar size={14} />{formatDate(task.due_date)}</span><StatusBadge status={task.status} type="task" /><TaskStatusSelect task={task} statuses={statuses} isUpdating={updatingId === task.id} onStatusChange={onStatusChange} /></article>;
 }
 
 function groupTasks(tasks: Task[], grouping: TaskGrouping): Array<{ label: string; tasks: Task[] }> {

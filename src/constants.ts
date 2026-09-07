@@ -1,3 +1,6 @@
+import type { LucideIcon } from 'lucide-react';
+import { CircleCheck, Filter, Layers, LayoutGrid, Lock, Send, TriangleAlert, Users } from 'lucide-react';
+
 export interface Option {
   value: string;
   label: string;
@@ -6,7 +9,7 @@ export interface Option {
 export interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   adminOnly: boolean;
 }
 
@@ -71,14 +74,14 @@ export const VAULT_ENTRY_TYPES: Option[] = [
 ];
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: 'overview', adminOnly: false },
-  { id: 'projects', label: 'Projects', icon: 'projects', adminOnly: false },
-  { id: 'tasks', label: 'My tasks', icon: 'check', adminOnly: false },
-  { id: 'risksIssues', label: 'Risks & issues', icon: 'alert', adminOnly: true },
-  { id: 'team', label: 'Team', icon: 'users', adminOnly: true },
-  { id: 'invitations', label: 'Invitations', icon: 'send', adminOnly: true },
-  { id: 'resources', label: 'Resources', icon: 'filter', adminOnly: true },
-  { id: 'vault', label: 'Secure vault', icon: 'lock', adminOnly: false },
+  { id: 'overview', label: 'Overview', icon: LayoutGrid, adminOnly: false },
+  { id: 'projects', label: 'Projects', icon: Layers, adminOnly: false },
+  { id: 'tasks', label: 'My tasks', icon: CircleCheck, adminOnly: false },
+  { id: 'risksIssues', label: 'Risks & issues', icon: TriangleAlert, adminOnly: true },
+  { id: 'team', label: 'Team', icon: Users, adminOnly: true },
+  { id: 'invitations', label: 'Invitations', icon: Send, adminOnly: true },
+  { id: 'resources', label: 'Resources', icon: Filter, adminOnly: true },
+  { id: 'vault', label: 'Secure vault', icon: Lock, adminOnly: false },
 ];
 
 export function getLabel(items: Option[], value: string): string {

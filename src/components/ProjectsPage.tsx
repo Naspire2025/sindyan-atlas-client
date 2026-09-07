@@ -4,7 +4,8 @@ import type { Project } from '../types/api.js';
 import type { ProjectFilters } from '../types/routing.js';
 import { getTaskSummary, isProjectOverdue } from '../utils/project.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+import { Plus, Search } from 'lucide-react';
+
 import PageHeader from './PageHeader.js';
 import ProjectTable from './ProjectTable.js';
 
@@ -37,14 +38,14 @@ export default function ProjectsPage({ canCreate, initialFilter, projects, onCre
 
   return (
     <>
-      <PageHeader eyebrow="Portfolio" title="Projects" description="Track ownership, progress, deadlines, and risk in one place." onMenu={onMenu} action={canCreate ? <button className="button button-primary" type="button" onClick={onCreate}><Icon name="plus" />New project</button> : null} />
+      <PageHeader eyebrow="Portfolio" title="Projects" description="Track ownership, progress, deadlines, and risk in one place." onMenu={onMenu} action={canCreate ? <button className="button button-primary" type="button" onClick={onCreate}><Plus />New project</button> : null} />
       <div className="panel projects-panel">
         <div className="project-toolbar">
           <div className="segmented-control" aria-label="Project view">
             {SUMMARY_OPTIONS.map((option) => <button className={filters.summary === option.value ? 'is-active' : ''} key={option.value} type="button" onClick={() => setFilters((current) => ({ ...current, summary: option.value }))}>{option.label}</button>)}
           </div>
           <div className="toolbar-fields">
-            <label className="search-field"><Icon name="search" /><span className="sr-only">Search projects</span><input value={filters.search} onChange={setFilter('search')} placeholder="Search projects" /></label>
+            <label className="search-field"><Search /><span className="sr-only">Search projects</span><input value={filters.search} onChange={setFilter('search')} placeholder="Search projects" /></label>
             <label className="select-field"><span className="sr-only">Filter by status</span><select value={filters.status} onChange={setFilter('status')}><option value="">Status</option>{PROJECT_STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label className="select-field"><span className="sr-only">Filter by priority</span><select value={filters.priority} onChange={setFilter('priority')}><option value="">Priority</option>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
           </div>

@@ -363,14 +363,6 @@ export interface WorkloadItem {
   allocated_projects?: number;
 }
 
-export interface Asset {
-  id: string;
-  name: string;
-  type?: string;
-  asset_type?: string;
-  status?: string;
-}
-
 export interface MemberAllocation {
   id: string;
   user_id?: string;
@@ -383,24 +375,8 @@ export interface MemberAllocation {
   percentage?: number;
   starts_on?: string;
   ends_on?: string;
-  planned_hours?: number;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface AssetAllocation {
-  id: string;
-  asset_id?: string;
-  asset_name?: string;
-  project_id?: string;
-  project_name?: string;
-  allocation_percent?: number;
-  allocation_percentage?: number;
-  percentage?: number;
-  starts_on?: string;
-  ends_on?: string;
-  note?: string;
-  created_at?: string;
 }
 
 export interface LoginPayload {

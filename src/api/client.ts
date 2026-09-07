@@ -18,9 +18,7 @@ import type {
   VaultFile,
   VaultUploadIntent,
   WorkloadItem,
-  Asset,
   MemberAllocation,
-  AssetAllocation,
   CapacityProfile,
   Availability,
   MemberSummary,
@@ -244,20 +242,11 @@ export const api = {
   updateAvailability: (userId: string, availabilityId: string, data: Partial<Availability>): Promise<Availability> => jsonRequest(`/users/${userId}/availability/${availabilityId}`, 'PATCH', data) as Promise<Availability>,
   deleteAvailability: (userId: string, availabilityId: string): Promise<null> => request(`/users/${userId}/availability/${availabilityId}`, { method: 'DELETE' }) as Promise<null>,
 
-  listAssets: (signal?: AbortSignal): Promise<Asset[]> => request('/assets', { signal }) as Promise<Asset[]>,
-  createAsset: (data: Omit<Asset, 'id'>): Promise<Asset> => jsonRequest('/assets', 'POST', data) as Promise<Asset>,
-  updateAsset: (id: string, data: Partial<Asset>): Promise<Asset> => jsonRequest(`/assets/${id}`, 'PATCH', data) as Promise<Asset>,
-  deleteAsset: (id: string): Promise<null> => request(`/assets/${id}`, { method: 'DELETE' }) as Promise<null>,
-
   listMemberAllocations: ({ signal, ...query }: { signal?: AbortSignal } & Record<string, unknown> = {}): Promise<MemberAllocation[]> => list('/project-member-allocations', query, signal) as Promise<MemberAllocation[]>,
   createMemberAllocation: (data: Omit<MemberAllocation, 'id'>): Promise<MemberAllocation> => jsonRequest('/project-member-allocations', 'POST', data) as Promise<MemberAllocation>,
   updateMemberAllocation: (id: string, data: Partial<MemberAllocation>): Promise<MemberAllocation> => jsonRequest(`/project-member-allocations/${id}`, 'PATCH', data) as Promise<MemberAllocation>,
   deleteMemberAllocation: (id: string): Promise<null> => request(`/project-member-allocations/${id}`, { method: 'DELETE' }) as Promise<null>,
 
-  listAssetAllocations: ({ signal, ...query }: { signal?: AbortSignal } & Record<string, unknown> = {}): Promise<AssetAllocation[]> => list('/asset-allocations', query, signal) as Promise<AssetAllocation[]>,
-  createAssetAllocation: (data: Omit<AssetAllocation, 'id'>): Promise<AssetAllocation> => jsonRequest('/asset-allocations', 'POST', data) as Promise<AssetAllocation>,
-  updateAssetAllocation: (id: string, data: Partial<AssetAllocation>): Promise<AssetAllocation> => jsonRequest(`/asset-allocations/${id}`, 'PATCH', data) as Promise<AssetAllocation>,
-  deleteAssetAllocation: (id: string): Promise<null> => request(`/asset-allocations/${id}`, { method: 'DELETE' }) as Promise<null>,
   getProjectAllocations: (projectId: string, signal?: AbortSignal): Promise<ProjectAllocation[]> => request(`/projects/${projectId}/allocations`, { signal }) as Promise<ProjectAllocation[]>,
   getProjectWorkload: (projectId: string, query?: { starts_on?: string; ends_on?: string }, signal?: AbortSignal): Promise<WorkloadItem[]> => list(`/projects/${projectId}/workload`, query, signal) as Promise<WorkloadItem[]>,
 

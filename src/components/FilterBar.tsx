@@ -1,5 +1,6 @@
 import { type ReactNode, type ChangeEvent } from 'react';
-import Icon from './Icon.js';
+import { Search } from 'lucide-react';
+
 import type { Option } from '../constants.js';
 
 interface FilterBarProps {
@@ -19,7 +20,7 @@ interface SearchFieldProps {
 export function SearchField({ value, onChange, placeholder = 'Search…' }: SearchFieldProps) {
   return (
     <label className="search-field">
-      <Icon name="search" />
+      <Search />
       <span className="sr-only">{placeholder}</span>
       <input
         value={value}

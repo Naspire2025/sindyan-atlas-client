@@ -7,8 +7,10 @@ import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
+import { Plus, TriangleAlert } from 'lucide-react';
 
 interface InvitationsPageProps {
   onMenu: () => void;
@@ -54,7 +56,7 @@ export default function InvitationsPage({ onMenu }: InvitationsPageProps) {
         onMenu={onMenu}
         action={
           <button className="button button-primary" type="button" onClick={() => setIsCreateOpen(true)}>
-            <Icon name="plus" />
+            <Plus />
             New invitation
           </button>
         }
@@ -64,7 +66,7 @@ export default function InvitationsPage({ onMenu }: InvitationsPageProps) {
         {invitationsQuery.isLoading ? (
           <div className="loading-state"><span className="spinner" />Loading invitations…</div>
         ) : invitationsQuery.error ? (
-          <EmptyState icon="alert" title="Failed to load invitations" message={invitationsQuery.error.message} />
+          <EmptyState icon={TriangleAlert} title="Failed to load invitations" message={invitationsQuery.error.message} />
         ) : (
           <>
             <InvitationSection title="Pending" count={pending.length} items={pending} onResend={setResendTarget} onRevoke={setRevokeTarget} />

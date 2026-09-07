@@ -3,23 +3,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import type {
-  Asset,
-  AssetAllocation,
   Availability,
   CapacityProfile,
   MemberAllocation,
   WorkloadItem,
 } from '../types/api.js';
 import AllocationModal from './AllocationModal.js';
-import AssetModal from './AssetModal.js';
 import AvailabilityModal from './AvailabilityModal.js';
 import CapacityProfileModal from './CapacityProfileModal.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
 import { SearchField, SelectField } from './FilterBar.js';
-import Icon from './Icon.js';
+
+import { getAllocationPercentage, getPeakAllocationPercentage } from '../utils/allocation.js';
+
 import PageHeader from './PageHeader.js';
+import { Calendar, Layers, Pencil, Plus, Search, Trash2, TriangleAlert, Users } from 'lucide-react';
 
 interface ResourcesPageProps {
   onMenu: () => void;
@@ -27,18 +27,11 @@ interface ResourcesPageProps {
 
 export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<'Workload' | 'Allocations' | 'Assets' | 'Availability' | 'Capacity'>('Workload');
+  const [activeTab, setActiveTab] = useState<'Workload' | 'Assignments' | 'Availability' | 'Capacity'>('Workload');
 
   const [isAllocationOpen, setIsAllocationOpen] = useState(false);
-  const [allocationInitialType, setAllocationInitialType] = useState<'member' | 'asset'>('member');
   const [editMemberAlloc, setEditMemberAlloc] = useState<MemberAllocation | null>(null);
-  const [editAssetAlloc, setEditAssetAlloc] = useState<AssetAllocation | null>(null);
   const [deleteMemberAllocTarget, setDeleteMemberAllocTarget] = useState<MemberAllocation | null>(null);
-  const [deleteAssetAllocTarget, setDeleteAssetAllocTarget] = useState<AssetAllocation | null>(null);
-
-  const [isAssetOpen, setIsAssetOpen] = useState(false);
-  const [editAssetTarget, setEditAssetTarget] = useState<Asset | null>(null);
-  const [deleteAssetTarget, setDeleteAssetTarget] = useState<Asset | null>(null);
 
   const [isAvailabilityOpen, setIsAvailabilityOpen] = useState(false);
   const [editAvailabilityTarget, setEditAvailabilityTarget] = useState<Availability | null>(null);
@@ -55,19 +48,9 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
     queryFn: ({ signal }) => api.getWorkload(workloadDateRange, signal),
   });
 
-  const assetsQuery = useQuery({
-    queryKey: queryKeys.assets,
-    queryFn: ({ signal }) => api.listAssets(signal),
-  });
-
   const memberAllocationsQuery = useQuery({
     queryKey: queryKeys.memberAllocations(),
     queryFn: ({ signal }) => api.listMemberAllocations({ signal }),
-  });
-
-  const assetAllocationsQuery = useQuery({
-    queryKey: queryKeys.assetAllocations(),
-    queryFn: ({ signal }) => api.listAssetAllocations({ signal }),
   });
 
   const usersQuery = useQuery({
@@ -81,33 +64,19 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   });
 
   const workload = workloadQuery.data || [];
-  const assets = assetsQuery.data || [];
   const memberAllocations = memberAllocationsQuery.data || [];
-  const assetAllocations = assetAllocationsQuery.data || [];
   const users = usersQuery.data || [];
   const allCapacityProfiles = allCapacityProfilesQuery.data || [];
 
   const invalidateResources = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.workload() });
     queryClient.invalidateQueries({ queryKey: queryKeys.memberAllocations() });
-    queryClient.invalidateQueries({ queryKey: queryKeys.assetAllocations() });
-    queryClient.invalidateQueries({ queryKey: queryKeys.assets });
     queryClient.invalidateQueries({ queryKey: queryKeys.allCapacityProfiles });
   };
 
   const deleteMemberAllocationMutation = useMutation({
     mutationFn: (id: string) => api.deleteMemberAllocation(id),
     onSuccess: () => { invalidateResources(); setDeleteMemberAllocTarget(null); },
-  });
-
-  const deleteAssetAllocationMutation = useMutation({
-    mutationFn: (id: string) => api.deleteAssetAllocation(id),
-    onSuccess: () => { invalidateResources(); setDeleteAssetAllocTarget(null); },
-  });
-
-  const deleteAssetMutation = useMutation({
-    mutationFn: (id: string) => api.deleteAsset(id),
-    onSuccess: () => { invalidateResources(); setDeleteAssetTarget(null); },
   });
 
   const deleteAvailabilityMutation = useMutation({
@@ -126,31 +95,20 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
       <PageHeader
         eyebrow="Administration"
         title="Resources"
-        description="Manage team capacity, workload balance, project allocations, and shared assets."
+        description="Manage team capacity, workload balance, and project allocations."
         onMenu={onMenu}
         action={
-          activeTab === 'Allocations' ? (
+          activeTab === 'Assignments' ? (
             <button
               className="button button-primary"
               type="button"
               onClick={() => {
                 setEditMemberAlloc(null);
-                setEditAssetAlloc(null);
-                setAllocationInitialType('member');
                 setIsAllocationOpen(true);
               }}
             >
-              <Icon name="plus" />
+              <Plus />
               New allocation
-            </button>
-          ) : activeTab === 'Assets' ? (
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={() => { setEditAssetTarget(null); setIsAssetOpen(true); }}
-            >
-              <Icon name="plus" />
-              New asset
             </button>
           ) : activeTab === 'Availability' ? (
             <button
@@ -158,7 +116,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
               type="button"
               onClick={() => { setEditAvailabilityTarget(null); setIsAvailabilityOpen(true); }}
             >
-              <Icon name="plus" />
+              <Plus />
               Record leave / unavailability
             </button>
           ) : activeTab === 'Capacity' ? (
@@ -167,7 +125,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
               type="button"
               onClick={() => { setEditCapacityProfileTarget(null); setIsCapacityProfileOpen(true); }}
             >
-              <Icon name="plus" />
+              <Plus />
               New capacity profile
             </button>
           ) : null
@@ -175,7 +133,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
       />
 
       <nav className="project-tabs" aria-label="Resource sections">
-        {(['Workload', 'Allocations', 'Assets', 'Availability', 'Capacity'] as const).map((tab) => (
+        {(['Workload', 'Assignments', 'Availability', 'Capacity'] as const).map((tab) => (
           <button
             className={activeTab === tab ? 'is-active' : ''}
             key={tab}
@@ -199,34 +157,13 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
           />
         )}
 
-        {activeTab === 'Allocations' && (
-          <AllocationsTab
-            isLoading={memberAllocationsQuery.isLoading || assetAllocationsQuery.isLoading}
+        {activeTab === 'Assignments' && (
+          <AssignmentsTab
+            isLoading={memberAllocationsQuery.isLoading}
             memberError={memberAllocationsQuery.error}
-            assetError={assetAllocationsQuery.error}
             memberAllocations={memberAllocations}
-            assetAllocations={assetAllocations}
-            onNewAllocation={(type) => {
-              setEditMemberAlloc(null);
-              setEditAssetAlloc(null);
-              setAllocationInitialType(type);
-              setIsAllocationOpen(true);
-            }}
-            onEditMemberAlloc={(alloc) => { setEditMemberAlloc(alloc); setEditAssetAlloc(null); setIsAllocationOpen(true); }}
-            onEditAssetAlloc={(alloc) => { setEditAssetAlloc(alloc); setEditMemberAlloc(null); setIsAllocationOpen(true); }}
+            onEditMemberAlloc={(alloc) => { setEditMemberAlloc(alloc); setIsAllocationOpen(true); }}
             onDeleteMemberAlloc={(alloc) => setDeleteMemberAllocTarget(alloc)}
-            onDeleteAssetAlloc={(alloc) => setDeleteAssetAllocTarget(alloc)}
-          />
-        )}
-
-        {activeTab === 'Assets' && (
-          <AssetsTab
-            isLoading={assetsQuery.isLoading}
-            error={assetsQuery.error}
-            data={assets}
-            onNewAsset={() => { setEditAssetTarget(null); setIsAssetOpen(true); }}
-            onEditAsset={(asset) => { setEditAssetTarget(asset); setIsAssetOpen(true); }}
-            onDeleteAsset={(asset) => setDeleteAssetTarget(asset)}
           />
         )}
 
@@ -253,18 +190,8 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
 
       {isAllocationOpen && (
         <AllocationModal
-          initialType={allocationInitialType}
           editMemberTarget={editMemberAlloc}
-          editAssetTarget={editAssetAlloc}
-          onClose={() => { setIsAllocationOpen(false); setEditMemberAlloc(null); setEditAssetAlloc(null); }}
-          onSuccess={invalidateResources}
-        />
-      )}
-
-      {isAssetOpen && (
-        <AssetModal
-          editTarget={editAssetTarget}
-          onClose={() => { setIsAssetOpen(false); setEditAssetTarget(null); }}
+          onClose={() => { setIsAllocationOpen(false); setEditMemberAlloc(null); }}
           onSuccess={invalidateResources}
         />
       )}
@@ -294,30 +221,6 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
           isPending={deleteMemberAllocationMutation.isPending}
           onConfirm={() => deleteMemberAllocationMutation.mutate(deleteMemberAllocTarget.id)}
           onCancel={() => setDeleteMemberAllocTarget(null)}
-        />
-      )}
-
-      {deleteAssetAllocTarget && (
-        <ConfirmDialog
-          title="Delete Asset Allocation"
-          description={`Are you sure you want to remove allocation for ${deleteAssetAllocTarget.asset_name || 'this asset'}?`}
-          confirmLabel="Delete allocation"
-          variant="danger"
-          isPending={deleteAssetAllocationMutation.isPending}
-          onConfirm={() => deleteAssetAllocationMutation.mutate(deleteAssetAllocTarget.id)}
-          onCancel={() => setDeleteAssetAllocTarget(null)}
-        />
-      )}
-
-      {deleteAssetTarget && (
-        <ConfirmDialog
-          title="Delete Shared Asset"
-          description={`Are you sure you want to delete ${deleteAssetTarget.name}? This action cannot be undone.`}
-          confirmLabel="Delete asset"
-          variant="danger"
-          isPending={deleteAssetMutation.isPending}
-          onConfirm={() => deleteAssetMutation.mutate(deleteAssetTarget.id)}
-          onCancel={() => setDeleteAssetTarget(null)}
         />
       )}
 
@@ -380,8 +283,8 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
   }, [data]);
 
   if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading workload…</div>;
-  if (error) return <EmptyState icon="alert" title="Failed to load workload" message={error.message} />;
-  if (data.length === 0) return <EmptyState icon="users" title="No workload data" message="Workload information will appear once team members are assigned to projects." />;
+  if (error) return <EmptyState icon={TriangleAlert} title="Failed to load workload" message={error.message} />;
+  if (data.length === 0) return <EmptyState icon={Users} title="No workload data" message="Workload information will appear once team members are assigned to projects." />;
 
   return (
     <>
@@ -431,7 +334,7 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
       </div>
 
       {filteredData.length === 0 ? (
-        <EmptyState icon="users" title="No matching members" message="Adjust search or filters to see workload balance." />
+        <EmptyState icon={Users} title="No matching members" message="Adjust search or filters to see workload balance." />
       ) : (
         <div className="member-grid">
           {filteredData.map((item) => {
@@ -475,238 +378,184 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
 }
 
 /* -------------------------------------------------------------------------- */
-/* Allocations Tab                                                            */
+/* Assignments Tab                                                            */
 /* -------------------------------------------------------------------------- */
-interface AllocationsTabProps {
+interface AssignmentsTabProps {
   isLoading: boolean;
   memberError: Error | null;
-  assetError: Error | null;
   memberAllocations: MemberAllocation[];
-  assetAllocations: AssetAllocation[];
-  onNewAllocation: (type: 'member' | 'asset') => void;
   onEditMemberAlloc: (alloc: MemberAllocation) => void;
-  onEditAssetAlloc: (alloc: AssetAllocation) => void;
   onDeleteMemberAlloc: (alloc: MemberAllocation) => void;
-  onDeleteAssetAlloc: (alloc: AssetAllocation) => void;
 }
 
-function AllocationsTab({
-  isLoading,
-  memberError,
-  assetError,
-  memberAllocations,
-  assetAllocations,
-  onNewAllocation,
-  onEditMemberAlloc,
-  onEditAssetAlloc,
-  onDeleteMemberAlloc,
-  onDeleteAssetAlloc,
-}: AllocationsTabProps) {
-  const [search, setSearch] = useState('');
+interface MemberAssignmentGroup {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  peakPercentage: number;
+  allocations: MemberAllocation[];
+}
 
-  const filteredMembers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return memberAllocations;
-    return memberAllocations.filter((a) =>
-      `${a.user_name || ''} ${a.project_name || ''}`.toLowerCase().includes(q)
+function groupMemberAssignments(allocations: MemberAllocation[]): MemberAssignmentGroup[] {
+  const byMember = new Map<string, Omit<MemberAssignmentGroup, 'peakPercentage'>>();
+  allocations.forEach((allocation) => {
+    const userId = allocation.user_id || `unknown-${allocation.id}`;
+    const group = byMember.get(userId) || {
+      userId,
+      userName: allocation.user_name || 'Unknown member',
+      userEmail: allocation.user_email || '',
+      allocations: [],
+    };
+    group.allocations.push(allocation);
+    byMember.set(userId, group);
+  });
+
+  return [...byMember.values()]
+    .map((group) => ({
+      ...group,
+      allocations: group.allocations.sort((left, right) => (
+        (left.starts_on || '').localeCompare(right.starts_on || '') ||
+        (left.project_name || '').localeCompare(right.project_name || '')
+      )),
+      peakPercentage: getPeakAllocationPercentage(group.allocations),
+    }))
+    .sort((left, right) => (
+      Number(right.peakPercentage > 100) - Number(left.peakPercentage > 100) ||
+      left.userName.localeCompare(right.userName)
+    ));
+}
+
+function formatPercentage(value: number): string {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+}
+
+function CapacityBadge({ peakPercentage, noun = 'capacity' }: { peakPercentage: number; noun?: string }) {
+  if (peakPercentage > 100) {
+    return (
+      <span className="rounded-badge bg-coral-red/15 px-2 py-1 text-[10px] text-[#f09a9a]">
+        Overallocated by {formatPercentage(peakPercentage - 100)}% · {formatPercentage(peakPercentage)}% peak
+      </span>
     );
-  }, [memberAllocations, search]);
-
-  const filteredAssets = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return assetAllocations;
-    return assetAllocations.filter((a) =>
-      `${a.asset_name || ''} ${a.project_name || ''}`.toLowerCase().includes(q)
-    );
-  }, [assetAllocations, search]);
-
-  if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading allocations…</div>;
-  if (memberError || assetError) return <EmptyState icon="alert" title="Failed to load allocations" message={memberError?.message || assetError?.message || 'Unknown error'} />;
-
-  const hasData = memberAllocations.length > 0 || assetAllocations.length > 0;
-
+  }
+  if (peakPercentage === 100) {
+    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">At {noun} · 100% peak</span>;
+  }
   return (
-    <>
-      <div className="project-toolbar">
-        <div>
-          <span className="eyebrow">Project Staffing & Equipment</span>
-          <h2>
-            {memberAllocations.length + assetAllocations.length} Active Allocation
-            {memberAllocations.length + assetAllocations.length === 1 ? '' : 's'}
-          </h2>
-        </div>
-        <div className="toolbar-fields">
-          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search allocations…" />
-          <button className="button button-secondary button-small" type="button" onClick={() => onNewAllocation('member')}>
-            <Icon name="plus" size={13} /> Member allocation
-          </button>
-          <button className="button button-secondary button-small" type="button" onClick={() => onNewAllocation('asset')}>
-            <Icon name="plus" size={13} /> Asset allocation
-          </button>
-        </div>
-      </div>
-
-      {!hasData ? (
-        <EmptyState icon="projects" title="No allocations found" message="Project allocations will appear here once team members or shared assets are assigned." />
-      ) : (
-        <>
-          {filteredMembers.length > 0 && (
-            <div className="allocation-section">
-              <div className="section-header compact">
-                <h3>Member allocations</h3>
-                <span className="count-pill">{filteredMembers.length}</span>
-              </div>
-              <DetailList>
-                {filteredMembers.map((alloc) => {
-                  const pct = alloc.allocation_percentage ?? alloc.percentage ?? 0;
-                  return (
-                    <DetailRow key={alloc.id}>
-                      <span className="avatar">{(alloc.user_name || '—').slice(0, 2).toUpperCase()}</span>
-                      <span className="detail-list-copy">
-                        <strong>{alloc.user_name || `User ${alloc.user_id}`}</strong>
-                        <small>
-                          {alloc.project_name || `Project ${alloc.project_id}`} · {pct}% allocation
-                          {alloc.starts_on && alloc.ends_on && ` · ${alloc.starts_on} → ${alloc.ends_on}`}
-                        </small>
-                      </span>
-                      <div className="invitation-actions">
-                        <button className="text-button" type="button" onClick={() => onEditMemberAlloc(alloc)}>
-                          Reassign
-                        </button>
-                        <button className="text-button" type="button" onClick={() => onEditMemberAlloc(alloc)}>
-                          Edit
-                        </button>
-                        <button className="text-button text-button-danger" type="button" onClick={() => onDeleteMemberAlloc(alloc)}>
-                          Remove
-                        </button>
-                      </div>
-                    </DetailRow>
-                  );
-                })}
-              </DetailList>
-            </div>
-          )}
-
-          {filteredAssets.length > 0 && (
-            <div className="allocation-section" style={{ marginTop: 24 }}>
-              <div className="section-header compact">
-                <h3>Asset allocations</h3>
-                <span className="count-pill">{filteredAssets.length}</span>
-              </div>
-              <DetailList>
-                {filteredAssets.map((alloc) => {
-                  const pct = alloc.allocation_percentage ?? alloc.percentage ?? 0;
-                  return (
-                    <DetailRow key={alloc.id}>
-                      <span className="avatar">{(alloc.asset_name || '—').slice(0, 2).toUpperCase()}</span>
-                      <span className="detail-list-copy">
-                        <strong>{alloc.asset_name || `Asset ${alloc.asset_id}`}</strong>
-                        <small>
-                          {alloc.project_name || `Project ${alloc.project_id}`} · {pct}% usage
-                          {alloc.starts_on && alloc.ends_on && ` · ${alloc.starts_on} → ${alloc.ends_on}`}
-                        </small>
-                      </span>
-                      <div className="invitation-actions">
-                        <button className="text-button" type="button" onClick={() => onEditAssetAlloc(alloc)}>
-                          Reassign
-                        </button>
-                        <button className="text-button" type="button" onClick={() => onEditAssetAlloc(alloc)}>
-                          Edit
-                        </button>
-                        <button className="text-button text-button-danger" type="button" onClick={() => onDeleteAssetAlloc(alloc)}>
-                          Remove
-                        </button>
-                      </div>
-                    </DetailRow>
-                  );
-                })}
-              </DetailList>
-            </div>
-          )}
-        </>
-      )}
-    </>
+    <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-fog">
+      {formatPercentage(100 - peakPercentage)}% available · {formatPercentage(peakPercentage)}% peak
+    </span>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Assets Tab                                                                 */
-/* -------------------------------------------------------------------------- */
-interface AssetsTabProps {
-  isLoading: boolean;
-  error: Error | null;
-  data: Asset[];
-  onNewAsset: () => void;
-  onEditAsset: (asset: Asset) => void;
-  onDeleteAsset: (asset: Asset) => void;
-}
-
-function AssetsTab({ isLoading, error, data, onNewAsset, onEditAsset, onDeleteAsset }: AssetsTabProps) {
+function AssignmentsTab({
+  isLoading,
+  memberError,
+  memberAllocations,
+  onEditMemberAlloc,
+  onDeleteMemberAlloc,
+}: AssignmentsTabProps) {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
 
-  const filteredAssets = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return data.filter((asset) => {
-      const name = asset.name || '';
-      const type = asset.type || asset.asset_type || '';
-      if (q && !`${name} ${type}`.toLowerCase().includes(q)) return false;
-      if (statusFilter && asset.status !== statusFilter) return false;
-      return true;
+  const memberGroups = useMemo(() => groupMemberAssignments(memberAllocations), [memberAllocations]);
+
+  const projectOptions = useMemo(() => {
+    const projects = new Map<string, string>();
+    memberAllocations.forEach((allocation) => {
+      if (allocation.project_id) projects.set(allocation.project_id, allocation.project_name || 'Unassigned');
     });
-  }, [data, search, statusFilter]);
+    return [...projects].map(([value, label]) => ({ value, label })).sort((left, right) => left.label.localeCompare(right.label));
+  }, [memberAllocations]);
 
-  if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading assets…</div>;
-  if (error) return <EmptyState icon="alert" title="Failed to load assets" message={error.message} />;
+  const filteredMemberGroups = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return memberGroups.filter((group) => {
+      const hasProject = !projectFilter || group.allocations.some((allocation) => allocation.project_id === projectFilter);
+      const searchableText = `${group.userName} ${group.userEmail} ${group.allocations.map((allocation) => allocation.project_name).join(' ')}`.toLowerCase();
+      return hasProject && (!query || searchableText.includes(query));
+    });
+  }, [memberGroups, projectFilter, search]);
+
+  const totalAllocations = memberAllocations.length;
+
+  if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading assignments…</div>;
+  if (memberError) return <EmptyState icon={TriangleAlert} title="Failed to load assignments" message={memberError.message} />;
 
   return (
     <>
-      <div className="project-toolbar">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <span className="eyebrow">Shared Resources</span>
+          <span className="eyebrow">People & Project Commitments</span>
           <h2>
-            {data.length} Shared Asset{data.length === 1 ? '' : 's'}
+            {memberGroups.length} {memberGroups.length === 1 ? 'Person' : 'People'} · {totalAllocations} Assignment{totalAllocations === 1 ? '' : 's'}
           </h2>
         </div>
-        <div className="toolbar-fields">
-          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assets…" />
-          <SelectField
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            label="Filter by status"
-            options={[
-              { value: 'available', label: 'Available' },
-              { value: 'in_use', label: 'In use' },
-              { value: 'reserved', label: 'Reserved' },
-              { value: 'retired', label: 'Retired' },
-              { value: 'unavailable', label: 'Unavailable' },
-            ]}
-            placeholder="All statuses"
-          />
-          <button className="button button-secondary button-small" type="button" onClick={onNewAsset}>
-            <Icon name="plus" size={13} /> New asset
-          </button>
+        <div className="flex w-full flex-wrap gap-2 border-t border-graphite pt-3">
+          <div className="min-w-[200px] max-[600px]:w-full [&_.select-field]:w-full [&_select]:w-full">
+            <SelectField
+              value={projectFilter}
+              onChange={(event) => setProjectFilter(event.target.value)}
+              label="Filter by project"
+              options={projectOptions}
+              placeholder="All projects"
+            />
+          </div>
+          <div className="min-w-[260px] flex-1 max-[600px]:min-w-0 [&_.search-field]:w-full [&_input]:w-full">
+            <SearchField value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search people and projects…" />
+          </div>
         </div>
       </div>
 
-      {filteredAssets.length === 0 ? (
-        <EmptyState icon="projects" title="No shared assets" message="Shared assets and resources registered for your organization will appear here." />
+      {totalAllocations === 0 ? (
+        <EmptyState icon={Layers} title="No assignments found" message="Project assignments will appear here once team members are allocated." />
+      ) : filteredMemberGroups.length === 0 ? (
+        <EmptyState icon={Search} title="No matching assignments" message="Adjust the search or project filter." />
       ) : (
-        <DetailList>
-          {filteredAssets.map((asset) => (
-            <DetailRow key={asset.id}>
-              <span className="avatar">{(asset.name || '—').slice(0, 2).toUpperCase()}</span>
-              <span className="detail-list-copy">
-                <strong>{asset.name}</strong>
-                <small>{asset.type || asset.asset_type || 'Resource'} · Status: {asset.status || 'available'}</small>
-              </span>
-              <div className="invitation-actions">
-                <button className="text-button" type="button" onClick={() => onEditAsset(asset)}>Edit</button>
-                <button className="text-button text-button-danger" type="button" onClick={() => onDeleteAsset(asset)}>Delete</button>
+        <section aria-labelledby="people-assignments-heading">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 id="people-assignments-heading" className="text-[11px] font-[510] uppercase tracking-[0.08em] text-ash">Team members</h3>
+                <span className="text-[10px] text-ash">Overall peak is the highest concurrent allocation across projects</span>
               </div>
-            </DetailRow>
-          ))}
-        </DetailList>
+              <div className="space-y-2">
+                {filteredMemberGroups.map((group) => {
+                  const isOverallocated = group.peakPercentage > 100;
+                  return (
+                    <article
+                      className={`overflow-hidden rounded-control border bg-white/[0.015] ${isOverallocated ? 'border-coral-red/40' : 'border-graphite'}`}
+                      key={group.userId}
+                    >
+                      <header className="flex items-center justify-between gap-3 border-b border-graphite px-3.5 py-3 max-[600px]:items-start">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="avatar">{group.userName.slice(0, 2).toUpperCase()}</span>
+                          <div className="min-w-0">
+                            <h4 className="truncate text-[12px] font-[510] text-bone">{group.userName}</h4>
+                            <p className="mt-0.5 truncate text-[9px] text-ash">{group.userEmail || `${group.allocations.length} project allocation${group.allocations.length === 1 ? '' : 's'}`}</p>
+                          </div>
+                        </div>
+                        <CapacityBadge peakPercentage={group.peakPercentage} />
+                      </header>
+                      <ul className="m-0 list-none p-0">
+                        {group.allocations.map((allocation) => (
+                          <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-graphite px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_72px_auto]" key={allocation.id}>
+                            <div className="min-w-0">
+                              <strong className="block truncate text-[11px] font-[510] text-mist">{allocation.project_name || 'Unassigned project'}</strong>
+                              <small className="mt-0.5 block truncate text-[9px] text-ash">
+                                {allocation.starts_on && allocation.ends_on ? `${allocation.starts_on} → ${allocation.ends_on}` : 'Dates not set'}
+                              </small>
+                            </div>
+                            <span className="text-right text-[12px] font-[510] text-bone">{formatPercentage(getAllocationPercentage(allocation))}%</span>
+                            <div className="invitation-actions col-span-2 justify-end sm:col-span-1">
+                              <button className="icon-button" type="button" aria-label="Edit allocation" onClick={() => onEditMemberAlloc(allocation)}><Pencil size={14} /></button>
+                              <button className="icon-button" type="button" aria-label="Remove allocation" onClick={() => onDeleteMemberAlloc(allocation)}><Trash2 size={14} /></button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  );
+                })}
+              </div>
+        </section>
       )}
     </>
   );
@@ -772,24 +621,24 @@ function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDel
             placeholder="Select team member…"
           />
           <button className="button button-secondary button-small" type="button" onClick={onNewUnavailability} disabled={!targetUserId}>
-            <Icon name="plus" size={13} /> Record leave
+            <Plus size={13} /> Record leave
           </button>
         </div>
       </div>
 
       {!targetUserId ? (
         <EmptyState
-          icon="calendar"
+          icon={Calendar}
           title="Select a team member"
           message="Choose a team member above to view planned capacity and unavailability windows."
         />
       ) : availabilityQuery.isLoading ? (
         <div className="loading-state"><span className="spinner" /> Loading availability schedule…</div>
       ) : availabilityQuery.error ? (
-        <EmptyState icon="alert" title="Failed to load availability" message={availabilityQuery.error.message} />
+        <EmptyState icon={TriangleAlert} title="Failed to load availability" message={availabilityQuery.error.message} />
       ) : records.length === 0 ? (
         <EmptyState
-          icon="calendar"
+          icon={Calendar}
           title="No unavailability recorded"
           message="No vacations, leave, or planned capacity restrictions are scheduled for this team member."
         />
@@ -893,7 +742,7 @@ function CapacityProfilesTab({ isLoading, error, profiles, onNewProfile, onEditP
   }, [profiles, search]);
 
   if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading capacity profiles…</div>;
-  if (error) return <EmptyState icon="alert" title="Failed to load capacity profiles" message={error.message} />;
+  if (error) return <EmptyState icon={TriangleAlert} title="Failed to load capacity profiles" message={error.message} />;
 
   return (
     <>
@@ -905,19 +754,19 @@ function CapacityProfilesTab({ isLoading, error, profiles, onNewProfile, onEditP
         <div className="toolbar-fields">
           <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name…" />
           <button className="button button-secondary button-small" type="button" onClick={onNewProfile}>
-            <Icon name="plus" size={13} /> New profile
+            <Plus size={13} /> New profile
           </button>
         </div>
       </div>
 
       {profiles.length === 0 ? (
         <EmptyState
-          icon="users"
+          icon={Users}
           title="No capacity profiles"
           message="Define baseline weekly hours for team members. Default capacity is 40 hours per week if no profile is set."
         />
       ) : filteredProfiles.length === 0 ? (
-        <EmptyState icon="users" title="No matching profiles" message="Adjust your search to see capacity profiles." />
+        <EmptyState icon={Users} title="No matching profiles" message="Adjust your search to see capacity profiles." />
       ) : (
         <DetailList>
           {filteredProfiles.map((profile) => (

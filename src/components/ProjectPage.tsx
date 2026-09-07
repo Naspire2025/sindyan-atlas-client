@@ -38,12 +38,14 @@ import { DetailList, DetailRow } from "./DetailList.js";
 import DialogShell from "./DialogShell.js";
 import EmptyState from "./EmptyState.js";
 import { SearchField, SelectField } from "./FilterBar.js";
-import Icon from "./Icon.js";
+
+
 import IssueDialog from "./IssueDialog.js";
 import PhaseModal from "./PhaseModal.js";
 import RiskDialog from "./RiskDialog.js";
 import StatusBadge from "./StatusBadge.js";
 import TaskKanbanBoard from "./TaskKanbanBoard.js";
+import { Calendar, ChevronDown, CircleCheck, ExternalLink, Layers, LayoutGrid, Lock, Menu, Plus, TriangleAlert, Users, X } from 'lucide-react';
 
 interface ProjectPageProps {
   currentUser: User;
@@ -559,7 +561,7 @@ function TimelineSection({
         </div>
       ) : (
         <EmptyState
-          icon="calendar"
+          icon={Calendar}
           title="No scheduled work"
           message="Add phases, milestones, or dated tasks to populate the timeline."
         />
@@ -699,13 +701,13 @@ function ProjectBreadcrumb({
         aria-label="Open navigation"
         onClick={onMenu}
       >
-        <Icon name="menu" size={18} />
+        <Menu size={18} />
       </button>
       <nav aria-label="Breadcrumb" className="breadcrumb">
         <button type="button" onClick={onBack}>
           Projects
         </button>
-        <Icon name="chevron" size={13} />
+        <ChevronDown size={13} />
         <span className={`project-glyph priority-${project.priority}`} />
         <span>{project.name}</span>
       </nav>
@@ -717,7 +719,7 @@ function ProjectBreadcrumb({
             rel="noreferrer"
             aria-label="Open project website"
           >
-            <Icon name="external" />
+            <ExternalLink />
           </a>
         )}
         {project.drive_folder_url && (
@@ -727,7 +729,7 @@ function ProjectBreadcrumb({
             rel="noreferrer"
             aria-label="Open project Drive folder"
           >
-            <Icon name="projects" />
+            <Layers />
           </a>
         )}
       </div>
@@ -752,7 +754,7 @@ function ProjectHero({ project }: ProjectHeroProps) {
   return (
     <section className="project-hero">
       <span className={`project-hero-icon priority-${project.priority}`}>
-        <Icon name="projects" size={20} />
+        <Layers size={20} />
       </span>
       <h1>{project.name}</h1>
       <p>{project.description || "Add a short project summary."}</p>
@@ -775,12 +777,12 @@ function ProjectHero({ project }: ProjectHeroProps) {
         </span>
         {project.start_date && (
           <span className="project-property">
-            <Icon name="calendar" size={14} />
+            <Calendar size={14} />
             Start: {formatDate(project.start_date)}
           </span>
         )}
         <span className="project-property">
-          <Icon name="calendar" size={14} />
+          <Calendar size={14} />
           Target: {formatDate(project.deadline)}
         </span>
         <span className="project-property">
@@ -792,12 +794,12 @@ function ProjectHero({ project }: ProjectHeroProps) {
         <span className="property-label">Resources</span>
         {project.website_url && (
           <a href={project.website_url} target="_blank" rel="noreferrer">
-            Website <Icon name="external" size={13} />
+            Website <ExternalLink size={13} />
           </a>
         )}
         {project.drive_folder_url && (
           <a href={project.drive_folder_url} target="_blank" rel="noreferrer">
-            Drive folder <Icon name="external" size={13} />
+            Drive folder <ExternalLink size={13} />
           </a>
         )}
         {!project.website_url && !project.drive_folder_url && (
@@ -822,7 +824,7 @@ function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
       <div className="project-overview-layout">
         <div className="project-main-column">
           <section className="project-update-card">
-            <Icon name="overview" />
+            <LayoutGrid />
             <span>
               <strong>No project update yet</strong>
               <small>
@@ -840,7 +842,7 @@ function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
               />
             ) : (
               <EmptyState
-                icon="calendar"
+                icon={Calendar}
                 title="No milestones yet"
                 message="Create a milestone to organize work around a target date."
               />
@@ -984,7 +986,7 @@ function TasksSection({
         )
       ) : (
         <EmptyState
-          icon="check"
+          icon={CircleCheck}
           title="No tasks yet"
           message="No tasks are visible for this project."
         />
@@ -1089,7 +1091,7 @@ function MilestonesSection({
         </DetailList>
       ) : (
         <EmptyState
-          icon="calendar"
+          icon={Calendar}
           title="No milestones yet"
           message="Milestone management is enabled through the secured API."
         />
@@ -1176,7 +1178,7 @@ function LinksSection({
           <DetailList>
             {links.map((link) => (
               <DetailRow key={link.id}>
-                <Icon name="external" size={16} />
+                <ExternalLink size={16} />
                 <span className="detail-list-copy">
                   <a href={link.url} target="_blank" rel="noopener noreferrer">
                     <strong>{link.label || link.title || link.url}</strong>
@@ -1206,7 +1208,7 @@ function LinksSection({
           </DetailList>
         ) : (
           <EmptyState
-            icon="external"
+            icon={ExternalLink}
             title="No links"
             message="Add external resources for quick access."
           />
@@ -1297,7 +1299,7 @@ function VaultResourcesSection({
         </div>
       ) : resourcesQuery.error ? (
         <EmptyState
-          icon="alert"
+          icon={TriangleAlert}
           title="Vault resources unavailable"
           message={resourcesQuery.error.message}
         />
@@ -1316,7 +1318,7 @@ function VaultResourcesSection({
         </DetailList>
       ) : (
         <EmptyState
-          icon="lock"
+          icon={Lock}
           title="No vault resources"
           message="Project-linked vault resources will appear here."
         />
@@ -1343,16 +1345,7 @@ function VaultResourceRow({
   const files = resource.files || [];
   return (
     <DetailRow className="vault-entry-row">
-      <Icon
-        name={
-          resource.entry_type === "external_link"
-            ? "external"
-            : resource.entry_type === "file"
-              ? "projects"
-              : "lock"
-        }
-        size={16}
-      />
+      {resource.entry_type === "external_link" ? <ExternalLink size={16} /> : resource.entry_type === "file" ? <Layers size={16} /> : <Lock size={16} />}
       <span className="detail-list-copy">
         <strong>{resource.title}</strong>
         <small>
@@ -1412,7 +1405,7 @@ function VaultResourceRow({
           target="_blank"
           rel="noopener noreferrer"
         >
-          Open <Icon name="external" size={13} />
+          Open <ExternalLink size={13} />
         </a>
       )}
     </DetailRow>
@@ -1561,7 +1554,7 @@ function RisksIssuesSection({
             </DetailList>
           ) : (
             <EmptyState
-              icon="alert"
+              icon={TriangleAlert}
               title="No risks identified"
               message="Risks will appear here when they are logged against this project."
             />
@@ -1612,7 +1605,7 @@ function RisksIssuesSection({
           </DetailList>
         ) : (
           <EmptyState
-            icon="alert"
+            icon={TriangleAlert}
             title="No issues reported"
             message="Issues will appear here when they are logged against this project."
           />
@@ -1720,7 +1713,7 @@ function TeamSection({
         </DetailList>
       ) : (
         <EmptyState
-          icon="users"
+          icon={Users}
           title="No team members yet"
           message="No project members are visible."
         />
@@ -1883,7 +1876,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             type="button"
             onClick={() => setIsBudgetLineOpen(true)}
           >
-            <Icon name="plus" size={14} />
+            <Plus size={14} />
             Add budget line
           </button>
         </div>
@@ -1946,7 +1939,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
           </DetailList>
         ) : (
           <EmptyState
-            icon="projects"
+            icon={Layers}
             title="No budget lines"
             message="Create budget lines to track allocated funds by category."
           />
@@ -1965,7 +1958,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             type="button"
             onClick={() => setIsSpendOpen(true)}
           >
-            <Icon name="plus" size={14} />
+            <Plus size={14} />
             Record spend
           </button>
         </div>
@@ -2010,7 +2003,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
           </DetailList>
         ) : (
           <EmptyState
-            icon="projects"
+            icon={Layers}
             title="No spend records"
             message="Record expenditures to track actual spending against your budget."
           />
@@ -2405,7 +2398,7 @@ function ProjectSection({
             type="button"
             onClick={onAction}
           >
-            <Icon name="plus" size={14} />
+            <Plus size={14} />
             {actionLabel}
           </button>
         )}
@@ -2462,7 +2455,7 @@ function ProjectError({ error, onBack, onMenu }: ProjectErrorProps) {
           aria-label="Open navigation"
           onClick={onMenu}
         >
-          <Icon name="menu" />
+          <Menu />
         </button>
         <button className="text-button" type="button" onClick={onBack}>
           Projects
@@ -2470,7 +2463,7 @@ function ProjectError({ error, onBack, onMenu }: ProjectErrorProps) {
       </header>
       <div className="project-error">
         <EmptyState
-          icon="alert"
+          icon={TriangleAlert}
           title="Project unavailable"
           message={error?.message || "This project could not be loaded."}
           action={
@@ -2554,7 +2547,7 @@ function CreateProjectItemForm({
           aria-label="Close form"
           onClick={onCancel}
         >
-          <Icon name="close" size={14} />
+          <X size={14} />
         </button>
       </div>
       {error && (

@@ -1,4 +1,5 @@
-import Icon from './Icon.js';
+import { TriangleAlert } from 'lucide-react';
+
 import PageHeader from './PageHeader.js';
 
 interface NotFoundPageProps {
@@ -16,7 +17,7 @@ export default function NotFoundPage({ onMenu }: NotFoundPageProps) {
       />
       <div className="empty-state">
         <span className="empty-state-icon">
-          <Icon name="alert" size={18} />
+          <TriangleAlert size={18} />
         </span>
         <h3>404 — Not found</h3>
         <p>Check the URL or navigate back to the dashboard.</p>

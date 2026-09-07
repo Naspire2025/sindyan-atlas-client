@@ -1,6 +1,8 @@
 import { type ReactNode } from 'react';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+import { CircleCheck, ShieldCheck, TriangleAlert } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
 
 export function LoadingState({ message = 'Loading…' }: { message?: string }) {
   return (
@@ -15,13 +17,13 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
   return (
     <div className="page-state page-state-error">
       <EmptyState
-        icon="alert"
+        icon={TriangleAlert}
         title="Something went wrong"
         message={message || 'An unexpected error occurred. Please try again.'}
         action={
           onRetry ? (
             <button className="button button-secondary" type="button" onClick={onRetry}>
-              <Icon name="check" size={14} />
+              <CircleCheck size={14} />
               Try again
             </button>
           ) : null
@@ -35,7 +37,7 @@ export function PermissionDeniedState() {
   return (
     <div className="page-state">
       <EmptyState
-        icon="shield"
+        icon={ShieldCheck}
         title="Access denied"
         message="You don't have permission to view this page. Contact your administrator if you believe this is an error."
       />
@@ -47,7 +49,7 @@ export function NotFoundState({ message = "The page you're looking for doesn't e
   return (
     <div className="page-state">
       <EmptyState
-        icon="alert"
+        icon={TriangleAlert}
         title="Not found"
         message={message}
       />
@@ -59,7 +61,7 @@ interface PageStateProps {
   isLoading?: boolean;
   error?: Error | null;
   isEmpty?: boolean;
-  emptyIcon?: string;
+  emptyIcon?: LucideIcon;
   emptyTitle?: string;
   emptyMessage?: string;
   emptyAction?: ReactNode;

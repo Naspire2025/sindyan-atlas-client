@@ -5,7 +5,9 @@ import type { User, Task, TaskComment, TaskActivityEvent, Milestone, ProjectMemb
 import { formatDate, getInitials } from '../utils/project.js';
 import { getAllowedTaskStatuses } from '../utils/task.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+import { Calendar, ChevronDown, CircleCheck, Diamond, Flag, Menu, Send, TriangleAlert, User as UserIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
 
 interface TaskPageProps {
   currentUser: User;
@@ -148,12 +150,12 @@ interface TaskBreadcrumbProps {
 function TaskBreadcrumb({ onBack, onMenu, onSelectProject, task }: TaskBreadcrumbProps) {
   return (
     <header className="project-breadcrumb-bar task-breadcrumb-bar">
-      <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Icon name="menu" size={18} /></button>
+      <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu size={18} /></button>
       <nav aria-label="Breadcrumb" className="breadcrumb">
         <button type="button" onClick={onBack}>My tasks</button>
-        <Icon name="chevron" size={13} />
+        <ChevronDown size={13} />
         <button type="button" onClick={() => onSelectProject(task.project_id)}>{task.project_name}</button>
-        <Icon name="chevron" size={13} />
+        <ChevronDown size={13} />
         <span>TASK-{task.id}</span>
       </nav>
       <span className={`status-badge status-${task.status}`}><span className="status-dot" />{getLabel(TASK_STATUSES, task.status)}</span>
@@ -178,18 +180,18 @@ function TaskProperties({ currentUser, isSaving, members, milestones, onSelectMe
   return (
     <aside className="task-properties" aria-label="Task properties">
       <h2>Properties</h2>
-      {availableStatuses.length > 1 ? <label className="task-property-control"><Icon name="check" size={15} /><span>Status</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="check" label="Status" value={getLabel(TASK_STATUSES, task.status)} />}
-      {canManage ? <label className="task-property-control"><Icon name="priority" size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon="priority" label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
-      {canManage ? <label className="task-property-control"><Icon name="user" size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon="user" label="Assignee" value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button> : task.owner || 'Unassigned'} />}
-      {canManage ? <label className="task-property-control"><Icon name="calendar" size={15} /><span>Due date</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon="calendar" label="Due date" value={formatDate(task.due_date)} />}
-      {canManage ? <label className="task-property-control"><Icon name="milestone" size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value || null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon="milestone" label="Milestone" value={task.milestone_title || 'No milestone'} />}
+      {availableStatuses.length > 1 ? <label className="task-property-control"><CircleCheck size={15} /><span>Status</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon={CircleCheck} label="Status" value={getLabel(TASK_STATUSES, task.status)} />}
+      {canManage ? <label className="task-property-control"><Flag size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon={Flag} label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
+      {canManage ? <label className="task-property-control"><UserIcon size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon={UserIcon} label="Assignee" value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button> : task.owner || 'Unassigned'} />}
+      {canManage ? <label className="task-property-control"><Calendar size={15} /><span>Due date</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon={Calendar} label="Due date" value={formatDate(task.due_date)} />}
+      {canManage ? <label className="task-property-control"><Diamond size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value || null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon={Diamond} label="Milestone" value={task.milestone_title || 'No milestone'} />}
 
       <div className="task-property-group">
         <h3>Project</h3>
         <button className="task-project-link" type="button" onClick={() => onSelectProject(task.project_id)}>
           <span className={`project-glyph priority-${task.priority}`} />
           <span>{task.project_name}</span>
-          <Icon name="chevron" size={13} />
+          <ChevronDown size={13} />
         </button>
       </div>
     </aside>
@@ -197,13 +199,13 @@ function TaskProperties({ currentUser, isSaving, members, milestones, onSelectMe
 }
 
 interface PropertyRowProps {
-  icon: string;
+  icon: LucideIcon;
   label: string;
   value: ReactNode;
 }
 
-function PropertyRow({ icon, label, value }: PropertyRowProps) {
-  return <div className="task-property-row"><Icon name={icon} size={15} /><span>{label}</span><strong>{value}</strong></div>;
+function PropertyRow({ icon: Icon, label, value }: PropertyRowProps) {
+  return <div className="task-property-row"><Icon size={15} /><span>{label}</span><strong>{value}</strong></div>;
 }
 
 interface ActivityEventProps {
@@ -257,7 +259,7 @@ function CommentForm({ comment, isPosting, onChange, onSubmit }: CommentFormProp
         <div className="comment-actions">
           <span>{comment.length}/2000</span>
           <button className="comment-submit" type="submit" aria-label="Post comment" disabled={isPosting || !comment.trim()}>
-            <Icon name="send" size={14} />
+            <Send size={14} />
           </button>
         </div>
       </div>
@@ -272,7 +274,7 @@ interface TaskErrorProps {
 }
 
 function TaskError({ error, onBack, onMenu }: TaskErrorProps) {
-  return <><header className="project-breadcrumb-bar"><button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Icon name="menu" /></button><button className="text-button" type="button" onClick={onBack}>My tasks</button></header><div className="project-error"><EmptyState icon="alert" title="Task unavailable" message={error} action={<button className="button button-secondary" type="button" onClick={onBack}>Back to my tasks</button>} /></div></>;
+  return <><header className="project-breadcrumb-bar"><button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu /></button><button className="text-button" type="button" onClick={onBack}>My tasks</button></header><div className="project-error"><EmptyState icon={TriangleAlert} title="Task unavailable" message={error} action={<button className="button button-secondary" type="button" onClick={onBack}>Back to my tasks</button>} /></div></>;
 }
 
 function getTaskUpdatePayload(task: Task, changes: Record<string, unknown>) {

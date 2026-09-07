@@ -5,10 +5,12 @@ import { queryKeys } from '../api/queryKeys.js';
 import type { DashboardOverview, DashboardAttentionItem, Project, Task } from '../types/api.js';
 import { formatDate, getProjectHealth, isPastDate, isProjectOverdue } from '../utils/project.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
 import ProjectTable from './ProjectTable.js';
 import SummaryBar from './SummaryBar.js';
+import { ChevronDown, CircleCheck, Layers, Search, TriangleAlert } from 'lucide-react';
 
 interface DashboardPageProps {
   projects: Project[];
@@ -86,7 +88,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         onMenu={onMenu}
         action={
           <button className="button button-secondary" type="button" onClick={() => onNavigate('projects')}>
-            <Icon name="projects" />
+            <Layers />
             View projects
           </button>
         }
@@ -94,7 +96,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
 
       <div className="dashboard-toolbar">
         <label className="search-field">
-          <Icon name="search" />
+          <Search />
           <span className="sr-only">Search projects</span>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects" />
         </label>
@@ -140,19 +142,19 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
                   }}
                 >
                   <span className={`attention-icon attention-${item.tone}`}>
-                    <Icon name="alert" size={15} />
+                    <TriangleAlert size={15} />
                   </span>
                   <span>
                     <strong>{item.title}</strong>
                     <small>{item.detail}</small>
                   </span>
-                  <Icon name="arrow" size={15} />
+                  <ChevronDown size={15} />
                 </button>
               ))}
             </div>
           ) : (
             <EmptyState
-              icon="check"
+              icon={CircleCheck}
               title="Everything looks clear"
               message="There are no overdue, blocked, or stalled tasks right now."
             />
@@ -188,7 +190,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
               <strong>{highlightedProject.name}</strong>
               <small>Target: {formatDate(highlightedProject.deadline)} · {getProjectHealth(highlightedProject).replace('_', ' ')}</small>
             </span>
-            <Icon name="arrow" size={15} />
+            <ChevronDown size={15} />
           </button>
         </section>
       )}
@@ -200,7 +202,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
             <h2>Project performance</h2>
           </div>
           <button className="text-button" type="button" onClick={() => onNavigate('projects')}>
-            See all projects <Icon name="arrow" size={14} />
+            See all projects <ChevronDown size={14} />
           </button>
         </div>
         {filteredProjects.length > 0 ? (

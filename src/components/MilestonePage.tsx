@@ -9,9 +9,11 @@ import { formatDate } from '../utils/project.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
 import { TaskDialog } from './ProjectPage.js';
+import { ChevronDown, CircleCheck, Menu, Plus, TriangleAlert, Users } from 'lucide-react';
 
 interface MilestonePageProps {
   currentUser: User;
@@ -96,7 +98,7 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
     return (
       <div className="page">
         <PageHeader eyebrow="Milestone" title="Milestone unavailable" description={error} onMenu={onMenu} />
-        <EmptyState icon="alert" title="Failed to load milestone" message={error} action={<button className="button ghost" type="button" onClick={load}>Try again</button>} />
+        <EmptyState icon={TriangleAlert} title="Failed to load milestone" message={error} action={<button className="button ghost" type="button" onClick={load}>Try again</button>} />
       </div>
     );
   }
@@ -121,12 +123,12 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
   return (
     <div className="page">
       <header className="project-breadcrumb-bar milestone-header">
-        <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Icon name="menu" size={18} /></button>
+        <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu size={18} /></button>
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <button type="button" onClick={onBack}>Projects</button>
-          <Icon name="chevron" size={13} />
+          <ChevronDown size={13} />
           <button type="button" onClick={() => onSelectProject(milestone.project_id)}>{milestone.project_name}</button>
-          <Icon name="chevron" size={13} />
+          <ChevronDown size={13} />
           <span>{milestone.title}</span>
         </nav>
         <span className={`status-badge status-${milestone.status === 'done' ? 'active' : milestone.status === 'missed' ? 'cancelled' : 'pending'}`}><span className="status-dot" />{milestoneStatusLabel(milestone.status)}</span>
@@ -168,10 +170,10 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
               <h2>Tasks</h2>
               <p>Work attached to this milestone</p>
             </div>
-            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsTaskOpen(true)}><Icon name="plus" size={14} />Add task</button>}
+            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsTaskOpen(true)}><Plus size={14} />Add task</button>}
           </div>
           {tasks.length === 0 ? (
-            <EmptyState icon="check" title="No tasks" message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>Add task</button> : undefined} />
+            <EmptyState icon={CircleCheck} title="No tasks" message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>Add task</button> : undefined} />
           ) : (
             <DetailList>
               {tasks.map((task) => (
@@ -198,10 +200,10 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
               <h2>People</h2>
               <p>Members assigned to these tasks</p>
             </div>
-            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsMemberOpen(true)}><Icon name="plus" size={14} />Add people</button>}
+            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsMemberOpen(true)}><Plus size={14} />Add people</button>}
           </div>
           {milestone.members.length === 0 ? (
-            <EmptyState icon="users" title="No people" message="No team members are assigned to tasks on this milestone." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsMemberOpen(true)}>Add people</button> : undefined} />
+            <EmptyState icon={Users} title="No people" message="No team members are assigned to tasks on this milestone." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsMemberOpen(true)}>Add people</button> : undefined} />
           ) : (
             <DetailList>
               {milestone.members.map((member) => (

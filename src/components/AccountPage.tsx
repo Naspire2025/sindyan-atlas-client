@@ -5,7 +5,8 @@ import { queryKeys } from '../api/queryKeys.js';
 import { useAuth } from '../auth/useAuth.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+import { Lock, ShieldCheck } from 'lucide-react';
+
 import PageHeader from './PageHeader.js';
 
 interface AccountPageProps {
@@ -47,7 +48,7 @@ export default function AccountPage({ onMenu }: AccountPageProps) {
         </div>
         <div className="account-actions">
           <button className="button button-secondary" type="button" onClick={() => setIsChangePasswordOpen(true)}>
-            <Icon name="lock" size={14} />
+            <Lock size={14} />
             Change password
           </button>
         </div>
@@ -104,7 +105,7 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
       <DialogShell title="Password updated" onClose={onClose}>
         <div className="dialog-body">
           <EmptyState
-            icon="shield"
+            icon={ShieldCheck}
             title="Password changed successfully"
             message="Your password has been updated. You may need to sign in again on other devices."
           />

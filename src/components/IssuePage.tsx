@@ -5,9 +5,11 @@ import { queryKeys } from '../api/queryKeys.js';
 import { ISSUE_STATUSES, PRIORITIES, getLabel } from '../constants.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import IssueDialog from './IssueDialog.js';
 import PageHeader from './PageHeader.js';
+import { Layers, Pencil, TriangleAlert } from 'lucide-react';
 
 interface IssuePageProps {
   onMenu: () => void;
@@ -57,7 +59,7 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
       <>
         <PageHeader eyebrow="Issue" title="Issue not found" onMenu={onMenu} />
         <div className="panel">
-          <EmptyState icon="alert" title="Issue unavailable" message="This issue may have been deleted or you no longer have access." />
+          <EmptyState icon={TriangleAlert} title="Issue unavailable" message="This issue may have been deleted or you no longer have access." />
         </div>
       </>
     );
@@ -75,11 +77,11 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
         action={
           <div className="page-actions">
             <button className="button button-secondary button-small" type="button" onClick={() => onSelectProject(issue.project_id)}>
-              <Icon name="projects" size={14} />
+              <Layers size={14} />
               Open project
             </button>
             <button className="button button-primary button-small" type="button" onClick={() => setIsEditOpen(true)}>
-              <Icon name="edit" size={14} />
+              <Pencil size={14} />
               Edit
             </button>
           </div>

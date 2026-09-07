@@ -31,8 +31,7 @@ export const queryKeys = {
   vaultEntry: (id: string) => ['vaultEntry', id] as const,
   vaultFiles: (entryId: string) => ['vaultFiles', entryId] as const,
   workload: (dateRange?: { starts_on?: string; ends_on?: string }) => ['resources', 'workload', dateRange] as const,
+  capacityProfiles: (userId: string) => ['users', userId, 'capacityProfiles'] as const,
   allCapacityProfiles: ['resources', 'capacityProfiles'] as const,
-  assets: ['assets'] as const,
   memberAllocations: (filters?: Record<string, unknown>) => ['memberAllocations', filters] as const,
-  assetAllocations: (filters?: Record<string, unknown>) => ['assetAllocations', filters] as const,
 };

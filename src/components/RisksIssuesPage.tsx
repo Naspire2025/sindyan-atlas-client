@@ -5,8 +5,10 @@ import { queryKeys } from '../api/queryKeys.js';
 import type { Issue, Risk } from '../types/api.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
+import { CircleCheck, Search, TriangleAlert } from 'lucide-react';
 
 interface RisksIssuesPageProps {
   onMenu: () => void;
@@ -77,7 +79,7 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
             </button>
           </div>
           <label className="search-field">
-            <Icon name="search" />
+            <Search />
             <span className="sr-only">Search</span>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search risks &amp; issues" />
           </label>
@@ -86,10 +88,10 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
         {isLoading ? (
           <div className="loading-state"><span className="spinner" />Loading…</div>
         ) : error ? (
-          <EmptyState icon="alert" title="Failed to load" message={(error as Error).message} />
+          <EmptyState icon={TriangleAlert} title="Failed to load" message={(error as Error).message} />
         ) : activeTab === 'risks' ? (
           filteredRisks.length === 0 ? (
-            <EmptyState icon="check" title="No risks" message={search ? 'Adjust your search.' : 'No active risks across any project.'} />
+            <EmptyState icon={CircleCheck} title="No risks" message={search ? 'Adjust your search.' : 'No active risks across any project.'} />
           ) : (
             <DetailList>
               {filteredRisks.map((risk) => (
@@ -99,7 +101,7 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
           )
         ) : (
           filteredIssues.length === 0 ? (
-            <EmptyState icon="check" title="No issues" message={search ? 'Adjust your search.' : 'No active issues across any project.'} />
+            <EmptyState icon={CircleCheck} title="No issues" message={search ? 'Adjust your search.' : 'No active issues across any project.'} />
           ) : (
             <DetailList>
               {filteredIssues.map((issue) => (

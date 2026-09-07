@@ -4,8 +4,10 @@ import type { MemberSummary } from '../types/api.js';
 import { formatDate } from '../utils/project.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
+import { Calendar, ChevronDown, CircleCheck, Layers, Menu, TriangleAlert } from 'lucide-react';
 
 interface MemberPageProps {
   memberId: string;
@@ -45,7 +47,7 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
     return (
       <div className="page">
         <PageHeader eyebrow="Member" title="Member unavailable" description={error} onMenu={onMenu} />
-        <EmptyState icon="alert" title="Failed to load member" message={error} action={<button className="button ghost" type="button" onClick={load}>Try again</button>} />
+        <EmptyState icon={TriangleAlert} title="Failed to load member" message={error} action={<button className="button ghost" type="button" onClick={load}>Try again</button>} />
       </div>
     );
   }
@@ -64,10 +66,10 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
   return (
     <div className="page">
       <header className="project-breadcrumb-bar">
-        <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Icon name="menu" size={18} /></button>
+        <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu size={18} /></button>
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <button type="button" onClick={onBack}>Team</button>
-          <Icon name="chevron" size={13} />
+          <ChevronDown size={13} />
           <span>{summary.name}</span>
         </nav>
         <span className={`status-badge status-${summary.status === 'active' ? 'active' : 'cancelled'}`}><span className="status-dot" />{summary.status}</span>
@@ -118,7 +120,7 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
             </div>
           </div>
           {summary.projects.length === 0 ? (
-            <EmptyState icon="projects" title="No projects" message="Not part of any project yet." />
+            <EmptyState icon={Layers} title="No projects" message="Not part of any project yet." />
           ) : (
             <DetailList>
               {summary.projects.map((project) => (
@@ -150,7 +152,7 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
             </div>
           </div>
           {summary.assignments.tasks.length === 0 ? (
-            <EmptyState icon="check" title="No tasks assigned" message="No tasks assigned to this member." />
+            <EmptyState icon={CircleCheck} title="No tasks assigned" message="No tasks assigned to this member." />
           ) : (
             <DetailList>
               {summary.assignments.tasks.map((task) => (
@@ -185,7 +187,7 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
             </div>
           </div>
           {summary.assignments.risks.length === 0 ? (
-            <EmptyState icon="alert" title="No risks owned" message="No risks are owned by this member." />
+            <EmptyState icon={TriangleAlert} title="No risks owned" message="No risks are owned by this member." />
           ) : (
             <DetailList>
               {summary.assignments.risks.map((risk) => (
@@ -214,7 +216,7 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
             </div>
           </div>
           {summary.assignments.issues.length === 0 ? (
-            <EmptyState icon="alert" title="No issues owned" message="No issues are owned by this member." />
+            <EmptyState icon={TriangleAlert} title="No issues owned" message="No issues are owned by this member." />
           ) : (
             <DetailList>
               {summary.assignments.issues.map((issue) => (
@@ -245,7 +247,7 @@ export default function MemberPage({ memberId, onBack, onMenu, onSelectProject, 
             </div>
           </div>
           {summary.assignments.allocations.length === 0 ? (
-            <EmptyState icon="calendar" title="No allocations" message="No time allocated across projects." />
+            <EmptyState icon={Calendar} title="No allocations" message="No time allocated across projects." />
           ) : (
             <DetailList>
               {summary.assignments.allocations.map((allocation, index) => (

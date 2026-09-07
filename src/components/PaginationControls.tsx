@@ -1,4 +1,4 @@
-import Icon from './Icon.js';
+import { ChevronDown } from 'lucide-react';
 
 interface PaginationControlsProps {
   page: number;
@@ -18,7 +18,7 @@ export default function PaginationControls({ page, totalPages, onPageChange }: P
         onClick={() => onPageChange(page - 1)}
         aria-label="Previous page"
       >
-        <Icon name="chevron" size={14} />
+        <ChevronDown size={14} />
       </button>
       <span className="pagination-info">
         Page {page} of {totalPages}
@@ -30,7 +30,7 @@ export default function PaginationControls({ page, totalPages, onPageChange }: P
         onClick={() => onPageChange(page + 1)}
         aria-label="Next page"
       >
-        <Icon name="chevron" size={14} />
+        <ChevronDown size={14} />
       </button>
     </nav>
   );

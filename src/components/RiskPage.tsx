@@ -5,9 +5,11 @@ import { queryKeys } from '../api/queryKeys.js';
 import { RISK_SEVERITIES, RISK_PROBABILITIES, RISK_STATUSES, getLabel } from '../constants.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
 import RiskDialog from './RiskDialog.js';
+import { Layers, Pencil, TriangleAlert } from 'lucide-react';
 
 interface RiskPageProps {
   onMenu: () => void;
@@ -57,7 +59,7 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
       <>
         <PageHeader eyebrow="Risk" title="Risk not found" onMenu={onMenu} />
         <div className="panel">
-          <EmptyState icon="alert" title="Risk unavailable" message="This risk may have been deleted or you no longer have access." />
+          <EmptyState icon={TriangleAlert} title="Risk unavailable" message="This risk may have been deleted or you no longer have access." />
         </div>
       </>
     );
@@ -75,11 +77,11 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
         action={
           <div className="page-actions">
             <button className="button button-secondary button-small" type="button" onClick={() => onSelectProject(risk.project_id)}>
-              <Icon name="projects" size={14} />
+              <Layers size={14} />
               Open project
             </button>
             <button className="button button-primary button-small" type="button" onClick={() => setIsEditOpen(true)}>
-              <Icon name="edit" size={14} />
+              <Pencil size={14} />
               Edit
             </button>
           </div>

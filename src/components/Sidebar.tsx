@@ -4,7 +4,7 @@ import { NAV_ITEMS } from '../constants.js';
 import { canViewPortfolio, isAdmin } from '../auth/permissions.js';
 import { useTheme } from '../theme/useTheme.js';
 import ConfirmDialog from './ConfirmDialog.js';
-import Icon from './Icon.js';
+import { LogOut, Monitor, User as UserIcon } from 'lucide-react';
 
 interface SidebarProps {
   activePage: string;
@@ -50,7 +50,7 @@ export default function Sidebar({ activePage, isOpen, onClose, onLogout, onNavig
               type="button"
               onClick={() => handleNavigate(item.id)}
             >
-              <Icon name={item.icon} size={16} />
+              <item.icon size={16} />
               <span>{item.label}</span>
             </button>
           ))}
@@ -68,7 +68,7 @@ export default function Sidebar({ activePage, isOpen, onClose, onLogout, onNavig
           <div className="profile-controls">
             <label className="sr-only" htmlFor="theme-preference">Theme preference</label>
             <div className="theme-select-wrapper">
-              <Icon name="monitor" size={14} />
+              <Monitor size={14} />
               <select id="theme-preference" value={preference} onChange={(event) => setPreference(event.target.value)}>
                 <option value="system">System</option>
                 <option value="dark">Dark</option>
@@ -77,11 +77,11 @@ export default function Sidebar({ activePage, isOpen, onClose, onLogout, onNavig
             </div>
             <div className="profile-action-row">
               <button className="text-button" type="button" onClick={() => handleNavigate('account')}>
-                <Icon name="user" size={13} />
+                <UserIcon size={13} />
                 Account
               </button>
               <button className="text-button text-button-danger" type="button" onClick={() => setShowSignOutConfirm(true)}>
-                <Icon name="log-out" size={13} />
+                <LogOut size={13} />
                 Sign out
               </button>
             </div>

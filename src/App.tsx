@@ -12,10 +12,10 @@ import {
   canManageTeam,
   canManageInvitations,
 } from "./auth/permissions.js";
+import { Eye, EyeOff, Menu, Shield } from "lucide-react";
 import AccountPage from "./components/AccountPage.jsx";
 import DashboardPage from "./components/DashboardPage.jsx";
 import DashboardShell from "./components/DashboardShell.jsx";
-import Icon from "./components/Icon.jsx";
 import InvitationsPage from "./components/InvitationsPage.jsx";
 import IssuePage from "./components/IssuePage.jsx";
 import MemberPage from "./components/MemberPage.jsx";
@@ -446,7 +446,7 @@ function PublicApp({
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
               >
-                <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </span>
           </label>
@@ -504,19 +504,7 @@ function PermissionDeniedPage({ onMenu }: PermissionDeniedPageProps) {
           aria-label="Open navigation"
           onClick={onMenu}
         >
-          <svg
-            aria-hidden="true"
-            fill="none"
-            height={18}
-            viewBox="0 0 24 24"
-            width={18}
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.7"
-          >
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
+          <Menu size={18} />
         </button>
         <div className="page-heading">
           <span className="eyebrow">Access restricted</span>
@@ -526,19 +514,8 @@ function PermissionDeniedPage({ onMenu }: PermissionDeniedPageProps) {
       </header>
       <div className="empty-state">
         <span className="empty-state-icon">
-          <svg
-            aria-hidden="true"
-            fill="none"
-            height={18}
-            viewBox="0 0 24 24"
-            width={18}
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.7"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-          </svg>
+          <Shield size={18} />
+            <Shield size={18} />
         </span>
         <h3>Access restricted</h3>
         <p>Contact your administrator to request access to this section.</p>

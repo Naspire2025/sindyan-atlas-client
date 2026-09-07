@@ -9,9 +9,11 @@ import ConfirmDialog from './ConfirmDialog.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
 import { SearchField, SelectField } from './FilterBar.js';
+import { CircleCheck, ExternalLink, Lock, Plus, TriangleAlert } from 'lucide-react';
 
 interface VaultPageProps {
   currentUser: User;
@@ -80,7 +82,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
         onMenu={onMenu}
         action={
           <button className="button button-primary" type="button" onClick={() => setIsCreateOpen(true)}>
-            <Icon name="plus" />
+            <Plus />
             New resource
           </button>
         }
@@ -110,13 +112,13 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
         {entriesQuery.isLoading ? (
           <div className="loading-state"><span className="spinner" />Loading vault…</div>
         ) : entriesQuery.error ? (
-          <EmptyState icon="alert" title="Failed to load vault" message={entriesQuery.error.message} />
+          <EmptyState icon={TriangleAlert} title="Failed to load vault" message={entriesQuery.error.message} />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="lock"
+            icon={Lock}
             title={search || typeFilter ? 'No matching resources' : 'Vault is empty'}
             message={search || typeFilter ? 'Adjust your search filters.' : 'Create the first vault resource to securely store links, credentials, or notes.'}
-            action={!search && !typeFilter ? <button className="button button-secondary" type="button" onClick={() => setIsCreateOpen(true)}><Icon name="plus" size={14} />Add resource</button> : null}
+            action={!search && !typeFilter ? <button className="button button-secondary" type="button" onClick={() => setIsCreateOpen(true)}><Plus size={14} />Add resource</button> : null}
           />
         ) : (
           <DetailList>
@@ -170,7 +172,7 @@ function VaultEntryRow({ currentUser, entry, projects, onEdit, onDelete, onRevea
   return (
     <DetailRow className="vault-entry-row">
       <span className="vault-entry-icon">
-        <Icon name={hasSecret ? 'lock' : entry.entry_type === 'external_link' ? 'external' : 'check'} size={16} />
+        {hasSecret ? <Lock size={16} /> : entry.entry_type === 'external_link' ? <ExternalLink size={16} /> : <CircleCheck size={16} />}
       </span>
       <span className="detail-list-copy">
         <strong>{entry.title}</strong>
@@ -184,13 +186,13 @@ function VaultEntryRow({ currentUser, entry, projects, onEdit, onDelete, onRevea
       <div className="vault-entry-actions">
         {hasSecret && canRevealSecret(currentUser) && (
           <button className="text-button" type="button" onClick={onReveal}>
-            <Icon name="lock" size={13} />
+            <Lock size={13} />
             Reveal
           </button>
         )}
         {entry.external_url && (
           <a className="text-button" href={entry.external_url} target="_blank" rel="noopener noreferrer">
-            <Icon name="external" size={13} />
+            <ExternalLink size={13} />
             Open
           </a>
         )}

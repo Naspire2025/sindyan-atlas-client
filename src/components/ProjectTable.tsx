@@ -1,7 +1,7 @@
 import { PRIORITIES, getLabel } from '../constants.js';
 import type { Project } from '../types/api.js';
 import { formatDate, getInitials, getProgress, getProjectHealth, getTaskSummary } from '../utils/project.js';
-import Icon from './Icon.js';
+import { ChevronDown } from 'lucide-react';
 
 const HEALTH_LABELS: Record<string, string> = { complete: 'Complete', behind: 'Behind', at_risk: 'At risk', on_track: 'On track', no_update: 'No forecast' };
 
@@ -45,7 +45,7 @@ function ProjectRow({ project, onSelect }: ProjectRowProps) {
       <span className="date-cell">{formatDate(project.deadline)}</span>
       <span className="issue-count">{tasks.total}{tasks.blocked > 0 && <small>{tasks.blocked} blocked</small>}</span>
       <span className="progress-cell"><span>{progress}%</span><span className="progress-track"><span style={{ width: `${progress}%` }} /></span></span>
-      <span className="row-chevron"><Icon name="chevron" size={15} /></span>
+      <span className="row-chevron"><ChevronDown size={15} /></span>
     </button>
   );
 }

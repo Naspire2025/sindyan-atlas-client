@@ -6,8 +6,10 @@ import type { Project, User, UserRole, WorkloadItem } from '../types/api.js';
 import ConfirmDialog from './ConfirmDialog.js';
 import DialogShell from './DialogShell.js';
 import EmptyState from './EmptyState.js';
-import Icon from './Icon.js';
+
+
 import PageHeader from './PageHeader.js';
+import { Search, TriangleAlert, Users } from 'lucide-react';
 
 interface TeamDirectoryPageProps {
   onMenu: () => void;
@@ -97,7 +99,7 @@ export default function TeamDirectoryPage({ onMenu, onSelectMember }: TeamDirect
             <h2>{users.length} user{users.length === 1 ? '' : 's'}</h2>
           </div>
           <label className="search-field">
-            <Icon name="search" />
+            <Search />
             <span className="sr-only">Search team</span>
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search members" />
           </label>
@@ -108,9 +110,9 @@ export default function TeamDirectoryPage({ onMenu, onSelectMember }: TeamDirect
         {usersQuery.isLoading ? (
           <div className="loading-state"><span className="spinner" />Loading team…</div>
         ) : usersQuery.error ? (
-          <EmptyState icon="alert" title="Failed to load team" message={usersQuery.error.message} />
+          <EmptyState icon={TriangleAlert} title="Failed to load team" message={usersQuery.error.message} />
         ) : filteredUsers.length === 0 ? (
-          <EmptyState icon="users" title="No team members found" message={search ? 'Try adjusting your search.' : 'No team members have been invited yet.'} />
+          <EmptyState icon={Users} title="No team members found" message={search ? 'Try adjusting your search.' : 'No team members have been invited yet.'} />
         ) : (
           <div className="member-grid">
             {filteredUsers.map((user) => {
