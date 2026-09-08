@@ -154,7 +154,7 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
         />
       )}
       {revealTarget && <SecretRevealDialog entry={revealTarget} onClose={() => setRevealTarget(null)} />}
-      {previewFile && <VaultFileViewer file={previewFile} onClose={() => setPreviewFile(null)} />}
+      {previewFile && <VaultFileViewer key={previewFile.id} file={previewFile} onClose={() => setPreviewFile(null)} />}
     </>
   );
 }
