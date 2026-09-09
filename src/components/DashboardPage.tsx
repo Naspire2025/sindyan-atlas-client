@@ -1,16 +1,30 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useIntl } from 'react-intl';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import type { DashboardOverview, DashboardAttentionItem, Project, Task } from '../types/api.js';
 import { formatDate, getProjectHealth, isPastDate, isProjectOverdue } from '../utils/project.js';
 import EmptyState from './EmptyState.js';
+import type { MessageId } from '../i18n/messages/en.js';
 
 
 import PageHeader from './PageHeader.js';
 import ProjectTable from './ProjectTable.js';
 import SummaryBar from './SummaryBar.js';
 import { ChevronDown, CircleCheck, Layers, Search, TriangleAlert } from 'lucide-react';
+
+const HEALTH_MESSAGE_IDS: Record<string, MessageId> = {
+  on_track: 'health.onTrack',
+  at_risk: 'health.atRisk',
+  behind: 'health.behind',
+  complete: 'health.complete',
+  no_update: 'health.noUpdate',
+};
+
+function formatHealthLabel(intl: ReturnType<typeof useIntl>, health: string): string {
+  return intl.formatMessage({ id: HEALTH_MESSAGE_IDS[health] });
+}
 
 interface DashboardPageProps {
   projects: Project[];
@@ -36,6 +50,7 @@ interface AttentionItem {
 }
 
 export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onSelectProject, onSelectTask, onSelectRisk, onSelectIssue }: DashboardPageProps) {
+  const intl = useIntl();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const overviewQuery = useQuery({
@@ -49,7 +64,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
 
   const overview = overviewQuery.data || ({} as DashboardOverview);
   const serverAttention = attentionQuery.data || ([] as DashboardAttentionItem[]);
-  const clientAttention = buildAttentionItems(projects, tasks);
+  const clientAttention = buildAttentionItems(projects, tasks, intl);
   const attentionItems = serverAttention.length > 0
     ? serverAttention.map((item, index) => ({
         key: item.id || `attention-${index}`,
@@ -58,8 +73,8 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         riskId: item.item_type === 'risk' ? item.id : undefined,
         issueId: item.item_type === 'issue' ? item.id : undefined,
         milestoneId: item.item_type === 'milestone' ? item.id : undefined,
-        title: item.title || item.name || 'Needs attention',
-        detail: item.reason || item.description || item.detail || 'Requires review',
+        title: item.title || item.name || intl.formatMessage({ id: 'dashboard.attentionRequired' }),
+        detail: item.reason || item.description || item.detail || intl.formatMessage({ id: 'dashboard.requiresReview' }),
         tone: (item.severity === 'high' || item.severity === 'critical' ? 'danger' : 'warning') as 'danger' | 'warning',
       }))
     : clientAttention;
@@ -82,14 +97,14 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
   return (
     <>
       <PageHeader
-        eyebrow="Workspace overview"
-        title="Good morning, Admin"
-        description="Here is what needs your attention across every project."
+        eyebrow={intl.formatMessage({ id: 'dashboard.workspaceOverview' })}
+        title={intl.formatMessage({ id: 'dashboard.greeting', values: { name: 'Admin' } })}
+        description={intl.formatMessage({ id: 'dashboard.attentionOverview' })}
         onMenu={onMenu}
         action={
           <button className="button button-secondary" type="button" onClick={() => onNavigate('projects')}>
             <Layers />
-            View projects
+            {intl.formatMessage({ id: 'project.viewAll' })}
           </button>
         }
       />
@@ -97,17 +112,17 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
       <div className="dashboard-toolbar">
         <label className="search-field">
           <Search />
-          <span className="sr-only">Search projects</span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search projects" />
+          <span className="sr-only">{intl.formatMessage({ id: 'common.search' })}</span>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={intl.formatMessage({ id: 'common.search' })} />
         </label>
         <label className="select-field">
-          <span className="sr-only">Filter by status</span>
+          <span className="sr-only">{intl.formatMessage({ id: 'project.filterByStatus' })}</span>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="blocked">Blocked</option>
-            <option value="on_hold">On hold</option>
+            <option value="">{intl.formatMessage({ id: 'project.filterAll' })}</option>
+            <option value="active">{intl.formatMessage({ id: 'status.project.active' })}</option>
+            <option value="completed">{intl.formatMessage({ id: 'status.project.completed' })}</option>
+            <option value="blocked">{intl.formatMessage({ id: 'status.project.blocked' })}</option>
+            <option value="on_hold">{intl.formatMessage({ id: 'status.project.onHold' })}</option>
           </select>
         </label>
       </div>
@@ -122,8 +137,8 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         <div className="panel attention-panel">
           <div className="section-header">
             <div>
-              <span className="eyebrow">Priority queue</span>
-              <h2>Needs attention</h2>
+              <span className="eyebrow">{intl.formatMessage({ id: 'dashboard.priorityQueue' })}</span>
+              <h2>{intl.formatMessage({ id: 'dashboard.attentionRequired' })}</h2>
             </div>
             <span className="count-pill">{attentionItems.length}</span>
           </div>
@@ -155,8 +170,8 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
           ) : (
             <EmptyState
               icon={CircleCheck}
-              title="Everything looks clear"
-              message="There are no overdue, blocked, or stalled tasks right now."
+              title={intl.formatMessage({ id: 'dashboard.everythingClear' })}
+              message={intl.formatMessage({ id: 'dashboard.noAttentionDetail' })}
             />
           )}
         </div>
@@ -164,8 +179,8 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         <div className="panel health-panel">
           <div className="section-header">
             <div>
-              <span className="eyebrow">Portfolio signal</span>
-              <h2>Project health</h2>
+              <span className="eyebrow">{intl.formatMessage({ id: 'dashboard.portfolioSignal' })}</span>
+              <h2>{intl.formatMessage({ id: 'dashboard.projectHealth' })}</h2>
             </div>
           </div>
           <HealthBreakdown projects={projects} />
@@ -176,8 +191,8 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
         <section className="panel highlighted-project-panel">
           <div className="section-header">
             <div>
-              <span className="eyebrow">Upcoming deadline</span>
-              <h2>Needs focus</h2>
+              <span className="eyebrow">{intl.formatMessage({ id: 'dashboard.upcomingDeadline' })}</span>
+              <h2>{intl.formatMessage({ id: 'dashboard.needsFocus' })}</h2>
             </div>
           </div>
           <button
@@ -188,7 +203,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
             <span className={`project-glyph priority-${highlightedProject.priority}`} />
             <span className="highlighted-project-info">
               <strong>{highlightedProject.name}</strong>
-              <small>Target: {formatDate(highlightedProject.deadline)} · {getProjectHealth(highlightedProject).replace('_', ' ')}</small>
+              <small>{intl.formatMessage({ id: 'dashboard.target', values: { date: formatDate(highlightedProject.deadline) } })} · {formatHealthLabel(intl, getProjectHealth(highlightedProject))}</small>
             </span>
             <ChevronDown size={15} />
           </button>
@@ -198,19 +213,19 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
       <section className="panel portfolio-panel">
         <div className="section-header">
           <div>
-            <span className="eyebrow">Recent portfolio</span>
-            <h2>Project performance</h2>
+            <span className="eyebrow">{intl.formatMessage({ id: 'dashboard.recentPortfolio' })}</span>
+            <h2>{intl.formatMessage({ id: 'dashboard.projectPerformance' })}</h2>
           </div>
           <button className="text-button" type="button" onClick={() => onNavigate('projects')}>
-            See all projects <ChevronDown size={14} />
+            {intl.formatMessage({ id: 'project.viewAll' })} <ChevronDown size={14} />
           </button>
         </div>
         {filteredProjects.length > 0 ? (
           <ProjectTable projects={filteredProjects.slice(0, 6)} onSelect={onSelectProject} />
         ) : (
           <EmptyState
-            title="No projects found"
-            message={search || statusFilter ? 'Adjust your search filters.' : 'Create the first project to begin tracking progress.'}
+            title={intl.formatMessage({ id: 'state.noProjects' })}
+            message={search || statusFilter ? intl.formatMessage({ id: 'common.adjustSearchFilters' }) : intl.formatMessage({ id: 'state.noProjectsMessage' })}
           />
         )}
       </section>
@@ -223,17 +238,18 @@ interface HealthBreakdownProps {
 }
 
 function HealthBreakdown({ projects }: HealthBreakdownProps) {
+  const intl = useIntl();
   const totals = projects.reduce<Record<string, number>>((result, project) => {
     const health = getProjectHealth(project);
     result[health] = (result[health] ?? 0) + 1;
     return result;
   }, {});
-  const rows = [
-    { key: 'on_track', label: 'On track' },
-    { key: 'at_risk', label: 'At risk' },
-    { key: 'behind', label: 'Behind' },
-    { key: 'complete', label: 'Complete' },
-    { key: 'no_update', label: 'No forecast' },
+  const rows: { key: string; label: MessageId | null }[] = [
+    { key: 'on_track', label: 'health.onTrack' },
+    { key: 'at_risk', label: 'health.atRisk' },
+    { key: 'behind', label: 'health.behind' },
+    { key: 'complete', label: 'health.complete' },
+    { key: 'no_update', label: null },
   ];
 
   return (
@@ -247,7 +263,7 @@ function HealthBreakdown({ projects }: HealthBreakdownProps) {
           <div className="health-row" key={row.key}>
             <span className={`health health-${row.key}`}>
               <span />
-              {row.label}
+              {row.label ? intl.formatMessage({ id: row.label }) : intl.formatMessage({ id: 'health.noForecast' })}
             </span>
             <span className="health-bar">
               <span
@@ -263,14 +279,14 @@ function HealthBreakdown({ projects }: HealthBreakdownProps) {
   );
 }
 
-function buildAttentionItems(projects: Project[], tasks: Task[]): AttentionItem[] {
+function buildAttentionItems(projects: Project[], tasks: Task[], intl: ReturnType<typeof useIntl>): AttentionItem[] {
   const overdueProjects = projects
     .filter(isProjectOverdue)
     .map((project) => ({
       key: `project-${project.id}`,
       projectId: project.id,
-      title: `${project.name} is past its deadline`,
-      detail: 'Review the project plan and update its target date.',
+      title: intl.formatMessage({ id: 'dashboard.projectPastDeadline', values: { name: project.name } }),
+      detail: intl.formatMessage({ id: 'dashboard.reviewProjectPlan' }),
       tone: 'danger' as const,
     }));
   const blockedTasks = tasks
@@ -279,7 +295,7 @@ function buildAttentionItems(projects: Project[], tasks: Task[]): AttentionItem[
       key: `task-${task.id}`,
       projectId: task.project_id,
       title: task.title,
-      detail: `${task.project_name} · ${task.blocker_note || 'Task is blocked'}`,
+      detail: `${task.project_name} · ${task.blocker_note || intl.formatMessage({ id: 'status.task.blocked' })}`,
       tone: 'warning' as const,
     }));
   const blockedTaskIds = new Set(blockedTasks.map((item) => item.key));
@@ -290,7 +306,7 @@ function buildAttentionItems(projects: Project[], tasks: Task[]): AttentionItem[
       projectId: task.project_id,
       taskId: task.id,
       title: task.title,
-      detail: `${task.project_name} · overdue since ${task.due_date}`,
+      detail: intl.formatMessage({ id: 'dashboard.taskOverdueSince', values: { task: task.project_name, date: task.due_date } }),
       tone: 'danger' as const,
     }));
   return [...overdueProjects, ...blockedTasks, ...overdueTasks];

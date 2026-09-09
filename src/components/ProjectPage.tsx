@@ -1,8 +1,16 @@
 import { useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client.js";
 import { queryKeys } from "../api/queryKeys.js";
-import { PRIORITIES } from "../constants.js";
+import {
+  ISSUE_STATUSES,
+  PRIORITIES,
+  RISK_SEVERITIES,
+  RISK_STATUSES,
+  TASK_STATUSES,
+  getLabel,
+} from "../constants.js";
 import {
   canManageProject,
   canManageFinance,
@@ -78,6 +86,27 @@ const PROJECT_TABS_MEMBER = [
   "Team",
 ];
 
+function tabMessageId(tab: string): string {
+  switch (tab) {
+    case "Overview":
+      return "project.overview";
+    case "Tasks":
+      return "project.tasks";
+    case "Milestones":
+      return "project.milestones";
+    case "Links":
+      return "project.links";
+    case "Finance":
+      return "project.financials";
+    case "Risks & Issues":
+      return "nav.risksIssues";
+    case "Team":
+      return "project.team";
+    default:
+      return tab;
+  }
+}
+
 export default function ProjectPage({
   currentUser,
   onBack,
@@ -88,6 +117,7 @@ export default function ProjectPage({
   onSelectTask,
   projectId,
 }: ProjectPageProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("Overview");
   const [createType, setCreateType] = useState("");
@@ -114,7 +144,7 @@ export default function ProjectPage({
     return (
       <div className="loading-state project-loading">
         <span className="spinner" />
-        Loading project…
+        {intl.formatMessage({ id: "common.loading" })}
       </div>
     );
   if (!project) return null;
@@ -126,7 +156,10 @@ export default function ProjectPage({
   return (
     <div className="project-page">
       <ProjectBreadcrumb project={project} onBack={onBack} onMenu={onMenu} />
-      <nav className="project-tabs" aria-label="Project sections">
+      <nav
+        className="project-tabs"
+        aria-label={intl.formatMessage({ id: "project.sectionsAria" })}
+      >
         {projectTabs.map((tab) => (
           <button
             className={activeTab === tab ? "is-active" : ""}
@@ -138,7 +171,7 @@ export default function ProjectPage({
               setCreateType("");
             }}
           >
-            {tab}
+            {intl.formatMessage({ id: tabMessageId(tab) })}
             <TabCount project={project} tab={tab} />
           </button>
         ))}
@@ -245,6 +278,7 @@ function TimelineSection({
   onSelectTask,
   project,
 }: TimelineSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isPhaseOpen, setIsPhaseOpen] = useState(false);
   const [editPhaseTarget, setEditPhaseTarget] = useState<
@@ -384,7 +418,7 @@ function TimelineSection({
     <ProjectSection
       title="Project timeline"
       description="Phases, milestones, and task deadlines in chronological order."
-      actionLabel={canManageProject ? "Add phase" : null}
+      actionLabel={canManageProject ? intl.formatMessage({ id: "project.addPhase" }) : null}
       onAction={() => setIsPhaseOpen(true)}
     >
       {deletePhaseMutation.error && (
@@ -397,63 +431,63 @@ function TimelineSection({
           <SearchField
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter timeline…"
+            placeholder={intl.formatMessage({ id: "project.timelinePlaceholder" })}
           />
           <SelectField
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            label="Filter by type"
+            label={intl.formatMessage({ id: "project.filterByType" })}
             options={[
-              { value: "phase", label: "Phases" },
-              { value: "milestone", label: "Milestones" },
-              { value: "task", label: "Tasks" },
+              { value: "phase", label: "project.phases" },
+              { value: "milestone", label: "project.milestones" },
+              { value: "task", label: "project.tasks" },
             ]}
-            placeholder="All items"
+            placeholder={intl.formatMessage({ id: "project.filterAllItems" })}
           />
           <SelectField
             value={filterPhase}
             onChange={(e) => setFilterPhase(e.target.value)}
-            label="Filter by phase"
+            label={intl.formatMessage({ id: "project.filterByPhase" })}
             options={(project.phases || []).map((phase) => ({
               value: String(phase.id),
               label: phase.name,
             }))}
-            placeholder="All phases"
+            placeholder={intl.formatMessage({ id: "project.filterAllPhases" })}
           />
           <SelectField
             value={filterOwner}
             onChange={(e) => setFilterOwner(e.target.value)}
-            label="Filter by owner"
+            label={intl.formatMessage({ id: "project.filterByOwner" })}
             options={(project.team_members || []).map((member) => ({
               value: String(member.user_id || member.id),
               label: member.name,
             }))}
-            placeholder="All owners"
+            placeholder={intl.formatMessage({ id: "project.filterAllOwners" })}
           />
           <SelectField
             value={filterMilestone}
             onChange={(e) => setFilterMilestone(e.target.value)}
-            label="Filter by milestone"
+            label={intl.formatMessage({ id: "project.filterByMilestone" })}
             options={(project.milestones || []).map((milestone) => ({
               value: String(milestone.id),
               label: milestone.title,
             }))}
-            placeholder="All milestones"
+            placeholder={intl.formatMessage({ id: "project.filterAllMilestones" })}
           />
           <SelectField
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             label="Filter by status"
             options={[
-              { value: "not_started", label: "Not started" },
-              { value: "in_progress", label: "In progress" },
-              { value: "blocked", label: "Blocked" },
-              { value: "reviewing", label: "Reviewing" },
-              { value: "reviewed", label: "Reviewed" },
-              { value: "done", label: "Done" },
-              { value: "missed", label: "Missed" },
+              { value: "not_started", label: "milestoneStatus.notStarted" },
+              { value: "in_progress", label: "status.task.inProgress" },
+              { value: "blocked", label: "status.task.blocked" },
+              { value: "reviewing", label: "status.task.reviewing" },
+              { value: "reviewed", label: "status.task.reviewed" },
+              { value: "done", label: "status.task.done" },
+              { value: "missed", label: "milestoneStatus.missed" },
             ]}
-            placeholder="All statuses"
+            placeholder={intl.formatMessage({ id: "common.allStatuses" })}
           />
         </div>
       </div>
@@ -462,11 +496,11 @@ function TimelineSection({
         <div
           className="timeline-table"
           role="table"
-          aria-label="Project Gantt timeline"
+          aria-label={intl.formatMessage({ id: "project.ganttTimeline" })}
         >
           <div className="timeline-row timeline-header" role="row">
-            <span role="columnheader">Work item</span>
-            <span role="columnheader">Schedule and progress</span>
+            <span role="columnheader">{intl.formatMessage({ id: "project.workItem" })}</span>
+            <span role="columnheader">{intl.formatMessage({ id: "project.scheduleAndProgress" })}</span>
           </div>
           {rows.map((row) => (
             <div className="timeline-row" key={row.id} role="row">
@@ -474,7 +508,7 @@ function TimelineSection({
                 <span
                   className={`timeline-kind timeline-kind-${row.type.toLowerCase()}`}
                 >
-                  {row.type}
+                  {row.type === "Phase" ? intl.formatMessage({ id: "project.phases" }) : row.type === "Milestone" ? intl.formatMessage({ id: "project.milestones" }) : intl.formatMessage({ id: "project.tasks" })}
                 </span>
                 {row.type === "Milestone" ? (
                   <button
@@ -517,14 +551,14 @@ function TimelineSection({
                         )
                       }
                     >
-                      Edit
+                      {intl.formatMessage({ id: "common.edit" })}
                     </button>
                     <button
                       className="text-button text-button-danger"
                       type="button"
                       onClick={() => setDeletePhaseTarget(row.rawId)}
                     >
-                      Delete
+                      {intl.formatMessage({ id: "common.delete" })}
                     </button>
                   </span>
                 )}
@@ -562,8 +596,8 @@ function TimelineSection({
       ) : (
         <EmptyState
           icon={Calendar}
-          title="No scheduled work"
-          message="Add phases, milestones, or dated tasks to populate the timeline."
+          title={intl.formatMessage({ id: "project.noScheduledWork" })}
+          message={intl.formatMessage({ id: "project.noScheduledWorkMessage" })}
         />
       )}
 
@@ -587,7 +621,7 @@ function TimelineSection({
         <ConfirmDialog
           title="Delete Phase"
           description="Delete this phase? A phase containing milestones must be cleared first."
-          confirmLabel="Delete phase"
+          confirmLabel={intl.formatMessage({ id: "common.delete" })}
           variant="danger"
           isPending={deletePhaseMutation.isPending}
           onConfirm={() => deletePhaseMutation.mutate(deletePhaseTarget)}
@@ -663,6 +697,16 @@ function formatTimelineStatus(status: string): string {
   return status ? status.replaceAll("_", " ") : "Scheduled";
 }
 
+function milestoneStatusKey(status: string): string {
+  switch (status) {
+    case "not_started": return "milestoneStatus.notStarted";
+    case "in_progress": return "milestoneStatus.inProgress";
+    case "done": return "milestoneStatus.done";
+    case "missed": return "milestoneStatus.missed";
+    default: return status;
+  }
+}
+
 function formatFileSize(sizeBytes?: number): string {
   if (!sizeBytes) return "0 B";
   if (sizeBytes < 1024) return `${sizeBytes} B`;
@@ -693,19 +737,23 @@ function ProjectBreadcrumb({
   onMenu,
   project,
 }: ProjectBreadcrumbProps) {
+  const intl = useIntl();
   return (
     <header className="project-breadcrumb-bar">
       <button
         className="icon-button mobile-menu"
         type="button"
-        aria-label="Open navigation"
+        aria-label={intl.formatMessage({ id: "common.openNavigation" })}
         onClick={onMenu}
       >
         <Menu size={18} />
       </button>
-      <nav aria-label="Breadcrumb" className="breadcrumb">
+      <nav
+        aria-label={intl.formatMessage({ id: "common.breadcrumb" })}
+        className="breadcrumb"
+      >
         <button type="button" onClick={onBack}>
-          Projects
+          {intl.formatMessage({ id: "nav.projects" })}
         </button>
         <ChevronDown size={13} />
         <span className={`project-glyph priority-${project.priority}`} />
@@ -717,7 +765,7 @@ function ProjectBreadcrumb({
             href={project.website_url}
             target="_blank"
             rel="noreferrer"
-            aria-label="Open project website"
+            aria-label={intl.formatMessage({ id: "project.openWebsite" })}
           >
             <ExternalLink />
           </a>
@@ -727,7 +775,7 @@ function ProjectBreadcrumb({
             href={project.drive_folder_url}
             target="_blank"
             rel="noreferrer"
-            aria-label="Open project Drive folder"
+            aria-label={intl.formatMessage({ id: "project.openDriveFolder" })}
           >
             <Layers />
           </a>
@@ -742,13 +790,14 @@ interface ProjectHeroProps {
 }
 
 function ProjectHero({ project }: ProjectHeroProps) {
+  const intl = useIntl();
   const health = getProjectHealth(project);
   const healthLabels: Record<string, string> = {
-    on_track: "On Track",
-    at_risk: "At Risk",
-    behind: "Off Track",
-    complete: "Completed",
-    no_update: "No Schedule",
+    on_track: "health.onTrack",
+    at_risk: "health.atRisk",
+    behind: "health.behind",
+    complete: "health.complete",
+    no_update: "health.noUpdate",
   };
 
   return (
@@ -757,53 +806,53 @@ function ProjectHero({ project }: ProjectHeroProps) {
         <Layers size={20} />
       </span>
       <h1>{project.name}</h1>
-      <p>{project.description || "Add a short project summary."}</p>
-      <div className="project-properties" aria-label="Project properties">
-        <span className="property-label">Properties</span>
+      <p>{project.description || intl.formatMessage({ id: "project.summaryPlaceholder" })}</p>
+      <div className="project-properties" aria-label={intl.formatMessage({ id: "project.projectProperties" })}>
+        <span className="property-label">{intl.formatMessage({ id: "project.projectProperties" })}</span>
         <StatusBadge status={project.status} />
         <span
           className={`status-badge status-${health === "behind" ? "blocked" : health === "at_risk" ? "on_hold" : "active"}`}
         >
           <span className="status-dot" />
-          {healthLabels[health] || health}
+          {intl.formatMessage({ id: healthLabels[health] || health })}
         </span>
         <span className="priority-label">
           <span className={`priority-mark priority-${project.priority}`} />
-          {project.priority}
+          {intl.formatMessage({ id: getLabel(PRIORITIES, project.priority) })}
         </span>
         <span className="project-property">
           <span className="avatar">{getInitials(project.owner_name)}</span>
-          {project.owner_name || "Unassigned"}
+          {project.owner_name || intl.formatMessage({ id: "project.noLead" })}
         </span>
         {project.start_date && (
           <span className="project-property">
             <Calendar size={14} />
-            Start: {formatDate(project.start_date)}
+            {intl.formatMessage({ id: "project.startDate" })}: {formatDate(project.start_date)}
           </span>
         )}
         <span className="project-property">
           <Calendar size={14} />
-          Target: {formatDate(project.deadline)}
+          {intl.formatMessage({ id: "project.deadline" })}: {formatDate(project.deadline)}
         </span>
         <span className="project-property">
           <span className="progress-ring">{getProgress(project)}</span>
-          {getProgress(project)}% complete
+          {getProgress(project)}{intl.formatMessage({ id: "project.percentComplete" })}
         </span>
       </div>
       <div className="project-resources">
-        <span className="property-label">Resources</span>
+        <span className="property-label">{intl.formatMessage({ id: "resource.title" })}</span>
         {project.website_url && (
           <a href={project.website_url} target="_blank" rel="noreferrer">
-            Website <ExternalLink size={13} />
+            {intl.formatMessage({ id: "project.projectWebsite" })} <ExternalLink size={13} />
           </a>
         )}
         {project.drive_folder_url && (
           <a href={project.drive_folder_url} target="_blank" rel="noreferrer">
-            Drive folder <ExternalLink size={13} />
+            {intl.formatMessage({ id: "project.driveFolder" })} <ExternalLink size={13} />
           </a>
         )}
         {!project.website_url && !project.drive_folder_url && (
-          <span>No resources linked</span>
+          <span>{intl.formatMessage({ id: "vault.noResourcesLinked" })}</span>
         )}
       </div>
     </section>
@@ -816,6 +865,7 @@ interface OverviewSectionProps {
 }
 
 function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
+  const intl = useIntl();
   const completedTasks =
     project.tasks?.filter((task) => task.status === "done").length || 0;
   return (
@@ -826,15 +876,13 @@ function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
           <section className="project-update-card">
             <LayoutGrid />
             <span>
-              <strong>No project update yet</strong>
-              <small>
-                Progress is currently calculated from tasks and milestones.
-              </small>
+              <strong>{intl.formatMessage({ id: "project.noUpdate" })}</strong>
+              <small>{intl.formatMessage({ id: "project.progressHint" })}</small>
             </span>
           </section>
           <section className="project-section-block">
-            <span className="eyebrow">Milestones</span>
-            <h2>Delivery roadmap</h2>
+            <span className="eyebrow">{intl.formatMessage({ id: "project.milestones" })}</span>
+            <h2>{intl.formatMessage({ id: "project.deliveryRoadmap" })}</h2>
             {project.milestones?.length ? (
               <MilestoneRows
                 project={project}
@@ -843,8 +891,8 @@ function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
             ) : (
               <EmptyState
                 icon={Calendar}
-                title="No milestones yet"
-                message="Create a milestone to organize work around a target date."
+                title={intl.formatMessage({ id: "milestone.noMilestones" })}
+                message={intl.formatMessage({ id: "milestone.noMilestonesMessage" })}
               />
             )}
           </section>
@@ -853,16 +901,19 @@ function OverviewSection({ project, onSelectMilestone }: OverviewSectionProps) {
           <div className="project-stat-grid">
             <ProjectStat
               value={project.tasks?.length || 0}
-              label="Total tasks"
+              label={intl.formatMessage({ id: "project.totalTasks" })}
             />
-            <ProjectStat value={completedTasks} label="Completed" />
+            <ProjectStat
+              value={completedTasks}
+              label={intl.formatMessage({ id: "dashboard.completed" })}
+            />
             <ProjectStat
               value={project.milestones?.length || 0}
-              label="Milestones"
+              label={intl.formatMessage({ id: "project.milestones" })}
             />
             <ProjectStat
               value={project.team_members?.length || 0}
-              label="Members"
+              label={intl.formatMessage({ id: "milestone.members" })}
             />
           </div>
         </aside>
@@ -888,6 +939,7 @@ function TasksSection({
   project,
   projectId,
 }: TasksSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [view, setView] = useState<"list" | "kanban">("list");
@@ -913,9 +965,9 @@ function TasksSection({
 
   return (
     <ProjectSection
-      title="Project tasks"
-      description="Track ownership, due dates, and delivery status."
-      actionLabel={canManageProject ? "Add task" : null}
+      title={intl.formatMessage({ id: "project.tasksSection" })}
+      description={intl.formatMessage({ id: "project.trackOwnership" })}
+      actionLabel={canManageProject ? intl.formatMessage({ id: "project.addTask" }) : null}
       onAction={() => setIsCreateOpen(true)}
     >
       {updateError && (
@@ -931,7 +983,7 @@ function TasksSection({
             aria-pressed={view === "list"}
             onClick={() => setView("list")}
           >
-            List
+            {intl.formatMessage({ id: "task.viewList" })}
           </button>
           <button
             className={view === "kanban" ? "is-active" : ""}
@@ -939,7 +991,7 @@ function TasksSection({
             aria-pressed={view === "kanban"}
             onClick={() => setView("kanban")}
           >
-            Kanban
+            {intl.formatMessage({ id: "task.kanban" })}
           </button>
         </div>
       </div>
@@ -957,10 +1009,10 @@ function TasksSection({
                   <strong>{task.title}</strong>
                   <small>
                     {task.status !== "done"
-                      ? (task.status || "todo").replaceAll("_", " ")
-                      : "Done"}{" "}
+                      ? intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status || "todo") })
+                      : intl.formatMessage({ id: "kanban.done" })}{" "}
                     ·{" "}
-                    {task.due_date ? formatDate(task.due_date) : "No due date"}
+                    {task.due_date ? formatDate(task.due_date) : intl.formatMessage({ id: "common.noDueDate" })}
                   </small>
                 </button>
                 {task.assignee_user_id && (
@@ -969,7 +1021,7 @@ function TasksSection({
                     type="button"
                     onClick={() => onSelectMember(task.assignee_user_id!)}
                   >
-                    {task.assignee_name || "Assignee"}
+                    {task.assignee_name || intl.formatMessage({ id: "task.assignee" })}
                   </button>
                 )}
               </DetailRow>
@@ -987,7 +1039,7 @@ function TasksSection({
       ) : (
         <EmptyState
           icon={CircleCheck}
-          title="No tasks yet"
+          title={intl.formatMessage({ id: "task.noTasks" })}
           message="No tasks are visible for this project."
         />
       )}
@@ -1015,6 +1067,7 @@ function MilestonesSection({
   projectId,
   onSelectMilestone,
 }: MilestonesSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Milestone | null>(null);
@@ -1030,9 +1083,9 @@ function MilestonesSection({
 
   return (
     <ProjectSection
-      title="Project milestones"
+      title={intl.formatMessage({ id: "project.milestonesSection" })}
       description="Organize tasks around significant delivery targets."
-      actionLabel={canManageProject ? "Add milestone" : null}
+      actionLabel={canManageProject ? intl.formatMessage({ id: "project.addMilestone" }) : null}
       onAction={() => setIsCreateOpen(true)}
     >
       {project.milestones?.length ? (
@@ -1058,9 +1111,9 @@ function MilestonesSection({
                     {milestone.title}
                   </button>
                   <small>
-                    {milestone.phase_name || "No phase"} ·{" "}
+                    {milestone.phase_name || intl.formatMessage({ id: "milestone.noPhase" })} ·{" "}
                     {formatDate(milestone.target_date)} ·{" "}
-                    {formatTimelineStatus(milestone.status)}
+                    {intl.formatMessage({ id: milestoneStatusKey(milestone.status || "not_started") })}
                   </small>
                 </span>
                 <span className="mini-progress">
@@ -1074,14 +1127,14 @@ function MilestonesSection({
                       type="button"
                       onClick={() => setEditTarget(milestone)}
                     >
-                      Edit
+                      {intl.formatMessage({ id: "common.edit" })}
                     </button>
                     <button
                       className="text-button text-button-danger"
                       type="button"
                       onClick={() => setDeleteTarget(milestone)}
                     >
-                      Delete
+                      {intl.formatMessage({ id: "common.delete" })}
                     </button>
                   </div>
                 )}
@@ -1092,7 +1145,7 @@ function MilestonesSection({
       ) : (
         <EmptyState
           icon={Calendar}
-          title="No milestones yet"
+          title={intl.formatMessage({ id: "milestone.noMilestones" })}
           message="Milestone management is enabled through the secured API."
         />
       )}
@@ -1138,6 +1191,7 @@ function LinksSection({
   currentUser,
   projectId,
 }: LinksSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ProjectLink | null>(null);
@@ -1164,15 +1218,15 @@ function LinksSection({
   return (
     <>
       <ProjectSection
-        title="Project links"
+        title={intl.formatMessage({ id: "project.linksSection" })}
         description="External resources and documentation."
-        actionLabel={canManageProject ? "Add link" : null}
+        actionLabel={canManageProject ? intl.formatMessage({ id: "project.addLink" }) : null}
         onAction={() => setIsCreateOpen(true)}
       >
         {linksQuery.isLoading ? (
           <div className="loading-state">
             <span className="spinner" />
-            Loading links…
+            {intl.formatMessage({ id: "common.loading" })}
           </div>
         ) : links.length ? (
           <DetailList>
@@ -1183,7 +1237,7 @@ function LinksSection({
                   <a href={link.url} target="_blank" rel="noopener noreferrer">
                     <strong>{link.label || link.title || link.url}</strong>
                   </a>
-                  <small>{link.link_type || "External link"}</small>
+                  <small>{link.link_type || intl.formatMessage({ id: "project.externalLink" })}</small>
                 </span>
                 {canManageProject && (
                   <div className="milestone-actions">
@@ -1192,14 +1246,14 @@ function LinksSection({
                       type="button"
                       onClick={() => setEditTarget(link)}
                     >
-                      Edit
+                      {intl.formatMessage({ id: "common.edit" })}
                     </button>
                     <button
                       className="text-button text-button-danger"
                       type="button"
                       onClick={() => setDeleteTarget(link)}
                     >
-                      Delete
+                      {intl.formatMessage({ id: "common.delete" })}
                     </button>
                   </div>
                 )}
@@ -1209,8 +1263,8 @@ function LinksSection({
         ) : (
           <EmptyState
             icon={ExternalLink}
-            title="No links"
-            message="Add external resources for quick access."
+            title={intl.formatMessage({ id: "project.noLinks" })}
+            message={intl.formatMessage({ id: "project.noLinksMessage" })}
           />
         )}
         {isCreateOpen && (
@@ -1252,6 +1306,7 @@ function VaultResourcesSection({
   currentUser,
   projectId,
 }: VaultResourcesSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const resourcesQuery = useQuery({
     queryKey: queryKeys.vaultEntries({ project_id: String(projectId) }),
@@ -1287,7 +1342,7 @@ function VaultResourcesSection({
 
   return (
     <ProjectSection
-      title="Vault resources"
+      title={intl.formatMessage({ id: "vault.title" })}
       description="Secure resources attached to this project."
       actionLabel={null}
       className="mt-3"
@@ -1295,12 +1350,12 @@ function VaultResourcesSection({
       {resourcesQuery.isLoading ? (
         <div className="loading-state">
           <span className="spinner" />
-          Loading vault resources…
+          {intl.formatMessage({ id: "common.loading" })}
         </div>
       ) : resourcesQuery.error ? (
         <EmptyState
           icon={TriangleAlert}
-          title="Vault resources unavailable"
+          title={intl.formatMessage({ id: "vault.unavailable" })}
           message={resourcesQuery.error.message}
         />
       ) : resources.length ? (
@@ -1319,8 +1374,8 @@ function VaultResourcesSection({
       ) : (
         <EmptyState
           icon={Lock}
-          title="No vault resources"
-          message="Project-linked vault resources will appear here."
+          title={intl.formatMessage({ id: "vault.noResourceEntries" })}
+          message={intl.formatMessage({ id: "vault.noResourceEntriesMessage" })}
         />
       )}
     </ProjectSection>
@@ -1342,6 +1397,7 @@ function VaultResourceRow({
   onReview,
   resource,
 }: VaultResourceRowProps) {
+  const intl = useIntl();
   const files = resource.files || [];
   return (
     <DetailRow className="vault-entry-row">
@@ -1350,7 +1406,7 @@ function VaultResourceRow({
         <strong>{resource.title}</strong>
         <small>
           {resource.entry_type.replaceAll("_", " ")} ·{" "}
-          {resource.category || "General"}
+          {resource.category || intl.formatMessage({ id: "category.general" })}
         </small>
         {files.map((file) => (
           <span className="vault-file-chip" key={file.id}>
@@ -1366,7 +1422,7 @@ function VaultResourceRow({
                 onClick={() => onDownload(file)}
               >
                 <Download size={11} />
-                Download
+                {intl.formatMessage({ id: "common.download" })}
               </button>
             )}
             {canReview && file.storage_status === "quarantined" && (
@@ -1375,7 +1431,7 @@ function VaultResourceRow({
                 type="button"
                 onClick={() => onReview(file, "available")}
               >
-                Approve
+                {intl.formatMessage({ id: "vault.approve" })}
               </button>
             )}
             {canReview && file.storage_status === "quarantined" && (
@@ -1384,7 +1440,7 @@ function VaultResourceRow({
                 type="button"
                 onClick={() => onReview(file, "rejected")}
               >
-                Reject
+                {intl.formatMessage({ id: "vault.reject" })}
               </button>
             )}
             {canReview && (
@@ -1394,7 +1450,7 @@ function VaultResourceRow({
                 onClick={() => onDeleteFile(file.id)}
               >
                 <Trash2 size={11} />
-                Remove
+                {intl.formatMessage({ id: "common.remove" })}
               </button>
             )}
           </span>
@@ -1407,7 +1463,7 @@ function VaultResourceRow({
           target="_blank"
           rel="noopener noreferrer"
         >
-          Open <ExternalLink size={13} />
+          {intl.formatMessage({ id: "vault.visitLink" })} <ExternalLink size={13} />
         </a>
       )}
     </DetailRow>
@@ -1429,6 +1485,7 @@ function RisksIssuesSection({
   project,
   projectId,
 }: RisksIssuesSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState("risks");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -1484,18 +1541,22 @@ function RisksIssuesSection({
           type="button"
           onClick={() => setActiveSubTab("risks")}
         >
-          Risks <span>{risks.length}</span>
+          {intl.formatMessage({ id: "riskIssue.risks" })} <span>{risks.length}</span>
         </button>
         <button
           className={activeSubTab === "issues" ? "is-active" : ""}
           type="button"
           onClick={() => setActiveSubTab("issues")}
         >
-          Issues <span>{issues.length}</span>
+          {intl.formatMessage({ id: "riskIssue.issues" })} <span>{issues.length}</span>
         </button>
       </div>
       <ProjectSection
-        title={activeSubTab === "risks" ? "Project risks" : "Project issues"}
+        title={
+          activeSubTab === "risks"
+            ? intl.formatMessage({ id: "project.risksSection" })
+            : intl.formatMessage({ id: "project.issuesSection" })
+        }
         description={
           activeSubTab === "risks"
             ? "Identified risks and their mitigation status."
@@ -1503,7 +1564,9 @@ function RisksIssuesSection({
         }
         actionLabel={
           canManage
-            ? `Add ${activeSubTab === "risks" ? "risk" : "issue"}`
+            ? intl.formatMessage({
+                id: activeSubTab === "risks" ? "riskIssue.addRisk" : "riskIssue.addIssue",
+              })
             : null
         }
         onAction={() => setIsCreateOpen(true)}
@@ -1512,7 +1575,7 @@ function RisksIssuesSection({
           risksQuery.isLoading ? (
             <div className="loading-state">
               <span className="spinner" />
-              Loading risks…
+              {intl.formatMessage({ id: "common.loading" })}
             </div>
           ) : risks.length ? (
             <DetailList>
@@ -1524,9 +1587,9 @@ function RisksIssuesSection({
                   <span className="detail-list-copy">
                     <strong>{risk.title}</strong>
                     <small>
-                      {risk.severity || "Medium"} severity ·{" "}
-                      {risk.probability || "Medium"} probability ·{" "}
-                      {risk.status || "open"}
+                      {intl.formatMessage({ id: getLabel(RISK_SEVERITIES, risk.severity || "medium") })} {intl.formatMessage({ id: "riskIssue.severity" })} ·{" "}
+                      {intl.formatMessage({ id: getLabel(RISK_SEVERITIES, risk.probability || "medium") })} {intl.formatMessage({ id: "riskIssue.probability" })} ·{" "}
+                      {intl.formatMessage({ id: getLabel(RISK_STATUSES, risk.status || "open") })}
                     </small>
                   </span>
                   {canManage && (
@@ -1538,7 +1601,7 @@ function RisksIssuesSection({
                           setEditTarget({ ...risk, _type: "risk" })
                         }
                       >
-                        Edit
+                        {intl.formatMessage({ id: "common.edit" })}
                       </button>
                       <button
                         className="text-button text-button-danger"
@@ -1547,7 +1610,7 @@ function RisksIssuesSection({
                           setDeleteTarget({ ...risk, _type: "risk" })
                         }
                       >
-                        Delete
+                        {intl.formatMessage({ id: "common.delete" })}
                       </button>
                     </div>
                   )}
@@ -1557,14 +1620,14 @@ function RisksIssuesSection({
           ) : (
             <EmptyState
               icon={TriangleAlert}
-              title="No risks identified"
+              title={intl.formatMessage({ id: "risk.none" })}
               message="Risks will appear here when they are logged against this project."
             />
           )
         ) : issuesQuery.isLoading ? (
           <div className="loading-state">
             <span className="spinner" />
-            Loading issues…
+            {intl.formatMessage({ id: "common.loading" })}
           </div>
         ) : issues.length ? (
           <DetailList>
@@ -1576,8 +1639,8 @@ function RisksIssuesSection({
                 <span className="detail-list-copy">
                   <strong>{issue.title}</strong>
                   <small>
-                    {issue.priority || "Medium"} priority ·{" "}
-                    {issue.status || "open"}
+                    {intl.formatMessage({ id: getLabel(PRIORITIES, issue.priority || "medium") })} {intl.formatMessage({ id: "task.priorityLabel" })} ·{" "}
+                    {intl.formatMessage({ id: getLabel(ISSUE_STATUSES, issue.status || "open") })}
                   </small>
                 </span>
                 {canManage && (
@@ -1589,7 +1652,7 @@ function RisksIssuesSection({
                         setEditTarget({ ...issue, _type: "issue" })
                       }
                     >
-                      Edit
+                      {intl.formatMessage({ id: "common.edit" })}
                     </button>
                     <button
                       className="text-button text-button-danger"
@@ -1598,7 +1661,7 @@ function RisksIssuesSection({
                         setDeleteTarget({ ...issue, _type: "issue" })
                       }
                     >
-                      Delete
+                      {intl.formatMessage({ id: "common.delete" })}
                     </button>
                   </div>
                 )}
@@ -1608,7 +1671,7 @@ function RisksIssuesSection({
         ) : (
           <EmptyState
             icon={TriangleAlert}
-            title="No issues reported"
+            title={intl.formatMessage({ id: "issue.none" })}
             message="Issues will appear here when they are logged against this project."
           />
         )}
@@ -1648,7 +1711,7 @@ function RisksIssuesSection({
         <ConfirmDialog
           title="Delete risk"
           description={`Are you sure you want to delete "${deleteTarget.title}"?`}
-          confirmLabel="Delete"
+          confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteRisk.isPending}
           onConfirm={() => deleteRisk.mutate(deleteTarget.id)}
           onCancel={() => setDeleteTarget(null)}
@@ -1659,7 +1722,7 @@ function RisksIssuesSection({
         <ConfirmDialog
           title="Delete issue"
           description={`Are you sure you want to delete "${deleteTarget.title}"?`}
-          confirmLabel="Delete"
+          confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteIssue.isPending}
           onConfirm={() => deleteIssue.mutate(deleteTarget.id)}
           onCancel={() => setDeleteTarget(null)}
@@ -1683,11 +1746,12 @@ function TeamSection({
   onAdd,
   onSelectMember,
 }: TeamSectionProps) {
+  const intl = useIntl();
   return (
     <ProjectSection
-      title="Project team"
+      title={intl.formatMessage({ id: "project.teamSection" })}
       description="The people who can access and contribute to this project."
-      actionLabel={canManageProject ? "Add member" : null}
+      actionLabel={canManageProject ? intl.formatMessage({ id: "team.addMember" }) : null}
       onAction={onAdd}
     >
       {project.team_members?.length ? (
@@ -1703,12 +1767,12 @@ function TeamSection({
                 >
                   {member.name}
                 </button>
-                <small>{member.email || "No email added"}</small>
+                <small>{member.email || intl.formatMessage({ id: "team.noEmailAdded" })}</small>
               </span>
               <span className="role-pill">
                 {member.project_role === "project_lead"
-                  ? "Project lead"
-                  : "Member"}
+                  ? intl.formatMessage({ id: "member.projectLead" })
+                  : intl.formatMessage({ id: "member.member" })}
               </span>
             </DetailRow>
           ))}
@@ -1716,8 +1780,8 @@ function TeamSection({
       ) : (
         <EmptyState
           icon={Users}
-          title="No team members yet"
-          message="No project members are visible."
+          title={intl.formatMessage({ id: "team.noMembersYet" })}
+          message={intl.formatMessage({ id: "team.noMembersYetMessage" })}
         />
       )}
     </ProjectSection>
@@ -1730,6 +1794,7 @@ interface MilestoneRowsProps {
 }
 
 function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
+  const intl = useIntl();
   return (
     <DetailList>
       {project.milestones!.map((milestone) => {
@@ -1753,7 +1818,7 @@ function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
               </button>
               <small>
                 {formatDate(milestone.target_date)} ·{" "}
-                {milestone.status?.replaceAll("_", " ") || "Not started"}
+                {intl.formatMessage({ id: milestoneStatusKey(milestone.status || "not_started") })}
               </small>
             </span>
             <span className="mini-progress">
@@ -1772,6 +1837,7 @@ interface FinanceSectionProps {
 }
 
 function FinanceSection({ projectId }: FinanceSectionProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isBudgetLineOpen, setIsBudgetLineOpen] = useState(false);
   const [isSpendOpen, setIsSpendOpen] = useState(false);
@@ -1844,24 +1910,24 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
       <div className="finance-summary-grid">
         <div className="project-stat">
           <strong>{formatCurrency(allocated)}</strong>
-          <span>Allocated budget</span>
+          <span>{intl.formatMessage({ id: "project.budgetAllocated" })}</span>
         </div>
         <div className="project-stat">
           <strong>{formatCurrency(spent)}</strong>
-          <span>Total spent</span>
+          <span>{intl.formatMessage({ id: "project.totalSpent" })}</span>
         </div>
         <div className="project-stat">
           <strong>{formatCurrency(remaining)}</strong>
-          <span>Remaining</span>
+          <span>{intl.formatMessage({ id: "project.remaining" })}</span>
         </div>
         <div className="project-stat">
           <strong>{variance}%</strong>
-          <span>Variance</span>
+          <span>{intl.formatMessage({ id: "project.variance" })}</span>
         </div>
         {summary?.projected_final_cost !== undefined && summary.projected_final_cost !== null && (
           <div className="project-stat">
             <strong>{formatCurrency(summary.projected_final_cost)}</strong>
-            <span>Projected final cost</span>
+            <span>{intl.formatMessage({ id: "project.projectedFinalCost" })}</span>
           </div>
         )}
       </div>
@@ -1869,9 +1935,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
       <div className="project-section-card">
         <div className="section-header">
           <div>
-            <span className="eyebrow">Financial tracking</span>
-            <h2>Budget lines</h2>
-            <p>Allocated funds by category.</p>
+            <span className="eyebrow">{intl.formatMessage({ id: "project.financialTracking" })}</span>
+            <h2>{intl.formatMessage({ id: "project.budgetLines" })}</h2>
+            <p>{intl.formatMessage({ id: "project.allocatedByCategory" })}</p>
           </div>
           <button
             className="button button-secondary button-small"
@@ -1879,13 +1945,13 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             onClick={() => setIsBudgetLineOpen(true)}
           >
             <Plus size={14} />
-            Add budget line
+            {intl.formatMessage({ id: "project.addBudgetLine" })}
           </button>
         </div>
         {budgetLinesQuery.isLoading ? (
           <div className="loading-state">
             <span className="spinner" />
-            Loading…
+            {intl.formatMessage({ id: "common.loading" })}
           </div>
         ) : budgetLines.length ? (
           <DetailList>
@@ -1903,13 +1969,13 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                       <span style={{ width: `${pct}%` }} />
                     </span>
                     <small>
-                      {formatCurrency(line.planned_amount, line.currency)} budget{line.note ? ` · ${line.note}` : ""}
+                      {formatCurrency(line.planned_amount, line.currency)} {intl.formatMessage({ id: "project.budget" })}{line.note ? ` · ${line.note}` : ""}
                     </small>
                   </span>
                   <div className="variance-figures">
-                    <span>{formatCurrency(lineSpent, line.currency)} <em>spent</em></span>
+                    <span>{formatCurrency(lineSpent, line.currency)} <em>{intl.formatMessage({ id: "project.spent" })}</em></span>
                     <span className={`variance-badge ${over ? "is-over" : "is-ok"}`}>
-                      {over ? "Over by" : "Under by"} {formatCurrency(Math.abs(line.planned_amount - lineSpent), line.currency)}
+                      {over ? intl.formatMessage({ id: "project.overBudget" }) : intl.formatMessage({ id: "project.underBudget" })} {formatCurrency(Math.abs(line.planned_amount - lineSpent), line.currency)}
                     </span>
                   </div>
                   <div className="milestone-actions">
@@ -1918,7 +1984,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                       type="button"
                       onClick={() => setEditBudgetLine(line)}
                     >
-                      Edit
+                      {intl.formatMessage({ id: "common.edit" })}
                     </button>
                     <button
                       className="text-button text-button-danger"
@@ -1932,7 +1998,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                         })
                       }
                     >
-                      Delete
+                      {intl.formatMessage({ id: "common.delete" })}
                     </button>
                   </div>
                 </DetailRow>
@@ -1942,8 +2008,8 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
         ) : (
           <EmptyState
             icon={Layers}
-            title="No budget lines"
-            message="Create budget lines to track allocated funds by category."
+            title={intl.formatMessage({ id: "budget.noLines" })}
+            message={intl.formatMessage({ id: "budget.noLinesMessage" })}
           />
         )}
       </div>
@@ -1951,8 +2017,8 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
       <div className="project-section-card" style={{ marginTop: "12px" }}>
         <div className="section-header">
           <div>
-            <span className="eyebrow">Financial tracking</span>
-            <h2>Spend records</h2>
+            <span className="eyebrow">{intl.formatMessage({ id: "project.financialTracking" })}</span>
+            <h2>{intl.formatMessage({ id: "project.spendRecords" })}</h2>
             <p>Actual expenditures against budget lines.</p>
           </div>
           <button
@@ -1961,13 +2027,13 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
             onClick={() => setIsSpendOpen(true)}
           >
             <Plus size={14} />
-            Record spend
+            {intl.formatMessage({ id: "project.addSpendRecord" })}
           </button>
         </div>
         {spendRecordsQuery.isLoading ? (
           <div className="loading-state">
             <span className="spinner" />
-            Loading…
+            {intl.formatMessage({ id: "common.loading" })}
           </div>
         ) : spendRecords.length ? (
           <DetailList>
@@ -1975,11 +2041,11 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
               <DetailRow key={record.id}>
                 <span className="detail-list-copy">
                   <strong>
-                    {record.description || record.category || "Spend record"}
+                    {record.description || record.category || intl.formatMessage({ id: "budget.spendRecord" })}
                   </strong>
                   <small>
                     {formatCurrency(record.amount)} ·{" "}
-                    {record.spent_on || "No date"}
+                    {record.spent_on || intl.formatMessage({ id: "common.noDate" })}
                   </small>
                 </span>
                 <div className="milestone-actions">
@@ -1988,7 +2054,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                     type="button"
                     onClick={() => setEditSpend(record)}
                   >
-                    Edit
+                    {intl.formatMessage({ id: "common.edit" })}
                   </button>
                   <button
                     className="text-button text-button-danger"
@@ -1997,7 +2063,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                       setDeleteTarget({ _type: "spend", ...record })
                     }
                   >
-                    Delete
+                    {intl.formatMessage({ id: "common.delete" })}
                   </button>
                 </div>
               </DetailRow>
@@ -2006,8 +2072,8 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
         ) : (
           <EmptyState
             icon={Layers}
-            title="No spend records"
-            message="Record expenditures to track actual spending against your budget."
+            title={intl.formatMessage({ id: "budget.noSpendRecords" })}
+            message={intl.formatMessage({ id: "budget.noSpendRecordsMessage" })}
           />
         )}
       </div>
@@ -2040,9 +2106,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
       )}
       {deleteTarget?._type === "budgetLine" && (
         <ConfirmDialog
-          title="Delete budget line"
-          description={`Delete "${deleteTarget.category}"?`}
-          confirmLabel="Delete"
+          title={intl.formatMessage({ id: "budget.deleteLine" })}
+          description={intl.formatMessage({ id: "budget.deleteLineMessage" })}
+          confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteBudgetLine.isPending}
           onConfirm={() => deleteBudgetLine.mutate(deleteTarget.id)}
           onCancel={() => setDeleteTarget(null)}
@@ -2051,9 +2117,9 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
       )}
       {deleteTarget?._type === "spend" && (
         <ConfirmDialog
-          title="Delete spend record"
-          description={`Delete this spend record of ${formatCurrency(deleteTarget.amount)}?`}
-          confirmLabel="Delete"
+          title={intl.formatMessage({ id: "budget.deleteSpend" })}
+          description={intl.formatMessage({ id: "budget.deleteSpendMessage" })}
+          confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteSpendRecord.isPending}
           onConfirm={() => deleteSpendRecord.mutate(deleteTarget.id)}
           onCancel={() => setDeleteTarget(null)}
@@ -2075,6 +2141,7 @@ function BudgetLineDialog({
   projectId,
   onClose,
 }: BudgetLineDialogProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const isEditing = Boolean(budgetLine);
   const [form, setForm] = useState({
@@ -2128,7 +2195,7 @@ function BudgetLineDialog({
           </div>
         )}
         <div className="field-group">
-          <label htmlFor="bl-category">Category</label>
+          <label htmlFor="bl-category">{intl.formatMessage({ id: "project.budgetLineCategory" })}</label>
           <input
             id="bl-category"
             required
@@ -2141,7 +2208,7 @@ function BudgetLineDialog({
         </div>
         <div className="field-row">
           <div className="field-group">
-            <label htmlFor="bl-amount">Amount</label>
+            <label htmlFor="bl-amount">{intl.formatMessage({ id: "project.spendAmount" })}</label>
             <input
               id="bl-amount"
               type="number"
@@ -2158,7 +2225,7 @@ function BudgetLineDialog({
             />
           </div>
           <div className="field-group">
-            <label htmlFor="bl-currency">Currency</label>
+            <label htmlFor="bl-currency">{intl.formatMessage({ id: "budget.currency" })}</label>
             <input
               id="bl-currency"
               required
@@ -2175,7 +2242,7 @@ function BudgetLineDialog({
           </div>
         </div>
         <div className="field-group">
-          <label htmlFor="bl-date">Effective date</label>
+          <label htmlFor="bl-date">{intl.formatMessage({ id: "project.budgetLineDate" })}</label>
           <input
             id="bl-date"
             type="date"
@@ -2190,14 +2257,14 @@ function BudgetLineDialog({
           />
         </div>
         <div className="field-group">
-          <label htmlFor="bl-note">Note</label>
+          <label htmlFor="bl-note">{intl.formatMessage({ id: "project.budgetLineNote" })}</label>
           <textarea
             id="bl-note"
             value={form.note}
             onChange={(e) =>
               setForm((current) => ({ ...current, note: e.target.value }))
             }
-            placeholder="What is this budget allocated for?"
+            placeholder={intl.formatMessage({ id: "budget.linePurpose" })}
           />
         </div>
         <footer className="dialog-actions">
@@ -2206,14 +2273,16 @@ function BudgetLineDialog({
             type="button"
             onClick={onClose}
           >
-            Cancel
+            {intl.formatMessage({ id: "common.cancel" })}
           </button>
           <button
             className="button button-primary"
             type="submit"
             disabled={saveMutation.isPending}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending
+              ? intl.formatMessage({ id: "common.saving" })
+              : intl.formatMessage({ id: "common.save" })}
           </button>
         </footer>
       </form>
@@ -2232,6 +2301,7 @@ function SpendRecordDialog({
   record,
   onClose,
 }: SpendRecordDialogProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const isEditing = Boolean(record);
   const [form, setForm] = useState({
@@ -2268,7 +2338,7 @@ function SpendRecordDialog({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.amount) {
-      setError("Amount is required.");
+      setError(intl.formatMessage({ id: "budget.amountRequired" }));
       return;
     }
     saveMutation.mutate({
@@ -2291,7 +2361,7 @@ function SpendRecordDialog({
         )}
         <div className="field-row">
           <div className="field-group">
-            <label htmlFor="sp-amount">Amount ($)</label>
+            <label htmlFor="sp-amount">{intl.formatMessage({ id: "project.spendAmount" })} ($)</label>
             <input
               id="sp-amount"
               type="number"
@@ -2317,7 +2387,7 @@ function SpendRecordDialog({
           </div>
         </div>
         <div className="field-group">
-          <label htmlFor="sp-category">Category</label>
+          <label htmlFor="sp-category">{intl.formatMessage({ id: "project.spendCategory" })}</label>
           <input
             id="sp-category"
             value={form.category}
@@ -2328,14 +2398,14 @@ function SpendRecordDialog({
           />
         </div>
         <div className="field-group">
-          <label htmlFor="sp-desc">Description</label>
+          <label htmlFor="sp-desc">{intl.formatMessage({ id: "project.spendDescription" })}</label>
           <textarea
             id="sp-desc"
             value={form.description}
             onChange={(e) =>
               setForm((c) => ({ ...c, description: e.target.value }))
             }
-            placeholder="What was this spend for?"
+            placeholder={intl.formatMessage({ id: "budget.spendPurpose" })}
           />
         </div>
         <footer className="dialog-actions">
@@ -2344,14 +2414,16 @@ function SpendRecordDialog({
             type="button"
             onClick={onClose}
           >
-            Cancel
+            {intl.formatMessage({ id: "common.cancel" })}
           </button>
           <button
             className="button button-primary"
             type="submit"
             disabled={saveMutation.isPending}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending
+              ? intl.formatMessage({ id: "common.saving" })
+              : intl.formatMessage({ id: "common.save" })}
           </button>
         </footer>
       </form>
@@ -2448,25 +2520,26 @@ interface ProjectErrorProps {
 }
 
 function ProjectError({ error, onBack, onMenu }: ProjectErrorProps) {
+  const intl = useIntl();
   return (
     <>
       <header className="project-breadcrumb-bar">
         <button
           className="icon-button mobile-menu"
           type="button"
-          aria-label="Open navigation"
+          aria-label={intl.formatMessage({ id: "common.openNavigation" })}
           onClick={onMenu}
         >
           <Menu />
         </button>
         <button className="text-button" type="button" onClick={onBack}>
-          Projects
+          {intl.formatMessage({ id: "nav.projects" })}
         </button>
       </header>
       <div className="project-error">
         <EmptyState
           icon={TriangleAlert}
-          title="Project unavailable"
+          title={intl.formatMessage({ id: "project.unavailable" })}
           message={error?.message || "This project could not be loaded."}
           action={
             <button
@@ -2474,7 +2547,7 @@ function ProjectError({ error, onBack, onMenu }: ProjectErrorProps) {
               type="button"
               onClick={onBack}
             >
-              Back to all projects
+              {intl.formatMessage({ id: "common.backToAllProjects" })}
             </button>
           }
         />
@@ -2496,6 +2569,7 @@ function CreateProjectItemForm({
   project,
   type,
 }: CreateProjectItemFormProps) {
+  const intl = useIntl();
   const initialValues = useMemo(() => getInitialValues(type), [type]);
   const [form, setForm] = useState(initialValues);
   const [error, setError] = useState("");
@@ -2540,13 +2614,13 @@ function CreateProjectItemForm({
     >
       <div className="section-header compact">
         <div>
-          <span className="eyebrow">Quick add</span>
-          <h3>{getCreateTitle(type)}</h3>
+          <span className="eyebrow">{intl.formatMessage({ id: "project.quickAdd" })}</span>
+          <h3>{intl.formatMessage({ id: getCreateTitle(type) })}</h3>
         </div>
         <button
           className="icon-button"
           type="button"
-          aria-label="Close form"
+          aria-label={intl.formatMessage({ id: "common.close" })}
           onClick={onCancel}
         >
           <X size={14} />
@@ -2569,14 +2643,16 @@ function CreateProjectItemForm({
           type="button"
           onClick={onCancel}
         >
-          Cancel
+          {intl.formatMessage({ id: "common.cancel" })}
         </button>
         <button
           className="button button-primary button-small"
           type="submit"
           disabled={isSubmitting}
         >
-          {isSubmitting ? "Saving…" : "Save"}
+          {isSubmitting
+            ? intl.formatMessage({ id: "common.saving" })
+            : intl.formatMessage({ id: "common.save" })}
         </button>
       </div>
     </form>
@@ -2599,10 +2675,11 @@ interface MilestoneFieldsProps {
 }
 
 function MilestoneFields({ form, updateField }: MilestoneFieldsProps) {
+  const intl = useIntl();
   return (
     <>
       <div className="field-group">
-        <label htmlFor="milestone-title">Milestone title</label>
+        <label htmlFor="milestone-title">{intl.formatMessage({ id: "milestone.milestoneTitle" })}</label>
         <input
           id="milestone-title"
           required
@@ -2611,7 +2688,7 @@ function MilestoneFields({ form, updateField }: MilestoneFieldsProps) {
         />
       </div>
       <div className="field-group">
-        <label htmlFor="milestone-date">Target date</label>
+        <label htmlFor="milestone-date">{intl.formatMessage({ id: "milestone.targetDate" })}</label>
         <input
           id="milestone-date"
           type="date"
@@ -2639,6 +2716,7 @@ interface MemberFieldsProps {
 }
 
 function MemberFields({ form, updateField }: MemberFieldsProps) {
+  const intl = useIntl();
   const usersQuery = useQuery({
     queryKey: queryKeys.users(),
     queryFn: ({ signal }) => api.listUsers({ signal }),
@@ -2646,7 +2724,7 @@ function MemberFields({ form, updateField }: MemberFieldsProps) {
   return (
     <>
       <div className="field-group">
-        <label htmlFor="member-user">Team member</label>
+        <label htmlFor="member-user">{intl.formatMessage({ id: "team.teamMember" })}</label>
         <select
           id="member-user"
           required
@@ -2655,7 +2733,7 @@ function MemberFields({ form, updateField }: MemberFieldsProps) {
             updateField("user_id")(Number(event.target.value))
           }
         >
-          <option value="">Select a user</option>
+          <option value="">{intl.formatMessage({ id: "common.selectUser" })}</option>
           {(usersQuery.data || [])
             .filter((user) => user.status === "active")
             .map((user) => (
@@ -2666,14 +2744,14 @@ function MemberFields({ form, updateField }: MemberFieldsProps) {
         </select>
       </div>
       <div className="field-group">
-        <label htmlFor="member-role">Project role</label>
+        <label htmlFor="member-role">{intl.formatMessage({ id: "team.memberRole" })}</label>
         <select
           id="member-role"
           value={form.project_role as string}
           onChange={updateField("project_role")}
         >
-          <option value="member">Member</option>
-          <option value="project_lead">Project lead</option>
+          <option value="member">{intl.formatMessage({ id: "member.member" })}</option>
+          <option value="project_lead">{intl.formatMessage({ id: "member.projectLead" })}</option>
         </select>
       </div>
     </>
@@ -2700,7 +2778,7 @@ function getInitialValues(type: string): InitialValues {
 }
 
 function getCreateTitle(type: string) {
-  return type === "milestone" ? "Create milestone" : "Add team member";
+  return type === "milestone" ? "milestone.createTitle" : "team.addMember";
 }
 
 function createProjectItem(
@@ -2735,6 +2813,7 @@ export function TaskDialog({
   project,
   projectId,
 }: TaskDialogProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     title: "",
@@ -2767,8 +2846,8 @@ export function TaskDialog({
 
   return (
     <DialogShell
-      title="Create task"
-      description="Add the details for this task."
+      title={intl.formatMessage({ id: "task.createTitle" })}
+      description={intl.formatMessage({ id: "task.createDescription" })}
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -2778,7 +2857,7 @@ export function TaskDialog({
           </div>
         )}
         <div className="field-group">
-          <label htmlFor="task-title">Task title</label>
+          <label htmlFor="task-title">{intl.formatMessage({ id: "task.titleField" })}</label>
           <input
             id="task-title"
             required
@@ -2787,7 +2866,7 @@ export function TaskDialog({
           />
         </div>
         <div className="field-group">
-          <label htmlFor="task-description">Description</label>
+          <label htmlFor="task-description">{intl.formatMessage({ id: "task.descriptionField" })}</label>
           <textarea
             id="task-description"
             value={form.description}
@@ -2798,7 +2877,7 @@ export function TaskDialog({
           />
         </div>
         <div className="field-group">
-          <label htmlFor="task-priority">Priority</label>
+          <label htmlFor="task-priority">{intl.formatMessage({ id: "task.priorityLabel" })}</label>
           <select
             id="task-priority"
             value={form.priority}
@@ -2808,14 +2887,14 @@ export function TaskDialog({
           >
             {PRIORITIES.map((item) => (
               <option key={item.value} value={item.value}>
-                {item.label}
+                {intl.formatMessage({ id: item.label })}
               </option>
             ))}
           </select>
         </div>
         <div className="field-row">
           <div className="field-group">
-            <label htmlFor="task-date">Due date</label>
+            <label htmlFor="task-date">{intl.formatMessage({ id: "task.dueDateLabel" })}</label>
             <input
               id="task-date"
               type="date"
@@ -2826,7 +2905,7 @@ export function TaskDialog({
             />
           </div>
           <div className="field-group">
-            <label htmlFor="task-milestone">Milestone</label>
+            <label htmlFor="task-milestone">{intl.formatMessage({ id: "task.milestoneLabel" })}</label>
             <select
               id="task-milestone"
               value={form.milestone_id || ""}
@@ -2837,7 +2916,7 @@ export function TaskDialog({
                 }))
               }
             >
-              <option value="">No milestone</option>
+              <option value="">{intl.formatMessage({ id: "task.noMilestone" })}</option>
               {(project.milestones || []).map((milestone) => (
                 <option key={milestone.id} value={milestone.id}>
                   {milestone.title}
@@ -2847,7 +2926,7 @@ export function TaskDialog({
           </div>
         </div>
         <div className="field-group">
-          <label htmlFor="task-assignee">Assignee</label>
+          <label htmlFor="task-assignee">{intl.formatMessage({ id: "task.assignee" })}</label>
           <select
             id="task-assignee"
             value={form.assignee_user_id || ""}
@@ -2858,7 +2937,7 @@ export function TaskDialog({
               }))
             }
           >
-            <option value="">Unassigned</option>
+            <option value="">{intl.formatMessage({ id: "common.unassigned" })}</option>
             {(project.team_members || [])
               .filter((member) => member.status === "active")
               .map((member) => (
@@ -2874,14 +2953,16 @@ export function TaskDialog({
             type="button"
             onClick={onClose}
           >
-            Cancel
+            {intl.formatMessage({ id: "common.cancel" })}
           </button>
           <button
             className="button button-primary"
             type="submit"
             disabled={saveMutation.isPending}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending
+              ? intl.formatMessage({ id: "common.saving" })
+              : intl.formatMessage({ id: "common.save" })}
           </button>
         </footer>
       </form>
@@ -2902,6 +2983,7 @@ function MilestoneDialog({
   projectId,
   onClose,
 }: MilestoneDialogProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const isEditing = Boolean(milestone);
   const [form, setForm] = useState({
@@ -2931,7 +3013,7 @@ function MilestoneDialog({
       return;
     }
     if (!form.target_date) {
-      setError("Target date is required.");
+      setError(intl.formatMessage({ id: "task.targetDateRequired" }));
       return;
     }
     saveMutation.mutate({
@@ -2943,7 +3025,7 @@ function MilestoneDialog({
 
   return (
     <DialogShell
-      title={isEditing ? "Edit milestone" : "Create milestone"}
+      title={isEditing ? "Edit milestone" : intl.formatMessage({ id: "milestone.createTitle" })}
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -2953,7 +3035,7 @@ function MilestoneDialog({
           </div>
         )}
         <div className="field-group">
-          <label htmlFor="ms-title">Title</label>
+          <label htmlFor="ms-title">{intl.formatMessage({ id: "milestone.milestoneTitle" })}</label>
           <input
             id="ms-title"
             required
@@ -2962,7 +3044,7 @@ function MilestoneDialog({
           />
         </div>
         <div className="field-group">
-          <label htmlFor="ms-phase">Phase</label>
+          <label htmlFor="ms-phase">{intl.formatMessage({ id: "milestone.phase" })}</label>
           <select
             id="ms-phase"
             value={form.phase_id}
@@ -2970,7 +3052,7 @@ function MilestoneDialog({
               setForm((c) => ({ ...c, phase_id: e.target.value }))
             }
           >
-            <option value="">No phase</option>
+            <option value="">{intl.formatMessage({ id: "milestone.noPhase" })}</option>
             {(project.phases || []).map((phase) => (
               <option key={phase.id} value={phase.id}>
                 {phase.name}
@@ -2979,7 +3061,7 @@ function MilestoneDialog({
           </select>
         </div>
         <div className="field-group">
-          <label htmlFor="ms-date">Target date</label>
+          <label htmlFor="ms-date">{intl.formatMessage({ id: "milestone.targetDate" })}</label>
           <input
             id="ms-date"
             type="date"
@@ -2991,7 +3073,7 @@ function MilestoneDialog({
           />
         </div>
         <div className="field-group">
-          <label htmlFor="ms-status">Status</label>
+          <label htmlFor="ms-status">{intl.formatMessage({ id: "milestone.status" })}</label>
           <select
             id="ms-status"
             value={form.status}
@@ -3002,10 +3084,10 @@ function MilestoneDialog({
               }))
             }
           >
-            <option value="not_started">Not started</option>
-            <option value="in_progress">In progress</option>
-            <option value="done">Done</option>
-            <option value="missed">Missed</option>
+            <option value="not_started">{intl.formatMessage({ id: "milestone.notStarted" })}</option>
+            <option value="in_progress">{intl.formatMessage({ id: "milestone.inProgress" })}</option>
+            <option value="done">{intl.formatMessage({ id: "milestone.done" })}</option>
+            <option value="missed">{intl.formatMessage({ id: "milestone.missed" })}</option>
           </select>
         </div>
         <footer className="dialog-actions">
@@ -3014,14 +3096,16 @@ function MilestoneDialog({
             type="button"
             onClick={onClose}
           >
-            Cancel
+            {intl.formatMessage({ id: "common.cancel" })}
           </button>
           <button
             className="button button-primary"
             type="submit"
             disabled={saveMutation.isPending}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending
+              ? intl.formatMessage({ id: "common.saving" })
+              : intl.formatMessage({ id: "common.save" })}
           </button>
         </footer>
       </form>
@@ -3036,6 +3120,7 @@ interface LinkDialogProps {
 }
 
 function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const isEditing = Boolean(link);
   const [form, setForm] = useState({
@@ -3067,7 +3152,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.url.trim()) {
-      setError("URL is required.");
+      setError(intl.formatMessage({ id: "project.urlRequired" }));
       return;
     }
     saveMutation.mutate({ ...form, project_id: projectId });
@@ -3082,7 +3167,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
           </div>
         )}
         <div className="field-group">
-          <label htmlFor="link-label">Label</label>
+          <label htmlFor="link-label">{intl.formatMessage({ id: "project.label" })}</label>
           <input
             id="link-label"
             value={form.label}
@@ -3091,7 +3176,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
           />
         </div>
         <div className="field-group">
-          <label htmlFor="link-url">URL</label>
+          <label htmlFor="link-url">{intl.formatMessage({ id: "project.url" })}</label>
           <input
             id="link-url"
             type="url"
@@ -3102,7 +3187,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
           />
         </div>
         <div className="field-group">
-          <label htmlFor="link-type">Type</label>
+          <label htmlFor="link-type">{intl.formatMessage({ id: "common.type" })}</label>
           <input
             id="link-type"
             value={form.link_type}
@@ -3118,14 +3203,16 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
             type="button"
             onClick={onClose}
           >
-            Cancel
+            {intl.formatMessage({ id: "common.cancel" })}
           </button>
           <button
             className="button button-primary"
             type="submit"
             disabled={saveMutation.isPending}
           >
-            {saveMutation.isPending ? "Saving…" : "Save"}
+            {saveMutation.isPending
+              ? intl.formatMessage({ id: "common.saving" })
+              : intl.formatMessage({ id: "common.save" })}
           </button>
         </footer>
       </form>

@@ -1,4 +1,5 @@
-import { ChevronDown } from 'lucide-react';
+import { useIntl, FormattedMessage } from 'react-intl';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationControlsProps {
   page: number;
@@ -7,30 +8,31 @@ interface PaginationControlsProps {
 }
 
 export default function PaginationControls({ page, totalPages, onPageChange }: PaginationControlsProps) {
+  const intl = useIntl();
   if (totalPages <= 1) return null;
 
   return (
-    <nav className="pagination-controls" aria-label="Pagination">
+    <nav className="pagination-controls" aria-label={intl.formatMessage({ id: 'pagination.label' })}>
       <button
         className="icon-button"
         type="button"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        aria-label="Previous page"
+        aria-label={intl.formatMessage({ id: 'pagination.previousPage' })}
       >
-        <ChevronDown size={14} />
+        <ChevronLeft size={14} />
       </button>
       <span className="pagination-info">
-        Page {page} of {totalPages}
+        <FormattedMessage id="pagination.pageInfo" values={{ page, totalPages }} />
       </span>
       <button
         className="icon-button"
         type="button"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        aria-label="Next page"
+        aria-label={intl.formatMessage({ id: 'pagination.nextPage' })}
       >
-        <ChevronDown size={14} />
+        <ChevronRight size={14} />
       </button>
     </nav>
   );

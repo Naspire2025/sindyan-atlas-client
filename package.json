@@ -17,7 +17,8 @@
     "lucide-react": "^1.41.0",
     "mammoth": "^1.12.2",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-intl": "^10.1.26"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

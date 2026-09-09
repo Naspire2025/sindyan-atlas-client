@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { TASK_STATUSES } from '../constants.js';
 import type { Task, User } from '../types/api.js';
+import type { MessageId } from '../i18n/messages/en.js';
 import { formatDate, isPastDate } from '../utils/project.js';
 import { getAllowedTaskStatuses } from '../utils/task.js';
 import { Calendar } from 'lucide-react';
@@ -98,6 +100,7 @@ function KanbanColumn({
   updatingId,
 }: KanbanColumnProps) {
   const [isDragover, setIsDragover] = useState(false);
+  const intl = useIntl();
 
   const handleDragOver = (event: React.DragEvent) => {
     if (!canDrop) return;
@@ -116,7 +119,7 @@ function KanbanColumn({
 
   return (
     <section
-      aria-label={`${label} tasks`}
+      aria-label={intl.formatMessage({ id: 'kanban.columnTasks' }, { label: intl.formatMessage({ id: label as MessageId }) })}
       className={`kanban-column${canDrop && isDragover ? ' is-dragover' : ''}`}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -166,6 +169,7 @@ function KanbanCard({
   task,
   updatingId,
 }: KanbanCardProps) {
+  const intl = useIntl();
   const isOverdue = task.status !== 'done' && isPastDate(task.due_date);
   return (
     <article
@@ -176,7 +180,7 @@ function KanbanCard({
     >
       <button className="kanban-card-open" type="button" onClick={() => onSelectTask(task.id)}>
         <strong>{task.title}</strong>
-        <span>{task.project_name || 'Project'}</span>
+        <span>{task.project_name || intl.formatMessage({ id: 'task.projectFallback' })}</span>
       </button>
       <div className="kanban-card-meta">
         <span className={`task-date ${isOverdue ? 'is-overdue' : ''}`}>

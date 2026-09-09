@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import { api } from "../api/client.js";
@@ -25,8 +26,8 @@ interface TeamDirectoryPageProps {
 }
 
 const ROLE_OPTIONS = [
-  { value: "admin", label: "Administrator" },
-  { value: "team_member", label: "Team member" },
+  { value: "admin", label: "team.admin" },
+  { value: "team_member", label: "team.teamMember" },
 ];
 const EMPTY_USERS: User[] = [];
 
@@ -50,25 +51,28 @@ function avatarColor(seed: string): string {
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 
-function statusLabel(status: UserStatus): string {
+function statusLabel(status: UserStatus, intl: ReturnType<typeof useIntl>): string {
   switch (status) {
     case "suspended":
-      return "Suspended";
+      return intl.formatMessage({ id: "team.suspended" });
     case "pending":
-      return "Pending";
+      return intl.formatMessage({ id: "team.pending" });
     default:
-      return "Active";
+      return intl.formatMessage({ id: "team.active" });
   }
 }
 
-function roleLabel(role: UserRole): string {
-  return role === "admin" ? "Admin" : "Member";
+function roleLabel(role: UserRole, intl: ReturnType<typeof useIntl>): string {
+  return role === "admin"
+    ? intl.formatMessage({ id: "team.admin" })
+    : intl.formatMessage({ id: "team.teamMember" });
 }
 
 export default function TeamDirectoryPage({
   onMenu,
   onSelectMember,
 }: TeamDirectoryPageProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -130,53 +134,53 @@ export default function TeamDirectoryPage({
   return (
     <>
       <PageHeader
-        eyebrow="Administration"
-        title="Team directory"
-        description="Manage user accounts, roles, and access."
+        eyebrow={intl.formatMessage({ id: 'team.administration' })}
+        title={intl.formatMessage({ id: 'team.directoryTitle' })}
+        description={intl.formatMessage({ id: 'team.directoryDescription' })}
         onMenu={onMenu}
       />
 
       <section className="panel vault-panel">
         <div className="project-toolbar">
           <div>
-            <span className="eyebrow">Directory</span>
+            <span className="eyebrow">{intl.formatMessage({ id: 'team.directory' })}</span>
             <h2>
-              {users.length} user{users.length === 1 ? "" : "s"}
+              {intl.formatMessage({ id: 'team.userCount', values: { n: users.length } })}
             </h2>
           </div>
           <label className="search-field">
             <Search />
-            <span className="sr-only">Search team</span>
+            <span className="sr-only">{intl.formatMessage({ id: 'team.searchTeam' })}</span>
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search members"
+              placeholder={intl.formatMessage({ id: "common.search" })}
             />
           </label>
           <label className="select-field">
-            <span className="sr-only">Filter by role</span>
+            <span className="sr-only">{intl.formatMessage({ id: 'team.filterByRole' })}</span>
             <select
               value={roleFilter}
               onChange={(event) => setRoleFilter(event.target.value)}
             >
-              <option value="">All roles</option>
+              <option value="">{intl.formatMessage({ id: 'team.allRoles' })}</option>
               {ROLE_OPTIONS.map((role) => (
                 <option key={role.value} value={role.value}>
-                  {role.label}
+                  {intl.formatMessage({ id: role.label })}
                 </option>
               ))}
             </select>
           </label>
           <label className="select-field">
-            <span className="sr-only">Filter by account status</span>
+            <span className="sr-only">{intl.formatMessage({ id: 'team.filterByStatus' })}</span>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
-              <option value="">All statuses</option>
-              <option value="active">Active</option>
-              <option value="suspended">Suspended</option>
-              <option value="pending">Pending</option>
+              <option value="">{intl.formatMessage({ id: 'common.allStatuses' })}</option>
+              <option value="active">{intl.formatMessage({ id: "team.active" })}</option>
+              <option value="suspended">{intl.formatMessage({ id: "team.suspended" })}</option>
+              <option value="pending">{intl.formatMessage({ id: "team.pending" })}</option>
             </select>
           </label>
         </div>
@@ -184,22 +188,22 @@ export default function TeamDirectoryPage({
         {usersQuery.isLoading ? (
           <div className="loading-state">
             <span className="spinner" />
-            Loading team…
+            {intl.formatMessage({ id: "common.loading" })}
           </div>
         ) : usersQuery.error ? (
           <EmptyState
             icon={TriangleAlert}
-            title="Failed to load team"
+            title={intl.formatMessage({ id: 'team.failedToLoad' })}
             message={usersQuery.error.message}
           />
         ) : filteredUsers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No team members found"
+            title={intl.formatMessage({ id: "team.noMembers" })}
             message={
               search
                 ? "Try adjusting your search."
-                : "No team members have been invited yet."
+                : intl.formatMessage({ id: "team.noMembersMessage" })
             }
           />
         ) : (
@@ -223,7 +227,7 @@ export default function TeamDirectoryPage({
                     <span
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-[510] ${avatarColor(`${user.name}|${user.email}`)}`}
                     >
-                      {user.name?.slice(0, 2).toUpperCase() || "—"}
+                      {user.name?.slice(0, 2).toUpperCase() || "\u2014"}
                     </span>
                     <p className="truncate text-[13px] font-[510] text-bone">
                       {user.name}
@@ -231,7 +235,7 @@ export default function TeamDirectoryPage({
                   </div>
                   <button
                     type="button"
-                    aria-label="Member actions"
+                    aria-label={intl.formatMessage({ id: 'team.memberActions' })}
                     aria-haspopup="menu"
                     aria-expanded={menuOpenUserId === user.id}
                     onClick={(event) => {
@@ -259,10 +263,10 @@ export default function TeamDirectoryPage({
                     <span
                       className={`rounded-badge px-2 py-0.5 text-[11px] font-[510] ${STATUS_PILL_STYLES[user.status]}`}
                     >
-                      {statusLabel(user.status)}
+                      {statusLabel(user.status, intl)}
                     </span>
                     <span className="rounded-badge border border-graphite bg-white/[0.05] px-2 py-0.5 text-[11px] font-[510] text-fog">
-                      {roleLabel(user.role)}
+                      {roleLabel(user.role, intl)}
                     </span>
                   </div>
                   <ChevronRight
@@ -289,9 +293,9 @@ export default function TeamDirectoryPage({
       )}
       {suspendTarget && (
         <ConfirmDialog
-          title="Suspend user"
-          description={`Are you sure you want to suspend ${suspendTarget.name}? They will lose access to all projects.`}
-          confirmLabel="Suspend"
+          title={intl.formatMessage({ id: 'team.suspendUser' })}
+          description={intl.formatMessage({ id: 'team.suspendDescription', values: { name: suspendTarget.name } })}
+          confirmLabel={intl.formatMessage({ id: "team.suspended" })}
           isPending={updateUser.isPending}
           onConfirm={() =>
             updateUser.mutate({
@@ -349,6 +353,7 @@ function FloatingMenu({
   onSuspend: () => void;
   onClose: () => void;
 }) {
+  const intl = useIntl();
   const menuRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<{
     top: number;
@@ -408,7 +413,7 @@ function FloatingMenu({
         className="flex w-full items-center gap-2 rounded-small px-2 py-1.5 text-left text-[12px] text-mist transition-colors hover:bg-white/[0.05] hover:text-paper"
       >
         <Pencil size={14} />
-        Edit role
+        {intl.formatMessage({ id: "common.edit" })}
       </button>
       {user.status === "active" && user.role !== "admin" && (
         <button
@@ -421,7 +426,7 @@ function FloatingMenu({
           className="flex w-full items-center gap-2 rounded-small px-2 py-1.5 text-left text-[12px] text-coral-red transition-colors hover:bg-white/[0.05] hover:text-[#f09a9a]"
         >
           <ShieldOff size={14} />
-          Suspend
+          {intl.formatMessage({ id: "team.suspend" })}
         </button>
       )}
     </div>
@@ -441,6 +446,7 @@ function EditRoleDialog({
   onSave,
   onClose,
 }: EditRoleDialogProps) {
+  const intl = useIntl();
   const [role, setRole] = useState(user.role || "team_member");
   const [error, setError] = useState("");
 
@@ -452,8 +458,8 @@ function EditRoleDialog({
 
   return (
     <DialogShell
-      title={`Edit ${user.name}`}
-      description="Change the user's account role."
+      title={intl.formatMessage({ id: 'team.editUser', values: { name: user.name } })}
+      description={intl.formatMessage({ id: 'team.editRoleDescription' })}
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -463,7 +469,7 @@ function EditRoleDialog({
           </div>
         )}
         <div className="field-group">
-          <label htmlFor="edit-role">Account role</label>
+          <label htmlFor="edit-role">{intl.formatMessage({ id: 'team.accountRole' })}</label>
           <select
             id="edit-role"
             value={role}
@@ -471,7 +477,7 @@ function EditRoleDialog({
           >
             {ROLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {intl.formatMessage({ id: opt.label })}
               </option>
             ))}
           </select>
@@ -482,14 +488,14 @@ function EditRoleDialog({
             type="button"
             onClick={onClose}
           >
-            Cancel
+            {intl.formatMessage({ id: "common.cancel" })}
           </button>
           <button
             className="button button-primary"
             type="submit"
             disabled={isPending}
           >
-            {isPending ? "Saving…" : "Save changes"}
+            {isPending ? intl.formatMessage({ id: "common.saving" }) : intl.formatMessage({ id: "common.save" })}
           </button>
         </footer>
       </form>

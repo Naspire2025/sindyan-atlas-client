@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -18,6 +19,7 @@ interface RiskPageProps {
 }
 
 export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPageProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
   if (riskQuery.isLoading) {
     return (
       <>
-        <PageHeader eyebrow="Risk" title="Loading risk…" onMenu={onMenu} />
-        <div className="panel"><div className="loading-state"><span className="spinner" />Loading…</div></div>
+        <PageHeader eyebrow={intl.formatMessage({ id: 'risk.title' })} title={intl.formatMessage({ id: 'common.loading' })} onMenu={onMenu} />
+        <div className="panel"><div className="loading-state"><span className="spinner" />{intl.formatMessage({ id: 'common.loading' })}</div></div>
       </>
     );
   }
@@ -57,9 +59,9 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
   if (!risk) {
     return (
       <>
-        <PageHeader eyebrow="Risk" title="Risk not found" onMenu={onMenu} />
+        <PageHeader eyebrow={intl.formatMessage({ id: 'risk.title' })} title={intl.formatMessage({ id: 'state.notFound' })} onMenu={onMenu} />
         <div className="panel">
-          <EmptyState icon={TriangleAlert} title="Risk unavailable" message="This risk may have been deleted or you no longer have access." />
+          <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'state.notFound' })} message="This risk may have been deleted or you no longer have access." />
         </div>
       </>
     );
@@ -70,19 +72,19 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
   return (
     <>
       <PageHeader
-        eyebrow={`Risk · ${getLabel(RISK_SEVERITIES, severity || 'medium')} severity`}
+        eyebrow={`${intl.formatMessage({ id: 'risk.title' })} · ${intl.formatMessage({ id: getLabel(RISK_SEVERITIES, severity || 'medium') })} ${intl.formatMessage({ id: 'common.severity' })}`}
         title={title}
-        description={description || 'No description provided.'}
+        description={description || intl.formatMessage({ id: 'project.noDescription' })}
         onMenu={onMenu}
         action={
           <div className="page-actions">
             <button className="button button-secondary button-small" type="button" onClick={() => onSelectProject(risk.project_id)}>
               <Layers size={14} />
-              Open project
+              {intl.formatMessage({ id: 'common.openProject' })}
             </button>
             <button className="button button-primary button-small" type="button" onClick={() => setIsEditOpen(true)}>
               <Pencil size={14} />
-              Edit
+              {intl.formatMessage({ id: 'common.edit' })}
             </button>
           </div>
         }
@@ -92,26 +94,26 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
         <DetailList>
           <DetailRow>
             <span className="detail-list-copy">
-              <strong>Severity</strong>
-              <small>{getLabel(RISK_SEVERITIES, severity || 'medium')}</small>
+              <strong>{intl.formatMessage({ id: 'riskIssue.severity' })}</strong>
+              <small>{intl.formatMessage({ id: getLabel(RISK_SEVERITIES, severity || 'medium') })}</small>
             </span>
           </DetailRow>
           <DetailRow>
             <span className="detail-list-copy">
-              <strong>Probability</strong>
-              <small>{getLabel(RISK_PROBABILITIES, probability || 'medium')}</small>
+              <strong>{intl.formatMessage({ id: 'riskIssue.probability' })}</strong>
+              <small>{intl.formatMessage({ id: getLabel(RISK_PROBABILITIES, probability || 'medium') })}</small>
             </span>
           </DetailRow>
           <DetailRow>
             <span className="detail-list-copy">
-              <strong>Status</strong>
-              <small>{getLabel(RISK_STATUSES, status || 'open')}</small>
+              <strong>{intl.formatMessage({ id: 'riskIssue.status' })}</strong>
+              <small>{intl.formatMessage({ id: getLabel(RISK_STATUSES, status || 'open') })}</small>
             </span>
           </DetailRow>
           {risk.owner_name && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Owner</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.owner' })}</strong>
                 <small>{risk.owner_name}</small>
               </span>
             </DetailRow>
@@ -119,7 +121,7 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
           {risk.due_date && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Due date</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.dueDate' })}</strong>
                 <small>{risk.due_date}</small>
               </span>
             </DetailRow>
@@ -127,7 +129,7 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
           {risk.mitigation_progress !== undefined && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Mitigation progress</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.mitigationProgress' })}</strong>
                 <small>
                   <span className="progress-track"><span style={{ width: `${risk.mitigation_progress}%` }} /></span>{' '}
                   {risk.mitigation_progress}%
@@ -138,7 +140,7 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
           {risk.mitigation_note && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Mitigation plan</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.mitigationNote' })}</strong>
                 <small>{risk.mitigation_note}</small>
               </span>
             </DetailRow>
@@ -151,7 +153,7 @@ export default function RiskPage({ onMenu, onSelectProject, riskId }: RiskPagePr
             onClick={() => deleteRisk.mutate(risk.id)}
             disabled={deleteRisk.isPending}
           >
-            {deleteRisk.isPending ? 'Deleting…' : 'Delete risk'}
+            {deleteRisk.isPending ? intl.formatMessage({ id: 'common.processing' }) : intl.formatMessage({ id: 'common.delete' })}
           </button>
           {error && <span className="error-banner" role="alert">{error}</span>}
         </div>

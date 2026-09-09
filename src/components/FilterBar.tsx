@@ -1,4 +1,5 @@
-import { type ReactNode, type ChangeEvent } from 'react';
+import { useIntl } from 'react-intl';
+import type { ReactNode, ChangeEvent } from 'react';
 import { Search } from 'lucide-react';
 
 import type { Option } from '../constants.js';
@@ -15,17 +16,20 @@ interface SearchFieldProps {
   value: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  placeholderMessageId?: string;
 }
 
-export function SearchField({ value, onChange, placeholder = 'Search…' }: SearchFieldProps) {
+export function SearchField({ value, onChange, placeholder, placeholderMessageId = 'common.search' }: SearchFieldProps) {
+  const intl = useIntl();
+  const resolvedPlaceholder = placeholder ?? intl.formatMessage({ id: placeholderMessageId });
   return (
     <label className="search-field">
       <Search />
-      <span className="sr-only">{placeholder}</span>
+      <span className="sr-only">{resolvedPlaceholder}</span>
       <input
         value={value}
         onChange={onChange}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
       />
     </label>
   );
@@ -40,6 +44,7 @@ interface SelectFieldProps {
 }
 
 export function SelectField({ value, onChange, label, options, placeholder }: SelectFieldProps) {
+  const intl = useIntl();
   return (
     <label className="select-field">
       <span className="sr-only">{label}</span>
@@ -47,7 +52,7 @@ export function SelectField({ value, onChange, label, options, placeholder }: Se
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.label}
+            {intl.formatMessage({ id: option.label })}
           </option>
         ))}
       </select>

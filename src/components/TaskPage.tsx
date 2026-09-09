@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { api } from '../api/client.js';
 import { PRIORITIES, TASK_STATUSES, getLabel } from '../constants.js';
 import type { User, Task, TaskComment, TaskActivityEvent, Milestone, ProjectMember } from '../types/api.js';
+import type { MessageId } from '../i18n/messages/en.js';
 import { formatDate, getInitials } from '../utils/project.js';
 import { getAllowedTaskStatuses } from '../utils/task.js';
 import EmptyState from './EmptyState.js';
@@ -24,6 +26,7 @@ function initialTask(): Task | null {
 }
 
 export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSelectMember, onSelectProject, taskId }: TaskPageProps) {
+  const intl = useIntl();
   const [task, setTask] = useState<Task | null>(() => normalizeTask(initialTask()));
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
@@ -88,7 +91,7 @@ export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSel
   };
 
   if (error && !task) return <TaskError error={error} onBack={onBack} onMenu={onMenu} />;
-  if (!task) return <div className="loading-state task-loading"><span className="spinner" />Loading task…</div>;
+  if (!task) return <div className="loading-state task-loading"><span className="spinner" />{intl.formatMessage({ id: 'task.loading' })}</div>;
 
   return (
     <div className="task-page project-page">
@@ -105,14 +108,14 @@ export default function TaskPage({ currentUser, onBack, onChanged, onMenu, onSel
           </header>
 
           <section className="task-description" aria-labelledby="task-description-title">
-            <h2 id="task-description-title">Description</h2>
-            <p>{task.description || task.blocker_note || 'No description has been added yet.'}</p>
+            <h2 id="task-description-title">{intl.formatMessage({ id: 'task.descriptionSection' })}</h2>
+            <p>{task.description || task.blocker_note || intl.formatMessage({ id: 'task.descriptionEmptyFallback' })}</p>
           </section>
 
           <section className="task-activity" aria-labelledby="task-activity-title">
             <div className="task-section-heading">
-              <h2 id="task-activity-title">Activity</h2>
-              <span>{task.comments.length} comment{task.comments.length === 1 ? '' : 's'}</span>
+              <h2 id="task-activity-title">{intl.formatMessage({ id: 'task.activity' })}</h2>
+              <span><FormattedMessage id="task.commentsCount" values={{ n: task.comments.length }} /></span>
             </div>
             <ActivityEvent task={task} />
             {task.comments.map((item) => <CommentItem comment={item} key={item.id} />)}
@@ -148,17 +151,18 @@ interface TaskBreadcrumbProps {
 }
 
 function TaskBreadcrumb({ onBack, onMenu, onSelectProject, task }: TaskBreadcrumbProps) {
+  const intl = useIntl();
   return (
     <header className="project-breadcrumb-bar task-breadcrumb-bar">
-      <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu size={18} /></button>
-      <nav aria-label="Breadcrumb" className="breadcrumb">
-        <button type="button" onClick={onBack}>My tasks</button>
+      <button className="icon-button mobile-menu" type="button" aria-label={intl.formatMessage({ id: 'common.openNavigation' })} onClick={onMenu}><Menu size={18} /></button>
+      <nav aria-label={intl.formatMessage({ id: 'common.breadcrumb' })} className="breadcrumb">
+        <button type="button" onClick={onBack}>{intl.formatMessage({ id: 'task.title' })}</button>
         <ChevronDown size={13} />
         <button type="button" onClick={() => onSelectProject(task.project_id)}>{task.project_name}</button>
         <ChevronDown size={13} />
         <span>TASK-{task.id}</span>
       </nav>
-      <span className={`status-badge status-${task.status}`}><span className="status-dot" />{getLabel(TASK_STATUSES, task.status)}</span>
+      <span className={`status-badge status-${task.status}`}><span className="status-dot" />{intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status) })}</span>
     </header>
   );
 }
@@ -175,19 +179,20 @@ interface TaskPropertiesProps {
 }
 
 function TaskProperties({ currentUser, isSaving, members, milestones, onSelectMember, onSelectProject, onUpdate, task }: TaskPropertiesProps) {
+  const intl = useIntl();
   const availableStatuses = getAllowedTaskStatuses(currentUser, task);
   const canManage = canManageTaskProperties(currentUser, task);
   return (
-    <aside className="task-properties" aria-label="Task properties">
-      <h2>Properties</h2>
-      {availableStatuses.length > 1 ? <label className="task-property-control"><CircleCheck size={15} /><span>Status</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon={CircleCheck} label="Status" value={getLabel(TASK_STATUSES, task.status)} />}
-      {canManage ? <label className="task-property-control"><Flag size={15} /><span>Priority</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label> : <PropertyRow icon={Flag} label="Priority" value={getLabel(PRIORITIES, task.priority)} />}
-      {canManage ? <label className="task-property-control"><UserIcon size={15} /><span>Assignee</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">Unassigned</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon={UserIcon} label="Assignee" value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button> : task.owner || 'Unassigned'} />}
-      {canManage ? <label className="task-property-control"><Calendar size={15} /><span>Due date</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon={Calendar} label="Due date" value={formatDate(task.due_date)} />}
-      {canManage ? <label className="task-property-control"><Diamond size={15} /><span>Milestone</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value || null)}><option value="">No milestone</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon={Diamond} label="Milestone" value={task.milestone_title || 'No milestone'} />}
+    <aside className="task-properties" aria-label={intl.formatMessage({ id: 'task.properties' })}>
+      <h2>{intl.formatMessage({ id: 'task.properties' })}</h2>
+      {availableStatuses.length > 1 ? <label className="task-property-control"><CircleCheck size={15} /><span>{intl.formatMessage({ id: 'task.statusLabel' })}</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{intl.formatMessage({ id: item.label as MessageId })}</option>)}</select></label> : <PropertyRow icon={CircleCheck} label={intl.formatMessage({ id: 'task.statusLabel' })} value={intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status) })} />}
+      {canManage ? <label className="task-property-control"><Flag size={15} /><span>{intl.formatMessage({ id: 'task.priorityLabel' })}</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{intl.formatMessage({ id: item.label as MessageId })}</option>)}</select></label> : <PropertyRow icon={Flag} label={intl.formatMessage({ id: 'task.priorityLabel' })} value={intl.formatMessage({ id: getLabel(PRIORITIES, task.priority) })} />}
+      {canManage ? <label className="task-property-control"><UserIcon size={15} /><span>{intl.formatMessage({ id: 'task.assigneeLabel' })}</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">{intl.formatMessage({ id: 'common.unassigned' })}</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon={UserIcon} label={intl.formatMessage({ id: 'task.assigneeLabel' })} value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || intl.formatMessage({ id: 'task.assigneeFallback' })}</button> : task.owner || intl.formatMessage({ id: 'common.unassigned' })} />}
+      {canManage ? <label className="task-property-control"><Calendar size={15} /><span>{intl.formatMessage({ id: 'task.dueDateLabel' })}</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon={Calendar} label={intl.formatMessage({ id: 'task.dueDateLabel' })} value={formatDate(task.due_date)} />}
+      {canManage ? <label className="task-property-control"><Diamond size={15} /><span>{intl.formatMessage({ id: 'task.milestoneLabel' })}</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value || null)}><option value="">{intl.formatMessage({ id: 'task.noMilestone' })}</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon={Diamond} label={intl.formatMessage({ id: 'task.milestoneLabel' })} value={task.milestone_title || intl.formatMessage({ id: 'task.noMilestone' })} />}
 
       <div className="task-property-group">
-        <h3>Project</h3>
+        <h3>{intl.formatMessage({ id: 'task.projectLabel' })}</h3>
         <button className="task-project-link" type="button" onClick={() => onSelectProject(task.project_id)}>
           <span className={`project-glyph priority-${task.priority}`} />
           <span>{task.project_name}</span>
@@ -213,9 +218,10 @@ interface ActivityEventProps {
 }
 
 function ActivityEvent({ task }: ActivityEventProps) {
+  const intl = useIntl();
   const events: (TaskActivityEvent | { id: string; actor_name: string; event_type: string; created_at: string })[] = task.activity?.length ? task.activity : [{ id: 'created', actor_name: task.created_by_name || 'Atlas', event_type: 'created', created_at: task.created_at || '' }];
   return (
-    events.map((event) => <div className="activity-item" key={event.id}><span className="avatar avatar-small">{getInitials('actor_name' in event ? event.actor_name : 'Atlas')}</span><div><p><strong>{'actor_name' in event ? event.actor_name : 'Atlas'}</strong> {formatActivity(event.event_type)}</p><time dateTime={event.created_at}>{formatTimestamp(event.created_at)}</time></div></div>)
+    events.map((event) => <div className="activity-item" key={event.id}><span className="avatar avatar-small">{getInitials('actor_name' in event ? event.actor_name : 'Atlas')}</span><div><p><strong>{'actor_name' in event ? event.actor_name : 'Atlas'}</strong> {formatActivity(event.event_type, intl)}</p><time dateTime={event.created_at}>{formatTimestamp(event.created_at)}</time></div></div>)
   );
 }
 
@@ -243,22 +249,23 @@ interface CommentFormProps {
 }
 
 function CommentForm({ comment, isPosting, onChange, onSubmit }: CommentFormProps) {
+  const intl = useIntl();
   return (
     <form className="comment-form" onSubmit={onSubmit}>
       <span className="avatar avatar-small">••</span>
       <div className="comment-composer">
-        <label className="sr-only" htmlFor="task-comment">Add a comment</label>
+        <label className="sr-only" htmlFor="task-comment">{intl.formatMessage({ id: 'task.addComment' })}</label>
         <textarea
           id="task-comment"
           maxLength={2000}
-          placeholder="Leave a comment…"
+          placeholder={intl.formatMessage({ id: 'task.commentPlaceholder' })}
           rows={3}
           value={comment}
           onChange={(event) => onChange(event.target.value)}
         />
         <div className="comment-actions">
           <span>{comment.length}/2000</span>
-          <button className="comment-submit" type="submit" aria-label="Post comment" disabled={isPosting || !comment.trim()}>
+          <button className="comment-submit" type="submit" aria-label={intl.formatMessage({ id: 'task.postComment' })} disabled={isPosting || !comment.trim()}>
             <Send size={14} />
           </button>
         </div>
@@ -274,7 +281,8 @@ interface TaskErrorProps {
 }
 
 function TaskError({ error, onBack, onMenu }: TaskErrorProps) {
-  return <><header className="project-breadcrumb-bar"><button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu /></button><button className="text-button" type="button" onClick={onBack}>My tasks</button></header><div className="project-error"><EmptyState icon={TriangleAlert} title="Task unavailable" message={error} action={<button className="button button-secondary" type="button" onClick={onBack}>Back to my tasks</button>} /></div></>;
+  const intl = useIntl();
+  return <><header className="project-breadcrumb-bar"><button className="icon-button mobile-menu" type="button" aria-label={intl.formatMessage({ id: 'common.openNavigation' })} onClick={onMenu}><Menu /></button><button className="text-button" type="button" onClick={onBack}>{intl.formatMessage({ id: 'task.title' })}</button></header><div className="project-error"><EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'task.unavailable' })} message={error} action={<button className="button button-secondary" type="button" onClick={onBack}>{intl.formatMessage({ id: 'task.backToTasks' })}</button>} /></div></>;
 }
 
 function getTaskUpdatePayload(task: Task, changes: Record<string, unknown>) {
@@ -291,7 +299,7 @@ function normalizeTask(task: Task | null): Task | null {
   return task ? { ...task, comments: task.comments || [] } : null;
 }
 
-function formatActivity(eventType: string) { return eventType === 'created' ? 'created this task' : eventType === 'commented' ? 'commented on this task' : 'updated this task'; }
+function formatActivity(eventType: string, intl: ReturnType<typeof useIntl>) { return eventType === 'created' ? intl.formatMessage({ id: 'task.activityCreated' }) : eventType === 'commented' ? intl.formatMessage({ id: 'task.activityCommented' }) : intl.formatMessage({ id: 'task.activityUpdated' }); }
 
 function formatTimestamp(value: string) {
   if (!value) return 'Just now';

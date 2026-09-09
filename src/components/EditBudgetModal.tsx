@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { api } from '../api/client.js';
 import DialogShell from './DialogShell.js';
 
@@ -15,6 +16,7 @@ export default function EditBudgetModal({
   onClose,
   onSuccess,
 }: EditBudgetModalProps) {
+  const intl = useIntl();
   const [budget, setBudget] = useState<number>(currentBudget || 0);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,15 +46,15 @@ export default function EditBudgetModal({
 
   return (
     <DialogShell
-      title="Edit Total Project Budget"
-      description="Update total allocated budget capital for this project."
+      title={intl.formatMessage({ id: 'budget.editTitle' })}
+      description={intl.formatMessage({ id: 'budget.editDescription' })}
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
 
         <div className="field-group">
-          <label htmlFor="total-budget">Total Allocated Budget ($)</label>
+          <label htmlFor="total-budget">{intl.formatMessage({ id: 'project.budgetAllocated' })} ($)</label>
           <input
             id="total-budget"
             type="number"
@@ -67,10 +69,10 @@ export default function EditBudgetModal({
 
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>
-            Cancel
+            {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : 'Update budget'}
+            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : 'Update budget'}
           </button>
         </footer>
       </form>

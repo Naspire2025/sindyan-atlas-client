@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -26,8 +27,16 @@ interface ResourcesPageProps {
 }
 
 export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'Workload' | 'Assignments' | 'Availability' | 'Capacity'>('Workload');
+
+  const TAB_LABEL_IDS: Record<string, string> = {
+    Workload: 'resource.workload',
+    Assignments: 'resource.allocations',
+    Availability: 'resource.availability',
+    Capacity: 'resource.capacity',
+  };
 
   const [isAllocationOpen, setIsAllocationOpen] = useState(false);
   const [editMemberAlloc, setEditMemberAlloc] = useState<MemberAllocation | null>(null);
@@ -94,9 +103,9 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
   return (
     <>
       <PageHeader
-        eyebrow="Administration"
-        title="Resources"
-        description="Manage team capacity, workload balance, and project allocations."
+        eyebrow={intl.formatMessage({ id: 'team.administration' })}
+        title={intl.formatMessage({ id: 'resource.title' })}
+        description={intl.formatMessage({ id: 'resource.description' })}
         onMenu={onMenu}
         action={
           activeTab === 'Assignments' ? (
@@ -109,7 +118,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
               }}
             >
               <Plus />
-              New allocation
+              {intl.formatMessage({ id: 'resource.addAllocation' })}
             </button>
           ) : activeTab === 'Availability' ? (
             <button
@@ -118,7 +127,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
               onClick={() => { setEditAvailabilityTarget(null); setAvailabilityUserId(''); setIsAvailabilityOpen(true); }}
             >
               <Plus />
-              Record leave / unavailability
+              {intl.formatMessage({ id: 'resource.newAvailability' })}
             </button>
           ) : activeTab === 'Capacity' ? (
             <button
@@ -127,7 +136,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
               onClick={() => { setEditCapacityProfileTarget(null); setIsCapacityProfileOpen(true); }}
             >
               <Plus />
-              New capacity profile
+              {intl.formatMessage({ id: 'resource.addCapacityProfile' })}
             </button>
           ) : null
         }
@@ -142,7 +151,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
             aria-current={activeTab === tab ? 'page' : undefined}
             onClick={() => setActiveTab(tab)}
           >
-            {tab}
+            {intl.formatMessage({ id: TAB_LABEL_IDS[tab] })}
           </button>
         ))}
       </nav>
@@ -216,9 +225,9 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
 
       {deleteMemberAllocTarget && (
         <ConfirmDialog
-          title="Delete Member Allocation"
-          description={`Are you sure you want to remove ${deleteMemberAllocTarget.user_name || 'this member'}'s allocation for ${deleteMemberAllocTarget.project_name || 'this project'}?`}
-          confirmLabel="Delete allocation"
+          title={intl.formatMessage({ id: 'resource.deleteMemberAllocation' })}
+          description={intl.formatMessage({ id: 'resource.deleteMemberAllocationMessage' }, { name: deleteMemberAllocTarget.user_name || 'this member', project: deleteMemberAllocTarget.project_name || 'this project' })}
+          confirmLabel={intl.formatMessage({ id: 'allocation.deleteAllocation' })}
           variant="danger"
           isPending={deleteMemberAllocationMutation.isPending}
           onConfirm={() => deleteMemberAllocationMutation.mutate(deleteMemberAllocTarget.id)}
@@ -228,9 +237,9 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
 
       {deleteAvailabilityTarget && (
         <ConfirmDialog
-          title="Delete Leave Window"
-          description="Are you sure you want to remove this leave/unavailability record?"
-          confirmLabel="Delete window"
+          title={intl.formatMessage({ id: 'resource.deleteLeaveWindow' })}
+          description={intl.formatMessage({ id: 'resource.deleteLeaveWindowMessage' })}
+          confirmLabel={intl.formatMessage({ id: 'resource.confirmDeleteWindow' })}
           variant="danger"
           isPending={deleteAvailabilityMutation.isPending}
           onConfirm={() => deleteAvailabilityMutation.mutate(deleteAvailabilityTarget)}
@@ -240,9 +249,9 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
 
       {deleteCapacityProfileTarget && (
         <ConfirmDialog
-          title="Delete Capacity Profile"
-          description={`Are you sure you want to remove this capacity profile (effective ${deleteCapacityProfileTarget.effective_from})?`}
-          confirmLabel="Delete profile"
+          title={intl.formatMessage({ id: 'resource.deleteCapacityProfile' })}
+          description={intl.formatMessage({ id: 'resource.deleteCapacityProfileMessage' }, { date: deleteCapacityProfileTarget.effective_from })}
+          confirmLabel={intl.formatMessage({ id: 'resource.confirmDeleteProfile' })}
           variant="danger"
           isPending={deleteCapacityProfileMutation.isPending}
           onConfirm={() => deleteCapacityProfileMutation.mutate({ userId: deleteCapacityProfileTarget.user_id, profileId: deleteCapacityProfileTarget.id })}
@@ -265,6 +274,7 @@ interface WorkloadTabProps {
 }
 
 function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: WorkloadTabProps) {
+  const intl = useIntl();
   const [search, setSearch] = useState('');
   const [filterMode, setFilterMode] = useState<string>('all');
 
@@ -284,38 +294,38 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
     return data.filter((item) => (item.allocated_hours ?? 0) > (item.capacity_hours ?? 40)).length;
   }, [data]);
 
-  if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading workload…</div>;
-  if (error) return <EmptyState icon={TriangleAlert} title="Failed to load workload" message={error.message} />;
-  if (data.length === 0) return <EmptyState icon={Users} title="No workload data" message="Workload information will appear once team members are assigned to projects." />;
+  if (isLoading) return <div className="loading-state"><span className="spinner" /> {intl.formatMessage({ id: 'resource.loadingWorkload' })}</div>;
+  if (error) return <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'resource.loadWorkloadError' })} message={error.message} />;
+  if (data.length === 0) return <EmptyState icon={Users} title={intl.formatMessage({ id: 'resource.noWorkload' })} message={intl.formatMessage({ id: 'resource.noWorkloadMessage' })} />;
 
   return (
     <>
       <div className="project-toolbar">
         <div>
-          <span className="eyebrow">Workload Balance</span>
+          <span className="eyebrow">{intl.formatMessage({ id: 'resource.workloadBalance' })}</span>
           <h2>
-            {data.length} team member{data.length === 1 ? '' : 's'}
+            {intl.formatMessage({ id: 'resource.teamMemberCount' }, { n: data.length })}
             {overAllocatedCount > 0 && (
               <span className="status-badge status-overallocated" style={{ marginLeft: 10 }}>
                 <span className="status-dot" />
-                {overAllocatedCount} over-allocated
+                {overAllocatedCount} {intl.formatMessage({ id: 'resource.overallocated' })}
               </span>
             )}
           </h2>
         </div>
         <div className="toolbar-fields">
-          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter members…" />
+          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder={intl.formatMessage({ id: 'resource.filterMembers' })} />
           <SelectField
             value={filterMode}
             onChange={(e) => setFilterMode(e.target.value)}
-            label="Filter status"
+            label={intl.formatMessage({ id: 'resource.filterStatus' })}
             options={[
-              { value: 'all', label: 'All members' },
-              { value: 'overallocated', label: 'Over-allocated only' },
+              { value: 'all', label: intl.formatMessage({ id: 'resource.filterAllMembers' }) },
+              { value: 'overallocated', label: intl.formatMessage({ id: 'resource.filterOverallocatedOnly' }) },
             ]}
           />
           <div className="field-group" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-            <label htmlFor="workload-start" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>From</label>
+            <label htmlFor="workload-start" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{intl.formatMessage({ id: 'member.from' })}</label>
             <input
               id="workload-start"
               type="date"
@@ -323,7 +333,7 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
               onChange={(e) => onDateRangeChange({ ...dateRange, starts_on: e.target.value || undefined })}
               style={{ maxWidth: 140 }}
             />
-            <label htmlFor="workload-end" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>To</label>
+            <label htmlFor="workload-end" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{intl.formatMessage({ id: 'member.to' })}</label>
             <input
               id="workload-end"
               type="date"
@@ -336,7 +346,7 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
       </div>
 
       {filteredData.length === 0 ? (
-        <EmptyState icon={Users} title="No matching members" message="Adjust search or filters to see workload balance." />
+        <EmptyState icon={Users} title={intl.formatMessage({ id: 'resource.noMatchingMembers' })} message={intl.formatMessage({ id: 'resource.noMatchingMembersMessage' })} />
       ) : (
         <div className="member-grid">
           {filteredData.map((item) => {
@@ -356,18 +366,18 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
                 </div>
                 <div className="workload-info">
                   {isOver ? (
-                    <span className="status-badge status-overallocated" title={`Exceeds capacity by ${diff.toFixed(1)} hours`}>
+                    <span className="status-badge status-overallocated" title={intl.formatMessage({ id: 'resource.exceedsCapacity' }, { diff })}>
                       <span className="status-dot" />
-                      {allocated}h / {capacity}h (+{diff.toFixed(1)}h)
+                      {intl.formatMessage({ id: 'resource.capacityDelta' }, { alloc: allocated, cap: capacity, diff })}
                     </span>
                   ) : (
                     <span className="status-badge status-active">
                       <span className="status-dot" />
-                      {allocated}h allocated
+                      {intl.formatMessage({ id: 'resource.hoursAllocated' }, { alloc: allocated })}
                     </span>
                   )}
                   {!isOver && capacity != null && (
-                    <span className="status-badge">{capacity}h capacity</span>
+                    <span className="status-badge">{intl.formatMessage({ id: 'resource.hoursCapacity' }, { cap: capacity })}</span>
                   )}
                 </div>
               </article>
@@ -432,19 +442,20 @@ function formatPercentage(value: number): string {
 }
 
 function CapacityBadge({ peakPercentage }: { peakPercentage: number }) {
+  const intl = useIntl();
   if (peakPercentage > 100) {
     return (
       <span className="rounded-badge bg-coral-red/15 px-2 py-1 text-[10px] text-[#f09a9a]">
-        Overallocated by {formatPercentage(peakPercentage - 100)}% · {formatPercentage(peakPercentage)}% peak
+        {intl.formatMessage({ id: 'resource.overallocatedBadge' }, { x: formatPercentage(peakPercentage - 100), y: formatPercentage(peakPercentage) })}
       </span>
     );
   }
   if (peakPercentage === 100) {
-    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">At capacity · 100% peak</span>;
+    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">{intl.formatMessage({ id: 'resource.atCapacityBadge' }, { y: formatPercentage(peakPercentage) })}</span>;
   }
   return (
     <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-fog">
-      {formatPercentage(100 - peakPercentage)}% available · {formatPercentage(peakPercentage)}% peak
+      {intl.formatMessage({ id: 'resource.availableBadge' }, { x: formatPercentage(100 - peakPercentage), y: formatPercentage(peakPercentage) })}
     </span>
   );
 }
@@ -456,6 +467,7 @@ function AssignmentsTab({
   onEditMemberAlloc,
   onDeleteMemberAlloc,
 }: AssignmentsTabProps) {
+  const intl = useIntl();
   const [search, setSearch] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
 
@@ -464,7 +476,7 @@ function AssignmentsTab({
   const projectOptions = useMemo(() => {
     const projects = new Map<string, string>();
     memberAllocations.forEach((allocation) => {
-      if (allocation.project_id) projects.set(allocation.project_id, allocation.project_name || 'Unassigned');
+      if (allocation.project_id) projects.set(allocation.project_id, allocation.project_name || intl.formatMessage({ id: 'common.unassigned' }));
     });
     return [...projects].map(([value, label]) => ({ value, label })).sort((left, right) => left.label.localeCompare(right.label));
   }, [memberAllocations]);
@@ -480,16 +492,16 @@ function AssignmentsTab({
 
   const totalAllocations = memberAllocations.length;
 
-  if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading assignments…</div>;
-  if (memberError) return <EmptyState icon={TriangleAlert} title="Failed to load assignments" message={memberError.message} />;
+  if (isLoading) return <div className="loading-state"><span className="spinner" /> {intl.formatMessage({ id: 'resource.loadingAssignments' })}</div>;
+  if (memberError) return <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'resource.loadAssignmentsError' })} message={memberError.message} />;
 
   return (
     <>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <span className="eyebrow">People & Project Commitments</span>
+          <span className="eyebrow">{intl.formatMessage({ id: 'resource.peopleCommitments' })}</span>
           <h2>
-            {memberGroups.length} {memberGroups.length === 1 ? 'Person' : 'People'} · {totalAllocations} Assignment{totalAllocations === 1 ? '' : 's'}
+            {intl.formatMessage({ id: 'resource.peopleCount' }, { people: memberGroups.length, assignments: totalAllocations })}
           </h2>
         </div>
         <div className="flex w-full flex-wrap gap-2 border-t border-graphite pt-3">
@@ -497,26 +509,26 @@ function AssignmentsTab({
             <SelectField
               value={projectFilter}
               onChange={(event) => setProjectFilter(event.target.value)}
-              label="Filter by project"
+              label={intl.formatMessage({ id: 'allocation.project' })}
               options={projectOptions}
-              placeholder="All projects"
+              placeholder={intl.formatMessage({ id: 'resource.filterAllProjects' })}
             />
           </div>
           <div className="min-w-[260px] flex-1 max-[600px]:min-w-0 [&_.search-field]:w-full [&_input]:w-full">
-            <SearchField value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search people and projects…" />
+            <SearchField value={search} onChange={(event) => setSearch(event.target.value)} placeholder={intl.formatMessage({ id: 'resource.searchPeopleProjects' })} />
           </div>
         </div>
       </div>
 
       {totalAllocations === 0 ? (
-        <EmptyState icon={Layers} title="No assignments found" message="Project assignments will appear here once team members are allocated." />
+        <EmptyState icon={Layers} title={intl.formatMessage({ id: 'resource.noAssignments' })} message={intl.formatMessage({ id: 'resource.noAssignmentsMessage' })} />
       ) : filteredMemberGroups.length === 0 ? (
-        <EmptyState icon={Search} title="No matching assignments" message="Adjust the search or project filter." />
+        <EmptyState icon={Search} title={intl.formatMessage({ id: 'resource.noMatchingAssignments' })} message={intl.formatMessage({ id: 'resource.noMatchingAssignmentsMessage' })} />
       ) : (
         <section aria-labelledby="people-assignments-heading">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <h3 id="people-assignments-heading" className="text-[11px] font-[510] uppercase tracking-[0.08em] text-ash">Team members</h3>
-                <span className="text-[10px] text-ash">Overall peak is the highest concurrent allocation across projects</span>
+                <span className="text-[10px] text-ash">{intl.formatMessage({ id: 'resource.overallPeakHint' })}</span>
               </div>
               <div className="space-y-2">
                 {filteredMemberGroups.map((group) => {
@@ -540,15 +552,15 @@ function AssignmentsTab({
                         {group.allocations.map((allocation) => (
                           <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-graphite px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_72px_auto]" key={allocation.id}>
                             <div className="min-w-0">
-                              <strong className="block truncate text-[11px] font-[510] text-mist">{allocation.project_name || 'Unassigned project'}</strong>
+                              <strong className="block truncate text-[11px] font-[510] text-mist">{allocation.project_name || intl.formatMessage({ id: 'resource.unassignedProject' })}</strong>
                               <small className="mt-0.5 block truncate text-[9px] text-ash">
-                                {allocation.starts_on && allocation.ends_on ? `${allocation.starts_on} → ${allocation.ends_on}` : 'Dates not set'}
+                                {allocation.starts_on && allocation.ends_on ? `${allocation.starts_on} → ${allocation.ends_on}` : intl.formatMessage({ id: 'resource.datesNotSet' })}
                               </small>
                             </div>
                             <span className="text-right text-[12px] font-[510] text-bone">{formatPercentage(getAllocationPercentage(allocation))}%</span>
                             <div className="invitation-actions col-span-2 justify-end sm:col-span-1">
-                              <button className="icon-button" type="button" aria-label="Edit allocation" onClick={() => onEditMemberAlloc(allocation)}><Pencil size={14} /></button>
-                              <button className="icon-button" type="button" aria-label="Remove allocation" onClick={() => onDeleteMemberAlloc(allocation)}><Trash2 size={14} /></button>
+                              <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'allocation.edit' })} onClick={() => onEditMemberAlloc(allocation)}><Pencil size={14} /></button>
+                              <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'resource.removeAllocation' })} onClick={() => onDeleteMemberAlloc(allocation)}><Trash2 size={14} /></button>
                             </div>
                           </li>
                         ))}
@@ -574,6 +586,7 @@ interface AvailabilityTabProps {
 }
 
 function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDeleteAvailability }: AvailabilityTabProps) {
+  const intl = useIntl();
   const availabilityQuery = useQuery({
     queryKey: queryKeys.allAvailability,
     queryFn: ({ signal }) => api.listAllAvailability(signal),
@@ -589,13 +602,13 @@ function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDel
   }
 
   function statusLabel(rec: Availability) {
-    if (rec.availability_status === 'unavailable') return 'Leave / Vacation';
-    if (rec.availability_status === 'reduced_capacity') return 'Reduced capacity';
-    return 'Available';
+    if (rec.availability_status === 'unavailable') return intl.formatMessage({ id: 'resource.leaveVacation' });
+    if (rec.availability_status === 'reduced_capacity') return intl.formatMessage({ id: 'resource.reducedCapacity' });
+    return intl.formatMessage({ id: 'resource.available' });
   }
 
-  if (availabilityQuery.isLoading) return <div className="loading-state"><span className="spinner" /> Loading availability roster…</div>;
-  if (availabilityQuery.error) return <EmptyState icon={TriangleAlert} title="Failed to load availability" message={availabilityQuery.error.message} />;
+  if (availabilityQuery.isLoading) return <div className="loading-state"><span className="spinner" /> {intl.formatMessage({ id: 'resource.loadingAvailability' })}</div>;
+  if (availabilityQuery.error) return <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'resource.loadAvailabilityError' })} message={availabilityQuery.error.message} />;
 
   return (
     <>
@@ -603,16 +616,16 @@ function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDel
         <div>
           <span className="eyebrow">Capacity & Time-off</span>
           <h2>
-            {users.length} {users.length === 1 ? 'Member' : 'Members'} · {records.length} Availability Windows
+            {intl.formatMessage({ id: 'resource.availabilitySummary' }, { members: users.length, windows: records.length })}
           </h2>
         </div>
         <button className="button button-secondary button-small" type="button" onClick={() => onNewUnavailability()}>
-          <Plus size={13} /> Record leave / unavailability
+          <Plus size={13} /> {intl.formatMessage({ id: 'resource.newAvailability' })}
         </button>
       </div>
 
       {users.length === 0 ? (
-        <EmptyState icon={Users} title="No team members" message="Availability will appear here once team members are added." />
+        <EmptyState icon={Users} title={intl.formatMessage({ id: 'resource.noTeamMembers' })} message={intl.formatMessage({ id: 'resource.noTeamMembersMessage' })} />
       ) : (
         <div className="space-y-2">
           {users.map((member) => {
@@ -629,11 +642,11 @@ function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDel
                     </div>
                   </div>
                   <button className="button button-secondary button-small" type="button" onClick={() => onNewUnavailability(member.id)}>
-                    <Plus size={13} /> Record leave
+                    <Plus size={13} /> {intl.formatMessage({ id: 'resource.recordLeave' })}
                   </button>
                 </header>
                 {memberRecords.length === 0 ? (
-                  <p className="px-3.5 py-3 text-[11px] text-ash">No restrictions scheduled.</p>
+                  <p className="px-3.5 py-3 text-[11px] text-ash">{intl.formatMessage({ id: 'resource.noRestrictions' })}</p>
                 ) : (
                   <ul className="m-0 list-none p-0">
                     {memberRecords.map((rec) => (
@@ -646,15 +659,15 @@ function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDel
                             {statusLabel(rec)}
                           </strong>
                           <small className="mt-0.5 block truncate text-[9px] text-ash">
-                            {rec.starts_on} — {rec.ends_on} · {rec.capacity_hours} hrs/week{rec.note ? ` · ${rec.note}` : ''}
+                            {rec.starts_on} — {rec.ends_on} · {intl.formatMessage({ id: 'resource.periodHours' }, { hours: rec.capacity_hours })}{rec.note ? ` · ${rec.note}` : ''}
                           </small>
                         </div>
-                        <span className="hidden text-[10px] text-ash sm:block">
-                          {rec.availability_status === 'available' ? 'Available' : hasRestrictions ? 'Restricted' : ''}
+<span className="hidden text-[10px] text-ash sm:block">
+                          {rec.availability_status === 'available' ? intl.formatMessage({ id: 'resource.available' }) : hasRestrictions ? intl.formatMessage({ id: 'resource.restricted' }) : ''}
                         </span>
                         <div className="invitation-actions justify-end">
-                          <button className="icon-button" type="button" aria-label={`Edit ${statusLabel(rec)} window`} onClick={() => onEditAvailability(rec)}><Pencil size={14} /></button>
-                          <button className="icon-button" type="button" aria-label={`Delete ${statusLabel(rec)} window`} onClick={() => onDeleteAvailability(rec.user_id || member.id, rec.id)}><Trash2 size={14} /></button>
+                          <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'resource.editWindow' }, { status: statusLabel(rec) })} onClick={() => onEditAvailability(rec)}><Pencil size={14} /></button>
+                          <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'resource.deleteWindow' }, { status: statusLabel(rec) })} onClick={() => onDeleteAvailability(rec.user_id || member.id, rec.id)}><Trash2 size={14} /></button>
                         </div>
                       </li>
                     ))}
@@ -682,6 +695,7 @@ interface CapacityProfilesTabProps {
 }
 
 function CapacityProfilesTab({ isLoading, error, profiles, onNewProfile, onEditProfile, onDeleteProfile }: CapacityProfilesTabProps) {
+  const intl = useIntl();
   const [search, setSearch] = useState('');
 
   const filteredProfiles = useMemo(() => {
@@ -692,20 +706,20 @@ function CapacityProfilesTab({ isLoading, error, profiles, onNewProfile, onEditP
     );
   }, [profiles, search]);
 
-  if (isLoading) return <div className="loading-state"><span className="spinner" /> Loading capacity profiles…</div>;
-  if (error) return <EmptyState icon={TriangleAlert} title="Failed to load capacity profiles" message={error.message} />;
+  if (isLoading) return <div className="loading-state"><span className="spinner" /> {intl.formatMessage({ id: 'resource.loadingProfiles' })}</div>;
+  if (error) return <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'resource.loadProfilesError' })} message={error.message} />;
 
   return (
     <>
       <div className="project-toolbar">
         <div>
-          <span className="eyebrow">Member Capacity</span>
-          <h2>{profiles.length} Capacity Profile{profiles.length === 1 ? '' : 's'}</h2>
+          <span className="eyebrow">{intl.formatMessage({ id: 'resource.memberCapacity' })}</span>
+          <h2>{intl.formatMessage({ id: 'resource.profileCount' }, { n: profiles.length })}</h2>
         </div>
         <div className="toolbar-fields">
-          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name…" />
+          <SearchField value={search} onChange={(e) => setSearch(e.target.value)} placeholder={intl.formatMessage({ id: 'resource.searchProfiles' })} />
           <button className="button button-secondary button-small" type="button" onClick={onNewProfile}>
-            <Plus size={13} /> New profile
+            <Plus size={13} /> {intl.formatMessage({ id: 'resource.newProfile' })}
           </button>
         </div>
       </div>
@@ -713,11 +727,11 @@ function CapacityProfilesTab({ isLoading, error, profiles, onNewProfile, onEditP
       {profiles.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No capacity profiles"
-          message="Define baseline weekly hours for team members. Default capacity is 40 hours per week if no profile is set."
+          title={intl.formatMessage({ id: 'capacity.noProfiles' })}
+          message={intl.formatMessage({ id: 'resource.noProfilesMessage' })}
         />
       ) : filteredProfiles.length === 0 ? (
-        <EmptyState icon={Users} title="No matching profiles" message="Adjust your search to see capacity profiles." />
+        <EmptyState icon={Users} title={intl.formatMessage({ id: 'resource.noMatchingProfiles' })} message={intl.formatMessage({ id: 'resource.noMatchingProfilesMessage' })} />
       ) : (
         <DetailList>
           {filteredProfiles.map((profile) => (
@@ -725,14 +739,14 @@ function CapacityProfilesTab({ isLoading, error, profiles, onNewProfile, onEditP
               <span className="avatar">{(profile.user_name || '—').slice(0, 2).toUpperCase()}</span>
               <span className="detail-list-copy">
                 <strong>{profile.user_name || `User ${profile.user_id}`}</strong>
-                <small>{profile.weekly_capacity_hours}h / week · Effective from {profile.effective_from}</small>
+                <small>{intl.formatMessage({ id: 'member.hoursPerWeek' }, { hours: profile.weekly_capacity_hours })} · {intl.formatMessage({ id: 'capacity.effectiveFrom' }, { date: profile.effective_from })}</small>
               </span>
               <div className="invitation-actions">
                 <button className="text-button" type="button" onClick={() => onEditProfile(profile)}>
-                  Edit
+                  {intl.formatMessage({ id: 'common.edit' })}
                 </button>
                 <button className="text-button text-button-danger" type="button" onClick={() => onDeleteProfile(profile)}>
-                  Delete
+                  {intl.formatMessage({ id: 'common.delete' })}
                 </button>
               </div>
             </DetailRow>

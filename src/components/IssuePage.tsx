@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -18,6 +19,7 @@ interface IssuePageProps {
 }
 
 export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePageProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
   if (issueQuery.isLoading) {
     return (
       <>
-        <PageHeader eyebrow="Issue" title="Loading issue…" onMenu={onMenu} />
-        <div className="panel"><div className="loading-state"><span className="spinner" />Loading…</div></div>
+        <PageHeader eyebrow={intl.formatMessage({ id: 'issue.title' })} title={intl.formatMessage({ id: 'common.loading' })} onMenu={onMenu} />
+        <div className="panel"><div className="loading-state"><span className="spinner" />{intl.formatMessage({ id: 'common.loading' })}</div></div>
       </>
     );
   }
@@ -57,9 +59,9 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
   if (!issue) {
     return (
       <>
-        <PageHeader eyebrow="Issue" title="Issue not found" onMenu={onMenu} />
+        <PageHeader eyebrow={intl.formatMessage({ id: 'issue.title' })} title={intl.formatMessage({ id: 'state.notFound' })} onMenu={onMenu} />
         <div className="panel">
-          <EmptyState icon={TriangleAlert} title="Issue unavailable" message="This issue may have been deleted or you no longer have access." />
+          <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'state.notFound' })} message="This issue may have been deleted or you no longer have access." />
         </div>
       </>
     );
@@ -70,19 +72,19 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
   return (
     <>
       <PageHeader
-        eyebrow={`Issue · ${getLabel(PRIORITIES, priority || 'medium')} priority`}
+        eyebrow={`${intl.formatMessage({ id: 'issue.title' })} · ${intl.formatMessage({ id: getLabel(PRIORITIES, priority || 'medium') })} ${intl.formatMessage({ id: 'common.priority' })}`}
         title={title}
-        description={description || 'No description provided.'}
+        description={description || intl.formatMessage({ id: 'project.noDescription' })}
         onMenu={onMenu}
         action={
           <div className="page-actions">
             <button className="button button-secondary button-small" type="button" onClick={() => onSelectProject(issue.project_id)}>
               <Layers size={14} />
-              Open project
+              {intl.formatMessage({ id: 'common.openProject' })}
             </button>
             <button className="button button-primary button-small" type="button" onClick={() => setIsEditOpen(true)}>
               <Pencil size={14} />
-              Edit
+              {intl.formatMessage({ id: 'common.edit' })}
             </button>
           </div>
         }
@@ -92,20 +94,20 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
         <DetailList>
           <DetailRow>
             <span className="detail-list-copy">
-              <strong>Priority</strong>
-              <small>{getLabel(PRIORITIES, priority || 'medium')}</small>
+              <strong>{intl.formatMessage({ id: 'task.priority' })}</strong>
+              <small>{intl.formatMessage({ id: getLabel(PRIORITIES, priority || 'medium') })}</small>
             </span>
           </DetailRow>
           <DetailRow>
             <span className="detail-list-copy">
-              <strong>Status</strong>
-              <small>{getLabel(ISSUE_STATUSES, status || 'open')}</small>
+              <strong>{intl.formatMessage({ id: 'riskIssue.status' })}</strong>
+              <small>{intl.formatMessage({ id: getLabel(ISSUE_STATUSES, status || 'open') })}</small>
             </span>
           </DetailRow>
           {issue.owner_name && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Owner</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.owner' })}</strong>
                 <small>{issue.owner_name}</small>
               </span>
             </DetailRow>
@@ -113,7 +115,7 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
           {issue.target_resolution_date && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Target resolution date</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.targetDate' })}</strong>
                 <small>{issue.target_resolution_date}</small>
               </span>
             </DetailRow>
@@ -121,7 +123,7 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
           {issue.resolution_progress !== undefined && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Resolution progress</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.resolutionProgress' })}</strong>
                 <small>
                   <span className="progress-track"><span style={{ width: `${issue.resolution_progress}%` }} /></span>{' '}
                   {issue.resolution_progress}%
@@ -132,7 +134,7 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
           {issue.resolution_note && (
             <DetailRow>
               <span className="detail-list-copy">
-                <strong>Resolution notes</strong>
+                <strong>{intl.formatMessage({ id: 'riskIssue.resolutionNote' })}</strong>
                 <small>{issue.resolution_note}</small>
               </span>
             </DetailRow>
@@ -145,7 +147,7 @@ export default function IssuePage({ onMenu, onSelectProject, issueId }: IssuePag
             onClick={() => deleteIssue.mutate(issue.id)}
             disabled={deleteIssue.isPending}
           >
-            {deleteIssue.isPending ? 'Deleting…' : 'Delete issue'}
+            {deleteIssue.isPending ? intl.formatMessage({ id: 'common.processing' }) : intl.formatMessage({ id: 'common.delete' })}
           </button>
           {error && <span className="error-banner" role="alert">{error}</span>}
         </div>

@@ -4,6 +4,7 @@ import { api, ApiError, setSessionToken, setUnauthorizedHandler } from '../api/c
 import type { AuthContextValue } from '../types/auth.js';
 import type { User } from '../types/api.js';
 import { AuthContext } from './auth-context.js';
+import { applyLocaleFromPreference, isSupportedLocale } from '../i18n/locale.js';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -35,6 +36,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     try {
       const { user } = await api.getCurrentUser();
       establishSession(user);
+      if (user.preferred_locale && isSupportedLocale(user.preferred_locale)) {
+        applyLocaleFromPreference(user.preferred_locale);
+      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) return;
       setAuthState({ status: 'error', user: null, error: 'Atlas could not confirm your session. Please try again.' });

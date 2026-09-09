@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useIntl } from 'react-intl';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { PRIORITIES, PROJECT_STATUSES } from '../constants.js';
@@ -39,6 +40,7 @@ function createLinkDraft(): ProjectLinkDraft {
 }
 
 export default function NewProjectModal({ isSubmitting: isMutationPending = false, onClose, onCreate }: NewProjectModalProps) {
+  const intl = useIntl();
   const [form, setForm] = useState(EMPTY_PROJECT);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,36 +66,36 @@ export default function NewProjectModal({ isSubmitting: isMutationPending = fals
   };
 
   return (
-    <DialogShell size="large" title="Create a new project" description="Add the core details now. Tasks, milestones, and members can be added from the project view." onClose={onClose}>
+    <DialogShell size="large" title={intl.formatMessage({ id: 'project.createTitle' })} description={intl.formatMessage({ id: 'project.createDescription' })} onClose={onClose}>
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
-        <div className="field-group"><label htmlFor="project-name">Project name</label><input id="project-name" autoFocus required value={form.name} onChange={updateField('name')} placeholder="e.g. Customer onboarding" /></div>
-        <div className="field-group"><label htmlFor="project-description">Description</label><textarea id="project-description" value={form.description} onChange={updateField('description')} placeholder="What does this project need to achieve?" /></div>
-        <div className="field-group"><label htmlFor="project-owner">Project owner</label><select id="project-owner" value={form.owner_user_id} onChange={updateField('owner_user_id')} disabled={usersQuery.isLoading}><option value="">Unassigned</option>{(usersQuery.data || []).filter((user) => user.status === 'active').map((user) => <option key={user.id} value={user.id}>{user.name} — {user.email}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="project-name">{intl.formatMessage({ id: 'project.name' })}</label><input id="project-name" autoFocus required value={form.name} onChange={updateField('name')} placeholder={intl.formatMessage({ id: 'project.namePlaceholder' })} /></div>
+        <div className="field-group"><label htmlFor="project-description">{intl.formatMessage({ id: 'project.descriptionLabel' })}</label><textarea id="project-description" value={form.description} onChange={updateField('description')} placeholder={intl.formatMessage({ id: 'project.descriptionPlaceholder' })} /></div>
+        <div className="field-group"><label htmlFor="project-owner">{intl.formatMessage({ id: 'project.owner' })}</label><select id="project-owner" value={form.owner_user_id} onChange={updateField('owner_user_id')} disabled={usersQuery.isLoading}><option value="">{intl.formatMessage({ id: 'common.unassigned' })}</option>{(usersQuery.data || []).filter((user) => user.status === 'active').map((user) => <option key={user.id} value={user.id}>{user.name} — {user.email}</option>)}</select></div>
         <div className="field-row">
-          <div className="field-group"><label htmlFor="project-status">Status</label><select id="project-status" value={form.status} onChange={updateField('status')}>{PROJECT_STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
-          <div className="field-group"><label htmlFor="project-priority">Priority</label><select id="project-priority" value={form.priority} onChange={updateField('priority')}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+          <div className="field-group"><label htmlFor="project-status">{intl.formatMessage({ id: 'project.status' })}</label><select id="project-status" value={form.status} onChange={updateField('status')}>{PROJECT_STATUSES.map((item) => <option key={item.value} value={item.value}>{intl.formatMessage({ id: item.label })}</option>)}</select></div>
+          <div className="field-group"><label htmlFor="project-priority">{intl.formatMessage({ id: 'project.priority' })}</label><select id="project-priority" value={form.priority} onChange={updateField('priority')}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{intl.formatMessage({ id: item.label })}</option>)}</select></div>
         </div>
         <div className="field-row">
-          <div className="field-group"><label htmlFor="project-start">Start date</label><input id="project-start" type="date" value={form.start_date} onChange={updateField('start_date')} /></div>
-          <div className="field-group"><label htmlFor="project-deadline">Deadline</label><input id="project-deadline" type="date" min={form.start_date || undefined} value={form.deadline} onChange={updateField('deadline')} /></div>
+          <div className="field-group"><label htmlFor="project-start">{intl.formatMessage({ id: 'project.startDate' })}</label><input id="project-start" type="date" value={form.start_date} onChange={updateField('start_date')} /></div>
+          <div className="field-group"><label htmlFor="project-deadline">{intl.formatMessage({ id: 'project.deadline' })}</label><input id="project-deadline" type="date" min={form.start_date || undefined} value={form.deadline} onChange={updateField('deadline')} /></div>
         </div>
-        <div className="field-group"><label htmlFor="project-website">Project website</label><input id="project-website" type="url" value={form.website_url} onChange={updateField('website_url')} placeholder="https://example.com" /></div>
-        <div className="field-group"><label htmlFor="project-drive">Google Drive folder</label><input id="project-drive" type="url" value={form.drive_folder_url} onChange={updateField('drive_folder_url')} placeholder="https://drive.google.com/..." /></div>
+        <div className="field-group"><label htmlFor="project-website">{intl.formatMessage({ id: 'project.projectWebsite' })}</label><input id="project-website" type="url" value={form.website_url} onChange={updateField('website_url')} placeholder="https://example.com" /></div>
+        <div className="field-group"><label htmlFor="project-drive">{intl.formatMessage({ id: 'project.driveFolder' })}</label><input id="project-drive" type="url" value={form.drive_folder_url} onChange={updateField('drive_folder_url')} placeholder="https://drive.google.com/..." /></div>
         <section className="project-links-editor" aria-labelledby="project-links-heading">
           <div className="project-links-heading">
-            <div><h3 id="project-links-heading">External links</h3><p>Add repositories, designs, documentation, or project directories.</p></div>
-            <button className="button button-secondary button-small" type="button" onClick={() => setForm((current) => ({ ...current, links: [...current.links, createLinkDraft()] }))}>Add link</button>
+            <div><h3 id="project-links-heading">{intl.formatMessage({ id: 'project.links' })}</h3><p>{intl.formatMessage({ id: 'project.linksHint' })}</p></div>
+            <button className="button button-secondary button-small" type="button" onClick={() => setForm((current) => ({ ...current, links: [...current.links, createLinkDraft()] }))}>{intl.formatMessage({ id: 'project.addLink' })}</button>
           </div>
-          {form.links.length === 0 && <p className="project-links-empty">No additional links added.</p>}
+          {form.links.length === 0 && <p className="project-links-empty">{intl.formatMessage({ id: 'project.linksEmpty' })}</p>}
           {form.links.map((link, index) => <div className="project-link-fields" key={link.id}>
-            <div className="field-group"><label htmlFor={`project-link-label-${link.id}`}>Label</label><input id={`project-link-label-${link.id}`} required value={link.label} onChange={updateLink(link.id, 'label')} placeholder="e.g. Product repository" /></div>
-            <div className="field-group"><label htmlFor={`project-link-type-${link.id}`}>Type</label><select id={`project-link-type-${link.id}`} required value={link.link_type} onChange={updateLink(link.id, 'link_type')}><option value="">Select type</option><option value="github">GitHub</option><option value="figma">Figma</option><option value="google_drive">Google Drive</option><option value="documentation">Documentation</option><option value="project_directory">Project directory</option><option value="other">Other</option></select></div>
-            <div className="field-group project-link-url"><label htmlFor={`project-link-url-${link.id}`}>HTTPS URL</label><input id={`project-link-url-${link.id}`} type="url" pattern="https://.*" required value={link.url} onChange={updateLink(link.id, 'url')} placeholder="https://..." /></div>
-            <button className="icon-button project-link-remove" type="button" aria-label={`Remove external link ${index + 1}`} onClick={() => setForm((current) => ({ ...current, links: current.links.filter((item) => item.id !== link.id) }))}>×</button>
+            <div className="field-group"><label htmlFor={`project-link-label-${link.id}`}>{intl.formatMessage({ id: 'project.linkLabel' })}</label><input id={`project-link-label-${link.id}`} required value={link.label} onChange={updateLink(link.id, 'label')} placeholder={intl.formatMessage({ id: 'project.linkLabelPlaceholder' })} /></div>
+            <div className="field-group"><label htmlFor={`project-link-type-${link.id}`}>{intl.formatMessage({ id: 'project.linkType' })}</label><select id={`project-link-type-${link.id}`} required value={link.link_type} onChange={updateLink(link.id, 'link_type')}><option value="">{intl.formatMessage({ id: 'project.selectType' })}</option><option value="github">GitHub</option><option value="figma">Figma</option><option value="google_drive">Google Drive</option><option value="documentation">{intl.formatMessage({ id: 'linkType.documentation' })}</option><option value="project_directory">{intl.formatMessage({ id: 'linkType.projectDirectory' })}</option><option value="other">{intl.formatMessage({ id: 'linkType.other' })}</option></select></div>
+            <div className="field-group project-link-url"><label htmlFor={`project-link-url-${link.id}`}>{intl.formatMessage({ id: 'project.linkUrl' })}</label><input id={`project-link-url-${link.id}`} type="url" pattern="https://.*" required value={link.url} onChange={updateLink(link.id, 'url')} placeholder="https://..." /></div>
+            <button className="icon-button project-link-remove" type="button" aria-label={intl.formatMessage({ id: 'project.removeExternalLink', values: { index: index + 1 } })} onClick={() => setForm((current) => ({ ...current, links: current.links.filter((item) => item.id !== link.id) }))}>×</button>
           </div>)}
         </section>
-        <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={isSubmitting || isMutationPending}>{isSubmitting || isMutationPending ? 'Creating…' : 'Create project'}</button></footer>
+        <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>{intl.formatMessage({ id: 'common.cancel' })}</button><button className="button button-primary" type="submit" disabled={isSubmitting || isMutationPending}>{isSubmitting || isMutationPending ? intl.formatMessage({ id: 'common.creating' }) : intl.formatMessage({ id: 'project.newProject' })}</button></footer>
       </form>
     </DialogShell>
   );

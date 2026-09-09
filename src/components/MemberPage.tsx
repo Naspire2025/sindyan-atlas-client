@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import { api } from "../api/client.js";
 import type { MemberSummary } from "../types/api.js";
 import { formatDate } from "../utils/project.js";
@@ -26,9 +27,9 @@ interface MemberPageProps {
 const SCROLLABLE_DETAIL_LIST_STYLES =
   "max-h-[20rem] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-acid-lime/70";
 
-function roleLabel(role: string): string {
-  if (role === "project_lead") return "Project lead";
-  return "Member";
+function roleLabel(role: string, intl: ReturnType<typeof useIntl>): string {
+  if (role === "project_lead") return intl.formatMessage({ id: 'member.projectLead' });
+  return intl.formatMessage({ id: 'member.member' });
 }
 
 export default function MemberPage({
@@ -38,6 +39,7 @@ export default function MemberPage({
   onSelectProject,
   onSelectTask,
 }: MemberPageProps) {
+  const intl = useIntl();
   const [summary, setSummary] = useState<MemberSummary | null>(null);
   const [error, setError] = useState("");
 
@@ -62,18 +64,18 @@ export default function MemberPage({
     return (
       <div className="page">
         <PageHeader
-          eyebrow="Member"
-          title="Member unavailable"
+          eyebrow={intl.formatMessage({ id: "team.memberRole" })}
+          title={intl.formatMessage({ id: 'member.unavailable' })}
           description={error}
           onMenu={onMenu}
         />
         <EmptyState
           icon={TriangleAlert}
-          title="Failed to load member"
+          title={intl.formatMessage({ id: 'member.failedToLoad' })}
           message={error}
           action={
             <button className="button ghost" type="button" onClick={load}>
-              Try again
+              {intl.formatMessage({ id: "common.retry" })}
             </button>
           }
         />
@@ -84,8 +86,8 @@ export default function MemberPage({
   if (!summary) {
     return (
       <div className="page">
-        <PageHeader eyebrow="Member" title="Loading…" onMenu={onMenu} />
-        <div className="loading-state">Loading member details…</div>
+        <PageHeader eyebrow={intl.formatMessage({ id: "team.memberRole" })} title={intl.formatMessage({ id: "common.loading" })} onMenu={onMenu} />
+        <div className="loading-state">{intl.formatMessage({ id: "common.loading" })}</div>
       </div>
     );
   }
@@ -100,14 +102,14 @@ export default function MemberPage({
         <button
           className="icon-button mobile-menu"
           type="button"
-          aria-label="Open navigation"
+          aria-label={intl.formatMessage({ id: "common.openNavigation" })}
           onClick={onMenu}
         >
           <Menu size={18} />
         </button>
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <button type="button" onClick={onBack}>
-            Team
+            {intl.formatMessage({ id: "team.title" })}
           </button>
           <ChevronRight size={13} />
           <span>{summary.name}</span>
@@ -120,9 +122,9 @@ export default function MemberPage({
         </span>
       </header>
       <PageHeader
-        eyebrow="Member"
+        eyebrow={intl.formatMessage({ id: "team.memberRole" })}
         title={summary.name}
-        description={`${summary.email} · ${summary.role === "admin" ? "Admin" : "Team member"}`}
+        description={`${summary.email} · ${summary.role === "admin" ? intl.formatMessage({ id: "team.admin" }) : intl.formatMessage({ id: "team.teamMember" })}`}
         onMenu={onMenu}
       />
 
@@ -130,7 +132,7 @@ export default function MemberPage({
         <div className="project-section-card">
           <div className="section-header">
             <div>
-              <div className="eyebrow">Member</div>
+              <div className="eyebrow">{intl.formatMessage({ id: "team.memberRole" })}</div>
               <h2>{summary.name}</h2>
               <p>{summary.email}</p>
             </div>
@@ -138,19 +140,19 @@ export default function MemberPage({
           <div className="project-stat-grid">
             <div className="project-stat">
               <strong>{summary.projects.length}</strong>
-              <span>Projects</span>
+              <span>{intl.formatMessage({ id: "member.projects" })}</span>
             </div>
             <div className="project-stat">
               <strong>{openProjects}</strong>
-              <span>Active projects</span>
+              <span>{intl.formatMessage({ id: 'member.activeProjects' })}</span>
             </div>
             <div className="project-stat">
               <strong>{summary.assignments.tasks.length}</strong>
-              <span>Assigned tasks</span>
+              <span>{intl.formatMessage({ id: "member.tasks" })}</span>
             </div>
             <div className="project-stat">
               <strong>{summary.assignments.vault_entries.length}</strong>
-              <span>Vault entries</span>
+              <span>{intl.formatMessage({ id: "member.vaultEntries" })}</span>
             </div>
           </div>
         </div>
@@ -160,15 +162,15 @@ export default function MemberPage({
         <div className="project-section-card min-w-0">
           <div className="section-header">
             <div>
-              <h2>Projects & roles</h2>
-              <p>Memberships across the workspace</p>
+              <h2>{intl.formatMessage({ id: 'member.projectsAndRoles' })}</h2>
+              <p>{intl.formatMessage({ id: 'member.membershipsDescription' })}</p>
             </div>
           </div>
           {summary.projects.length === 0 ? (
             <EmptyState
               icon={Layers}
-              title="No projects"
-              message="Not part of any project yet."
+              title={intl.formatMessage({ id: "member.noProjects" })}
+              message={intl.formatMessage({ id: 'member.noProjectsMessage' })}
             />
           ) : (
             <DetailList
@@ -187,7 +189,7 @@ export default function MemberPage({
                     {project.project_name}
                   </button>
                   <div className="detail-list-copy">
-                    <small>{roleLabel(project.project_role)}</small>
+                    <small>{roleLabel(project.project_role, intl)}</small>
                   </div>
                   <span className="role-pill">{project.status}</span>
                 </DetailRow>
@@ -199,15 +201,15 @@ export default function MemberPage({
         <div className="project-section-card min-w-0">
           <div className="section-header">
             <div>
-              <h2>Assigned tasks</h2>
-              <p>Tasks this member is the assignee for</p>
+              <h2>{intl.formatMessage({ id: "member.tasks" })}</h2>
+              <p>{intl.formatMessage({ id: 'member.tasksDescription' })}</p>
             </div>
           </div>
           {summary.assignments.tasks.length === 0 ? (
             <EmptyState
               icon={CircleCheck}
-              title="No tasks assigned"
-              message="No tasks assigned to this member."
+              title={intl.formatMessage({ id: "member.noTasks" })}
+              message={intl.formatMessage({ id: "member.noTasks" })}
             />
           ) : (
             <DetailList
@@ -243,15 +245,15 @@ export default function MemberPage({
         <div className="project-section-card min-w-0">
           <div className="section-header">
             <div>
-              <h2>Owned risks</h2>
-              <p>Risks where this member is the owner</p>
+              <h2>{intl.formatMessage({ id: "member.risks" })}</h2>
+              <p>{intl.formatMessage({ id: 'member.risksDescription' })}</p>
             </div>
           </div>
           {summary.assignments.risks.length === 0 ? (
             <EmptyState
               icon={TriangleAlert}
-              title="No risks owned"
-              message="No risks are owned by this member."
+              title={intl.formatMessage({ id: "member.noRisks" })}
+              message={intl.formatMessage({ id: "member.noRisks" })}
             />
           ) : (
             <DetailList
@@ -282,15 +284,15 @@ export default function MemberPage({
         <div className="project-section-card min-w-0">
           <div className="section-header">
             <div>
-              <h2>Owned issues</h2>
-              <p>Issues where this member is the owner</p>
+              <h2>{intl.formatMessage({ id: "member.issues" })}</h2>
+              <p>{intl.formatMessage({ id: 'member.issuesDescription' })}</p>
             </div>
           </div>
           {summary.assignments.issues.length === 0 ? (
             <EmptyState
               icon={TriangleAlert}
-              title="No issues owned"
-              message="No issues are owned by this member."
+              title={intl.formatMessage({ id: "member.noIssues" })}
+              message={intl.formatMessage({ id: "member.noIssues" })}
             />
           ) : (
             <DetailList
@@ -320,15 +322,15 @@ export default function MemberPage({
         <div className="project-section-card col-span-2 min-w-0 max-[960px]:col-span-1">
           <div className="section-header">
             <div>
-              <h2>Allocations</h2>
-              <p>Time allocated across projects</p>
+              <h2>{intl.formatMessage({ id: "member.allocations" })}</h2>
+              <p>{intl.formatMessage({ id: 'member.allocationsDescription' })}</p>
             </div>
           </div>
           {summary.assignments.allocations.length === 0 ? (
             <EmptyState
               icon={Calendar}
-              title="No allocations"
-              message="No time allocated across projects."
+              title={intl.formatMessage({ id: "member.noAllocations" })}
+              message={intl.formatMessage({ id: "member.noAllocations" })}
             />
           ) : (
             <DetailList

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -12,6 +13,7 @@ interface CapacityProfileModalProps {
 }
 
 export default function CapacityProfileModal({ editTarget, onClose, onSuccess }: CapacityProfileModalProps) {
+  const intl = useIntl();
   const [userId, setUserId] = useState(editTarget?.user_id || '');
   const [effectiveFrom, setEffectiveFrom] = useState(editTarget?.effective_from || new Date().toISOString().slice(0, 10));
   const [weeklyCapacityHours, setWeeklyCapacityHours] = useState<string>(
@@ -67,7 +69,7 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
 
   return (
     <DialogShell
-      title={isEditing ? 'Edit Capacity Profile' : 'New Capacity Profile'}
+      title={isEditing ? intl.formatMessage({ id: 'capacity.edit' }) : intl.formatMessage({ id: 'capacity.add' })}
       description="Define baseline weekly working hours for a team member. This determines their maximum allocatable capacity."
       onClose={onClose}
     >
@@ -76,7 +78,7 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
 
         {!isEditing && (
           <div className="field-group">
-            <label htmlFor="cap-user">Team member</label>
+            <label htmlFor="cap-user">{intl.formatMessage({ id: 'resource.member' })}</label>
             <select
               id="cap-user"
               required
@@ -84,7 +86,7 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
               onChange={(e) => setUserId(e.target.value)}
               disabled={usersQuery.isLoading}
             >
-              <option value="">Select team member…</option>
+              <option value="">{intl.formatMessage({ id: 'common.search' })}</option>
               {(usersQuery.data || [])
                 .filter((u) => u.status === 'active')
                 .map((u) => (
@@ -97,7 +99,7 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
         )}
 
         <div className="field-group">
-          <label htmlFor="cap-effective">Effective from</label>
+          <label htmlFor="cap-effective">{intl.formatMessage({ id: 'capacity.effectiveFrom' })}</label>
           <input
             id="cap-effective"
             type="date"
@@ -108,7 +110,7 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
         </div>
 
         <div className="field-group">
-          <label htmlFor="cap-hours">Weekly capacity hours</label>
+          <label htmlFor="cap-hours">{intl.formatMessage({ id: 'capacity.weeklyHours' })}</label>
           <input
             id="cap-hours"
             type="number"
@@ -126,10 +128,10 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
 
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>
-            Cancel
+            {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : isEditing ? 'Update profile' : 'Create profile'}
+            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : isEditing ? 'Update profile' : 'Create profile'}
           </button>
         </footer>
       </form>

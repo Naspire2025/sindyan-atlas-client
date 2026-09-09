@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -39,13 +40,14 @@ function MemberCapacitySummary({
   peakAllocatedPercentage,
   weeklyCapacityHours,
 }: MemberCapacitySummaryProps) {
+  const intl = useIntl();
   const totalPercentage = peakAllocatedPercentage + currentPercentage;
   const isOverCapacity = totalPercentage > FULL_CAPACITY_PERCENTAGE;
   const remainingPercentage = Math.max(0, FULL_CAPACITY_PERCENTAGE - totalPercentage);
   const percentageToHours = (value: number) => weeklyCapacityHours * value / FULL_CAPACITY_PERCENTAGE;
 
   if (isLoading) {
-    return <div className="mb-3 rounded-control border border-graphite bg-obsidian p-3 text-[11px] text-fog">Loading capacity details…</div>;
+    return <div className="mb-3 rounded-control border border-graphite bg-obsidian p-3 text-[11px] text-fog">{intl.formatMessage({ id: 'common.loading' })}</div>;
   }
 
   if (isError) {
@@ -117,6 +119,7 @@ export default function AllocationModal({
   onClose,
   onSuccess,
 }: AllocationModalProps) {
+  const intl = useIntl();
   const [userId, setUserId] = useState<string>(
     editMemberTarget?.user_id ? String(editMemberTarget.user_id) : ''
   );
@@ -229,7 +232,7 @@ export default function AllocationModal({
 
   return (
     <DialogShell
-      title={isEditing ? 'Edit Allocation' : 'Create Member Allocation'}
+      title={isEditing ? intl.formatMessage({ id: 'allocation.edit' }) : intl.formatMessage({ id: 'allocation.add' })}
       description="Assign a team member to a project workload and track planned capacity."
       onClose={onClose}
     >
@@ -237,7 +240,7 @@ export default function AllocationModal({
         {error && <div className="error-banner" role="alert">{error}</div>}
 
         <div className="field-group">
-          <label htmlFor="alloc-user">Team member</label>
+          <label htmlFor="alloc-user">{intl.formatMessage({ id: 'resource.member' })}</label>
           <select
             id="alloc-user"
             required
@@ -245,7 +248,7 @@ export default function AllocationModal({
             onChange={(e) => setUserId(e.target.value)}
             disabled={usersQuery.isLoading}
           >
-            <option value="">Select team member…</option>
+            <option value="">{intl.formatMessage({ id: 'common.search' })}</option>
             {(usersQuery.data || [])
               .filter((u) => u.status === 'active')
               .map((u) => (
@@ -269,7 +272,7 @@ export default function AllocationModal({
         )}
 
         <div className="field-group">
-          <label htmlFor="alloc-project">Project</label>
+          <label htmlFor="alloc-project">{intl.formatMessage({ id: 'allocation.project' })}</label>
           <select
             id="alloc-project"
             required
@@ -277,7 +280,7 @@ export default function AllocationModal({
             onChange={(e) => setProjectId(e.target.value)}
             disabled={projectsQuery.isLoading}
           >
-            <option value="">Select project…</option>
+            <option value="">{intl.formatMessage({ id: 'common.search' })}</option>
             {(projectsQuery.data || []).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -287,7 +290,7 @@ export default function AllocationModal({
         </div>
 
         <div className="field-group">
-          <label htmlFor="alloc-percentage">Weekly capacity allocated (%)</label>
+          <label htmlFor="alloc-percentage">{intl.formatMessage({ id: 'allocation.percent' })}</label>
           <input
             id="alloc-percentage"
             type="number"
@@ -301,7 +304,7 @@ export default function AllocationModal({
 
         <div className="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
           <div className="field-group">
-            <label htmlFor="alloc-start">Start date</label>
+            <label htmlFor="alloc-start">{intl.formatMessage({ id: 'allocation.startDate' })}</label>
             <input
               id="alloc-start"
               type="date"
@@ -311,7 +314,7 @@ export default function AllocationModal({
             />
           </div>
           <div className="field-group">
-            <label htmlFor="alloc-end">End date</label>
+            <label htmlFor="alloc-end">{intl.formatMessage({ id: 'allocation.endDate' })}</label>
             <input
               id="alloc-end"
               type="date"
@@ -324,10 +327,10 @@ export default function AllocationModal({
 
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>
-            Cancel
+            {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : isEditing ? 'Update allocation' : 'Create allocation'}
+            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : isEditing ? 'Update allocation' : 'Create allocation'}
           </button>
         </footer>
       </form>

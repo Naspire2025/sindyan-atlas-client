@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { api } from '../api/client.js';
 import type { Phase } from '../types/api.js';
 import DialogShell from './DialogShell.js';
@@ -11,6 +12,7 @@ interface PhaseModalProps {
 }
 
 export default function PhaseModal({ phase, projectId, onClose, onSuccess }: PhaseModalProps) {
+  const intl = useIntl();
   const isEditing = Boolean(phase);
   const [name, setName] = useState(phase?.name || '');
   const [startDate, setStartDate] = useState(phase?.start_date || '');
@@ -51,7 +53,7 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
 
   return (
     <DialogShell
-      title={isEditing ? 'Edit project phase' : 'Add project phase'}
+      title={isEditing ? intl.formatMessage({ id: 'phase.edit' }) : intl.formatMessage({ id: 'phase.add' })}
       description="Define a major stage in the project timeline."
       onClose={onClose}
     >
@@ -59,7 +61,7 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
         {error && <div className="error-banner" role="alert">{error}</div>}
 
         <div className="field-group">
-          <label htmlFor="phase-name">Phase name</label>
+          <label htmlFor="phase-name">{intl.formatMessage({ id: 'phase.name' })}</label>
           <input
             id="phase-name"
             autoFocus
@@ -72,7 +74,7 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
 
         <div className="field-row">
           <div className="field-group">
-            <label htmlFor="phase-start">Start date</label>
+            <label htmlFor="phase-start">{intl.formatMessage({ id: 'phase.startDate' })}</label>
             <input
               id="phase-start"
               type="date"
@@ -83,7 +85,7 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
           </div>
 
           <div className="field-group">
-            <label htmlFor="phase-end">End date</label>
+            <label htmlFor="phase-end">{intl.formatMessage({ id: 'phase.endDate' })}</label>
             <input
               id="phase-end"
               type="date"
@@ -97,10 +99,10 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
 
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>
-            Cancel
+            {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : isEditing ? 'Save phase' : 'Create phase'}
+            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : isEditing ? 'Save phase' : 'Create phase'}
           </button>
         </footer>
       </form>

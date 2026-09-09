@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useIntl } from "react-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project, Task, CreateTaskPayload, User } from "./types/api.js";
@@ -18,6 +19,7 @@ import DashboardPage from "./components/DashboardPage.jsx";
 import DashboardShell from "./components/DashboardShell.jsx";
 import InvitationsPage from "./components/InvitationsPage.jsx";
 import IssuePage from "./components/IssuePage.jsx";
+import { LanguageSwitcher } from "./components/LanguageSwitcher.js";
 import MemberPage from "./components/MemberPage.jsx";
 import MilestonePage from "./components/MilestonePage.jsx";
 import NotFoundPage from "./components/NotFoundPage.jsx";
@@ -46,9 +48,10 @@ export default function App() {
   const route = useRouterState({ select: (state) => state.location });
   const currentRoute: Route = routeFromPath(route.pathname, route.search);
   const { error, status } = useAuth();
+  const intl = useIntl();
 
   if (status === "checking")
-    return <LoadingScreen message="Confirming your session…" />;
+    return <LoadingScreen message={intl.formatMessage({ id: "dashboard.confirmSession" })} />;
   if (status === "error") return <SessionError message={error} />;
   if (status !== "authenticated")
     return <PublicApp route={currentRoute} sessionError={error} />;
@@ -63,6 +66,7 @@ function AuthenticatedApp({ route }: AuthenticatedAppProps) {
   const { logout, user } = useAuth();
   const queryClient = useQueryClient();
   const appNavigate = useNavigate();
+  const intl = useIntl();
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const projectsQuery = useQuery({
@@ -127,7 +131,7 @@ function AuthenticatedApp({ route }: AuthenticatedAppProps) {
       user={user!}
     >
       {projectsQuery.isLoading || tasksQuery.isLoading ? (
-        <LoadingScreen message="Loading workspace…" />
+        <LoadingScreen message={intl.formatMessage({ id: "dashboard.loadingWorkspace" })} />
       ) : (
         <PageContent
           canCreateProject={canCreateProjects(user)}
@@ -361,6 +365,7 @@ function PublicApp({
   sessionError: string;
 }) {
   const { acceptInvitation, login } = useAuth();
+  const intl = useIntl();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState(sessionError);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -368,8 +373,11 @@ function PublicApp({
   const invitationToken =
     route.page === "acceptInvitation" ? route.token : null;
   const title = invitationToken
-    ? "Set up your Atlas account"
-    : "Sign in to Atlas";
+    ? intl.formatMessage({ id: "auth.acceptInvitationTitle" })
+    : intl.formatMessage({ id: "auth.signInTitle" });
+  const description = invitationToken
+    ? intl.formatMessage({ id: "auth.acceptInvitationDescription" })
+    : intl.formatMessage({ id: "auth.signInDescription" });
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -389,14 +397,11 @@ function PublicApp({
   return (
     <main className="auth-page">
       <section className="auth-card">
+        <div className="language-switcher-auth"><LanguageSwitcher /></div>
         <div className="workspace-mark">AT</div>
-        <span className="eyebrow">Atlas command center</span>
+        <span className="eyebrow">{intl.formatMessage({ id: "auth.atlasCommandCenter" })}</span>
         <h1>{title}</h1>
-        <p>
-          {invitationToken
-            ? "Choose a password with at least 12 characters to continue."
-            : "Use your assigned work email and password."}
-        </p>
+        <p>{description}</p>
         <form onSubmit={submit}>
           {error && (
             <div className="error-banner" role="alert">
@@ -405,7 +410,7 @@ function PublicApp({
           )}
           {!invitationToken && (
             <label className="field-group" htmlFor="email">
-              Email
+              {intl.formatMessage({ id: "auth.email" })}
               <input
                 autoComplete="email"
                 id="email"
@@ -422,7 +427,7 @@ function PublicApp({
             </label>
           )}
           <label className="field-group" htmlFor="password">
-            Password
+            {intl.formatMessage({ id: "auth.password" })}
             <span className="password-field">
               <input
                 autoComplete={
@@ -441,7 +446,11 @@ function PublicApp({
                 }
               />
               <button
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={
+                  showPassword
+                    ? intl.formatMessage({ id: "auth.hidePassword" })
+                    : intl.formatMessage({ id: "auth.showPassword" })
+                }
                 className="password-toggle"
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
@@ -456,10 +465,10 @@ function PublicApp({
             type="submit"
           >
             {isSubmitting
-              ? "Please wait…"
+              ? intl.formatMessage({ id: "auth.pleaseWait" })
               : invitationToken
-                ? "Activate account"
-                : "Sign in"}
+                ? intl.formatMessage({ id: "auth.activateAccount" })
+                : intl.formatMessage({ id: "auth.signIn" })}
           </button>
         </form>
       </section>
@@ -473,17 +482,18 @@ interface SessionErrorProps {
 
 function SessionError({ message }: SessionErrorProps) {
   const { refreshSession } = useAuth();
+  const intl = useIntl();
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <h1>Session unavailable</h1>
+        <h1>{intl.formatMessage({ id: "auth.sessionUnavailable" })}</h1>
         <p>{message}</p>
         <button
           className="button button-primary"
           type="button"
           onClick={refreshSession}
         >
-          Try again
+          {intl.formatMessage({ id: "common.retry" })}
         </button>
       </section>
     </main>
@@ -495,21 +505,22 @@ interface PermissionDeniedPageProps {
 }
 
 function PermissionDeniedPage({ onMenu }: PermissionDeniedPageProps) {
+  const intl = useIntl();
   return (
     <>
       <header className="page-header">
         <button
           className="icon-button mobile-menu"
           type="button"
-          aria-label="Open navigation"
+          aria-label={intl.formatMessage({ id: "common.openNavigation" })}
           onClick={onMenu}
         >
           <Menu size={18} />
         </button>
         <div className="page-heading">
-          <span className="eyebrow">Access restricted</span>
-          <h1>Permission denied</h1>
-          <p>You don't have permission to view this page.</p>
+          <span className="eyebrow">{intl.formatMessage({ id: "permission.accessRestricted" })}</span>
+          <h1>{intl.formatMessage({ id: "permission.permissionDenied" })}</h1>
+          <p>{intl.formatMessage({ id: "permission.noPermission" })}</p>
         </div>
       </header>
       <div className="empty-state">
@@ -517,8 +528,8 @@ function PermissionDeniedPage({ onMenu }: PermissionDeniedPageProps) {
           <Shield size={18} />
             <Shield size={18} />
         </span>
-        <h3>Access restricted</h3>
-        <p>Contact your administrator to request access to this section.</p>
+        <h3>{intl.formatMessage({ id: "permission.accessRestricted" })}</h3>
+        <p>{intl.formatMessage({ id: "permission.contactAdmin" })}</p>
       </div>
     </>
   );

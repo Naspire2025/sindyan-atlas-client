@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useIntl } from 'react-intl';
 import { X } from 'lucide-react';
 
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]';
@@ -13,6 +14,7 @@ interface DialogShellProps {
 }
 
 export default function DialogShell({ children, closeDisabled = false, description, onClose, size = 'default', title }: DialogShellProps) {
+  const intl = useIntl();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function DialogShell({ children, closeDisabled = false, descripti
       <section ref={dialogRef} className={`dialog dialog-${size}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby={description ? 'dialog-description' : undefined}>
         <header className="dialog-header">
           <div><span className="eyebrow">Atlas</span><h2 id="dialog-title">{title}</h2>{description && <p id="dialog-description">{description}</p>}</div>
-          <button className="icon-button" type="button" aria-label="Close dialog" disabled={closeDisabled} onClick={onClose}><X /></button>
+          <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'common.closeDialog' })} disabled={closeDisabled} onClick={onClose}><X /></button>
         </header>
         {children}
       </section>

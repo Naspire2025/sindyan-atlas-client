@@ -37,12 +37,15 @@ export interface ProjectFilters {
   summary?: string;
 }
 
+export type SupportedLocale = 'en' | 'ar';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
   status: UserStatus;
+  preferred_locale?: SupportedLocale | null;
   created_at?: string;
 }
 

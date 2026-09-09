@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
 import type { Issue, Risk } from '../types/api.js';
+import { ISSUE_STATUSES, PRIORITIES, RISK_SEVERITIES, RISK_STATUSES, getLabel } from '../constants.js';
 import { DetailList, DetailRow } from './DetailList.js';
 import EmptyState from './EmptyState.js';
 
@@ -18,6 +20,7 @@ interface RisksIssuesPageProps {
 type TabKey = 'risks' | 'issues';
 
 export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssuesPageProps) {
+  const intl = useIntl();
   const [activeTab, setActiveTab] = useState<TabKey>('risks');
   const [search, setSearch] = useState('');
 
@@ -50,9 +53,9 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
   return (
     <>
       <PageHeader
-        eyebrow="Cross-project"
-        title="Risks &amp; issues"
-        description="Active risks and issues across all projects."
+        eyebrow={intl.formatMessage({ id: 'riskIssue.crossProject' })}
+        title={intl.formatMessage({ id: 'riskIssue.title' })}
+        description={intl.formatMessage({ id: 'riskIssue.description' })}
         onMenu={onMenu}
       />
 
@@ -66,7 +69,7 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
               aria-selected={activeTab === 'risks'}
               onClick={() => setActiveTab('risks')}
             >
-              Risks ({filteredRisks.length})
+              {intl.formatMessage({ id: 'riskIssue.risks' })} ({filteredRisks.length})
             </button>
             <button
               className={`tab-button${activeTab === 'issues' ? ' active' : ''}`}
@@ -75,23 +78,23 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
               aria-selected={activeTab === 'issues'}
               onClick={() => setActiveTab('issues')}
             >
-              Issues ({filteredIssues.length})
+              {intl.formatMessage({ id: 'riskIssue.issues' })} ({filteredIssues.length})
             </button>
           </div>
           <label className="search-field">
             <Search />
-            <span className="sr-only">Search</span>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search risks &amp; issues" />
+            <span className="sr-only">{intl.formatMessage({ id: 'common.search' })}</span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={intl.formatMessage({ id: 'common.search' })} />
           </label>
         </div>
 
         {isLoading ? (
-          <div className="loading-state"><span className="spinner" />Loading…</div>
+          <div className="loading-state"><span className="spinner" />{intl.formatMessage({ id: 'common.loading' })}</div>
         ) : error ? (
-          <EmptyState icon={TriangleAlert} title="Failed to load" message={(error as Error).message} />
+          <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'state.somethingWrong' })} message={(error as Error).message} />
         ) : activeTab === 'risks' ? (
           filteredRisks.length === 0 ? (
-            <EmptyState icon={CircleCheck} title="No risks" message={search ? 'Adjust your search.' : 'No active risks across any project.'} />
+            <EmptyState icon={CircleCheck} title={intl.formatMessage({ id: 'riskIssue.noRisks' })} message={search ? intl.formatMessage({ id: 'riskIssue.noRisksMessage' }) : intl.formatMessage({ id: 'riskIssue.noRisksMessage' })} />
           ) : (
             <DetailList>
               {filteredRisks.map((risk) => (
@@ -101,7 +104,7 @@ export default function RisksIssuesPage({ onMenu, onSelectProject }: RisksIssues
           )
         ) : (
           filteredIssues.length === 0 ? (
-            <EmptyState icon={CircleCheck} title="No issues" message={search ? 'Adjust your search.' : 'No active issues across any project.'} />
+            <EmptyState icon={CircleCheck} title={intl.formatMessage({ id: 'riskIssue.noIssues' })} message={search ? intl.formatMessage({ id: 'riskIssue.noIssuesMessage' }) : intl.formatMessage({ id: 'riskIssue.noIssuesMessage' })} />
           ) : (
             <DetailList>
               {filteredIssues.map((issue) => (
@@ -121,15 +124,16 @@ interface RiskRowProps {
 }
 
 function RiskRow({ risk, onSelectProject }: RiskRowProps) {
+  const intl = useIntl();
   return (
     <DetailRow>
       <span className={`priority-mark priority-${risk.severity || 'medium'}`} />
       <span className="detail-list-copy">
         <strong>{risk.title}</strong>
         <small>
-          {risk.severity || 'Medium'} severity · {risk.status || 'open'} ·{' '}
+          {risk.severity ? intl.formatMessage({ id: getLabel(RISK_SEVERITIES, risk.severity) }) : intl.formatMessage({ id: 'priority.medium' })} {intl.formatMessage({ id: 'common.severity' })} · {risk.status ? intl.formatMessage({ id: getLabel(RISK_STATUSES, risk.status) }) : intl.formatMessage({ id: 'status.risk.open' })} ·{' '}
           <button className="text-button text-button-inline" type="button" onClick={() => onSelectProject(risk.project_id)}>
-            {risk.project_name || 'View project'}
+            {risk.project_name || intl.formatMessage({ id: 'common.viewProject' })}
           </button>
         </small>
       </span>
@@ -143,15 +147,16 @@ interface IssueRowProps {
 }
 
 function IssueRow({ issue, onSelectProject }: IssueRowProps) {
+  const intl = useIntl();
   return (
     <DetailRow>
       <span className={`priority-mark priority-${issue.priority || 'medium'}`} />
       <span className="detail-list-copy">
         <strong>{issue.title}</strong>
         <small>
-          {issue.priority || 'Medium'} priority · {issue.status || 'open'} ·{' '}
+          {issue.priority ? intl.formatMessage({ id: getLabel(PRIORITIES, issue.priority) }) : intl.formatMessage({ id: 'priority.medium' })} {intl.formatMessage({ id: 'common.priority' })} · {issue.status ? intl.formatMessage({ id: getLabel(ISSUE_STATUSES, issue.status) }) : intl.formatMessage({ id: 'status.issue.open' })} ·{' '}
           <button className="text-button text-button-inline" type="button" onClick={() => onSelectProject(issue.project_id)}>
-            {issue.project_name || 'View project'}
+            {issue.project_name || intl.formatMessage({ id: 'common.viewProject' })}
           </button>
         </small>
       </span>

@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-router';
 import App from './App.jsx';
 import AuthProvider from './auth/AuthProvider.js';
+import { LocaleProvider } from './i18n/LocaleProvider.js';
 import { ThemeProvider } from './theme/ThemeProvider.js';
 
 const rootRoute = createRootRoute({
@@ -14,9 +15,11 @@ const rootRoute = createRootRoute({
 function RootComponent() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </LocaleProvider>
     </ThemeProvider>
   );
 }

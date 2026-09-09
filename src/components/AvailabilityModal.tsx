@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -13,6 +14,7 @@ interface AvailabilityModalProps {
 }
 
 export default function AvailabilityModal({ editTarget, selectedUserId, onClose, onSuccess }: AvailabilityModalProps) {
+  const intl = useIntl();
   const [userId, setUserId] = useState(editTarget?.user_id || selectedUserId || '');
   const [startsOn, setStartsOn] = useState(editTarget?.starts_on || '');
   const [endsOn, setEndsOn] = useState(editTarget?.ends_on || '');
@@ -80,7 +82,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
 
   return (
     <DialogShell
-      title={isEditing ? 'Edit Availability' : 'Record Unavailability / Leave'}
+      title={isEditing ? intl.formatMessage({ id: 'availability.edit' }) : intl.formatMessage({ id: 'availability.add' })}
       description="Schedule planned time-off, vacations, or capacity restrictions for team members."
       onClose={onClose}
     >
@@ -89,7 +91,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
 
         {!isEditing && (
           <div className="field-group">
-            <label htmlFor="avail-user">Team member</label>
+            <label htmlFor="avail-user">{intl.formatMessage({ id: 'resource.member' })}</label>
             <select
               id="avail-user"
               required
@@ -97,7 +99,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
               onChange={(e) => setUserId(e.target.value)}
               disabled={usersQuery.isLoading || Boolean(selectedUserId) && !isEditing}
             >
-              <option value="">Select team member…</option>
+              <option value="">{intl.formatMessage({ id: 'common.search' })}</option>
               {(usersQuery.data || [])
                 .filter((u) => u.status === 'active')
                 .map((u) => (
@@ -111,30 +113,30 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
 
         <div className="field-row">
           <div className="field-group">
-            <label htmlFor="avail-start">Start date</label>
+            <label htmlFor="avail-start">{intl.formatMessage({ id: 'availability.startsOn' })}</label>
             <input id="avail-start" type="date" required value={startsOn} onChange={(e) => setStartsOn(e.target.value)} />
           </div>
           <div className="field-group">
-            <label htmlFor="avail-end">End date</label>
+            <label htmlFor="avail-end">{intl.formatMessage({ id: 'availability.endsOn' })}</label>
             <input id="avail-end" type="date" required min={startsOn || undefined} value={endsOn} onChange={(e) => setEndsOn(e.target.value)} />
           </div>
         </div>
 
         <div className="field-group">
-          <label htmlFor="avail-status">Availability status</label>
+          <label htmlFor="avail-status">{intl.formatMessage({ id: 'availability.status' })}</label>
           <select
             id="avail-status"
             value={availabilityStatus}
             onChange={(e) => setAvailabilityStatus(e.target.value as 'unavailable' | 'reduced_capacity' | 'available')}
           >
             <option value="unavailable">Unavailable (Vacation / Leave)</option>
-            <option value="reduced_capacity">Reduced Capacity</option>
-            <option value="available">Available</option>
+            <option value="reduced_capacity">{intl.formatMessage({ id: 'resource.reducedCapacity' })}</option>
+            <option value="available">{intl.formatMessage({ id: 'resource.available' })}</option>
           </select>
         </div>
 
         <div className="field-group">
-          <label htmlFor="avail-capacity">Capacity hours per week</label>
+          <label htmlFor="avail-capacity">{intl.formatMessage({ id: 'availability.hours' })}</label>
           <input
             id="avail-capacity"
             type="number"
@@ -148,7 +150,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
         </div>
 
         <div className="field-group">
-          <label htmlFor="avail-notes">Notes / Reason</label>
+          <label htmlFor="avail-notes">{intl.formatMessage({ id: 'availability.note' })}</label>
           <input
             id="avail-notes"
             value={note}
@@ -159,10 +161,10 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
 
         <footer className="dialog-actions">
           <button className="button button-secondary" type="button" onClick={onClose}>
-            Cancel
+            {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : isEditing ? 'Update availability' : 'Record unavailability'}
+            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : isEditing ? 'Update availability' : 'Record unavailability'}
           </button>
         </footer>
       </form>

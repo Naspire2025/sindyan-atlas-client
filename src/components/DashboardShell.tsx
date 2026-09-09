@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { useIntl } from 'react-intl';
 import type { User } from "../types/api.js";
 import Sidebar from "./Sidebar.js";
 
@@ -25,6 +26,7 @@ export default function DashboardShell({
   onRetry,
   user,
 }: DashboardShellProps) {
+  const intl = useIntl();
   return (
     <div className="app-shell">
       <Sidebar
@@ -40,7 +42,7 @@ export default function DashboardShell({
           <div className="global-error" role="alert">
             <span>{error}</span>
             <button type="button" onClick={onRetry}>
-              Try again
+              {intl.formatMessage({ id: 'common.retry' })}
             </button>
           </div>
         )}

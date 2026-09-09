@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -30,6 +31,7 @@ function milestoneStatusLabel(status: string): string {
 }
 
 function AddMemberDialog({ project, onClose }: { project: Project; onClose: () => void }) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const usersQuery = useQuery({ queryKey: queryKeys.users(), queryFn: ({ signal }) => api.listUsers({ signal }) });
   const [userId, setUserId] = useState('');
@@ -56,15 +58,16 @@ function AddMemberDialog({ project, onClose }: { project: Project; onClose: () =
     <DialogShell title="Add person" description={`Add a team member to ${project.name}.`} onClose={onClose}>
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
-        <div className="field-group"><label htmlFor="mi-member-user">Team member</label><select id="mi-member-user" required value={userId} onChange={(e) => setUserId(e.target.value)}><option value="">Select a user</option>{(usersQuery.data || []).filter((user) => user.status === 'active').map((user) => <option key={user.id} value={user.id}>{user.name} — {user.email}</option>)}</select></div>
-        <div className="field-group"><label htmlFor="mi-member-role">Project role</label><select id="mi-member-role" value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}><option value="member">Member</option><option value="project_lead">Project lead</option></select></div>
-        <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</button></footer>
+        <div className="field-group"><label htmlFor="mi-member-user">{intl.formatMessage({ id: 'resource.member' })}</label><select id="mi-member-user" required value={userId} onChange={(e) => setUserId(e.target.value)}><option value="">{intl.formatMessage({ id: 'common.selectUser' })}</option>{(usersQuery.data || []).filter((user) => user.status === 'active').map((user) => <option key={user.id} value={user.id}>{user.name} — {user.email}</option>)}</select></div>
+        <div className="field-group"><label htmlFor="mi-member-role">Project role</label><select id="mi-member-role" value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}><option value="member">{intl.formatMessage({ id: 'team.teamMember' })}</option><option value="project_lead">{intl.formatMessage({ id: 'member.projectLead' })}</option></select></div>
+        <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>{intl.formatMessage({ id: 'common.cancel' })}</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? intl.formatMessage({ id: 'common.saving' }) : intl.formatMessage({ id: 'common.save' })}</button></footer>
       </form>
     </DialogShell>
   );
 }
 
 export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu, onSelectProject, onSelectTask, onSelectMember }: MilestonePageProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const [milestone, setMilestone] = useState<MilestoneDetail | null>(null);
   const [error, setError] = useState('');
@@ -97,8 +100,8 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
   if (error && !milestone) {
     return (
       <div className="page">
-        <PageHeader eyebrow="Milestone" title="Milestone unavailable" description={error} onMenu={onMenu} />
-        <EmptyState icon={TriangleAlert} title="Failed to load milestone" message={error} action={<button className="button ghost" type="button" onClick={load}>Try again</button>} />
+        <PageHeader eyebrow={intl.formatMessage({ id: 'milestone.title' })} title="Milestone unavailable" description={error} onMenu={onMenu} />
+        <EmptyState icon={TriangleAlert} title="Failed to load milestone" message={error} action={<button className="button ghost" type="button" onClick={load}>{intl.formatMessage({ id: 'common.retry' })}</button>} />
       </div>
     );
   }
@@ -106,7 +109,7 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
   if (!milestone) {
     return (
       <div className="page">
-        <PageHeader eyebrow="Milestone" title="Loading…" onMenu={onMenu} />
+        <PageHeader eyebrow={intl.formatMessage({ id: 'milestone.title' })} title={intl.formatMessage({ id: 'common.loading' })} onMenu={onMenu} />
         <div className="loading-state">Loading milestone details…</div>
       </div>
     );
@@ -123,9 +126,9 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
   return (
     <div className="page">
       <header className="project-breadcrumb-bar milestone-header">
-        <button className="icon-button mobile-menu" type="button" aria-label="Open navigation" onClick={onMenu}><Menu size={18} /></button>
-        <nav aria-label="Breadcrumb" className="breadcrumb">
-          <button type="button" onClick={onBack}>Projects</button>
+        <button className="icon-button mobile-menu" type="button" aria-label={intl.formatMessage({ id: 'common.openNavigation' })} onClick={onMenu}><Menu size={18} /></button>
+        <nav aria-label={intl.formatMessage({ id: 'common.breadcrumb' })} className="breadcrumb">
+          <button type="button" onClick={onBack}>{intl.formatMessage({ id: 'nav.projects' })}</button>
           <ChevronDown size={13} />
           <button type="button" onClick={() => onSelectProject(milestone.project_id)}>{milestone.project_name}</button>
           <ChevronDown size={13} />
@@ -135,9 +138,9 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
       </header>
 
       <PageHeader
-        eyebrow="Milestone"
+        eyebrow={intl.formatMessage({ id: 'milestone.title' })}
         title={milestone.title}
-        description={`${milestone.phase_name || 'No phase'} · target ${formatDate(milestone.target_date)}`}
+        description={`${milestone.phase_name || intl.formatMessage({ id: 'milestone.noPhase' })} · target ${formatDate(milestone.target_date)}`}
         onMenu={onMenu}
         action={<div className="mini-progress milestone-progress milestone-progress-header"><span style={{ width: `${milestone.progress}%` }} /></div>}
       />
@@ -146,19 +149,19 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
         <div className="project-stat-grid">
             <div className="project-stat">
               <strong>{tasks.length}</strong>
-              <span>Tasks</span>
+              <span>{intl.formatMessage({ id: 'milestone.tasks' })}</span>
             </div>
             <div className="project-stat">
               <strong>{tasks.filter((task) => task.status === 'done').length}</strong>
-              <span>Done</span>
+              <span>{intl.formatMessage({ id: 'milestone.done' })}</span>
             </div>
             <div className="project-stat">
               <strong>{tasks.filter((task) => task.status === 'blocked').length}</strong>
-              <span>Blocked</span>
+              <span>{intl.formatMessage({ id: 'kanban.blocked' })}</span>
             </div>
             <div className="project-stat">
               <strong>{milestone.progress}%</strong>
-              <span>Progress</span>
+              <span>{intl.formatMessage({ id: 'milestone.progress' })}</span>
             </div>
           </div>
         </div>
@@ -167,13 +170,13 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
         <div className="project-section-card">
           <div className="section-header">
             <div>
-              <h2>Tasks</h2>
+              <h2>{intl.formatMessage({ id: 'milestone.tasks' })}</h2>
               <p>Work attached to this milestone</p>
             </div>
-            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsTaskOpen(true)}><Plus size={14} />Add task</button>}
+            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsTaskOpen(true)}><Plus size={14} />{intl.formatMessage({ id: 'milestone.addTask' })}</button>}
           </div>
           {tasks.length === 0 ? (
-            <EmptyState icon={CircleCheck} title="No tasks" message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>Add task</button> : undefined} />
+            <EmptyState icon={CircleCheck} title={intl.formatMessage({ id: 'milestone.noTasks' })} message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>{intl.formatMessage({ id: 'milestone.addTask' })}</button> : undefined} />
           ) : (
             <DetailList>
               {tasks.map((task) => (
@@ -181,7 +184,7 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
                   <span className={`task-check status-${task.status}`} />
                   <button className="detail-list-copy detail-list-link" type="button" onClick={() => onSelectTask(task.id)}>
                     <strong>{task.title}</strong>
-                    <small>{task.status !== 'done' ? getLabel(TASK_STATUSES, task.status) : 'Done'} · {getLabel(PRIORITIES, task.priority)} · {task.due_date ? formatDate(task.due_date) : 'No due date'}</small>
+                    <small>{task.status !== 'done' ? intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status) }) : intl.formatMessage({ id: 'kanban.done' })} · {intl.formatMessage({ id: getLabel(PRIORITIES, task.priority) })} · {task.due_date ? formatDate(task.due_date) : intl.formatMessage({ id: 'common.noDueDate' })}</small>
                   </button>
                   {task.assignee_user_id && (
                     <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button>
@@ -213,7 +216,7 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
                     <button className="text-button user-link" type="button" onClick={() => onSelectMember(member.user_id)}>{member.name}</button>
                     <small>{member.email || 'No email'}</small>
                   </span>
-                  <span className="role-pill">{member.project_role === 'project_lead' ? 'Project lead' : 'Member'}</span>
+                  <span className="role-pill">{member.project_role === 'project_lead' ? intl.formatMessage({ id: 'member.projectLead' }) : intl.formatMessage({ id: 'team.teamMember' })}</span>
                 </DetailRow>
               ))}
             </DetailList>

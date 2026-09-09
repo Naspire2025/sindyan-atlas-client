@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, Minus, Plus, X } from 'lucide-react';
 import { api } from '../api/client.js';
 import type { VaultFile } from '../types/api.js';
+import type { MessageId } from '../i18n/messages/en.js';
 
 const MAX_TEXT_PREVIEW_BYTES = 2 * 1024 * 1024;
 const MAX_DOCX_PREVIEW_BYTES = 20 * 1024 * 1024;
@@ -36,11 +38,11 @@ function getFilePreviewKind(file: VaultFile): 'document' | 'image' | 'pdf' | 'te
   return 'unsupported';
 }
 
-function getPreviewLimitError(file: VaultFile, kind: ReturnType<typeof getFilePreviewKind>): string {
+function getPreviewLimitError(file: VaultFile, kind: ReturnType<typeof getFilePreviewKind>): string | null {
   const size = file.size_bytes || 0;
-  if (kind === 'text' && size > MAX_TEXT_PREVIEW_BYTES) return 'Text previews are limited to 2 MB to keep the browser responsive.';
-  if (kind === 'document' && size > MAX_DOCX_PREVIEW_BYTES) return 'Word document previews are limited to 20 MB to keep the browser responsive.';
-  return '';
+  if (kind === 'text' && size > MAX_TEXT_PREVIEW_BYTES) return 'vault.textPreviewLimit';
+  if (kind === 'document' && size > MAX_DOCX_PREVIEW_BYTES) return 'vault.wordPreviewLimit';
+  return null;
 }
 
 function formatTextPreview(text: string, file: VaultFile): string {
@@ -70,6 +72,7 @@ function getExtensionMark(filename: string): string {
 }
 
 export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps) {
+  const intl = useIntl();
   const previewKind = getFilePreviewKind(file);
   const previewLimitError = getPreviewLimitError(file, previewKind);
   const [content, setContent] = useState<FilePreviewContent | null>(null);
@@ -79,11 +82,11 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
   const canvasRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
-  const unavailableMessage = previewLimitError || (
-    previewKind === 'unsupported'
-      ? 'This file format cannot be previewed safely in the browser. You can still download the file.'
-      : ''
-  );
+  const unavailableMessage = previewLimitError
+    ? intl.formatMessage({ id: previewLimitError as MessageId })
+    : previewKind === 'unsupported'
+      ? intl.formatMessage({ id: 'vault.previewUnsupported' })
+      : '';
 
   useEffect(() => {
     if (previewKind === 'unsupported' || previewLimitError) return;
@@ -190,7 +193,7 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
         <div className="grid min-h-[20rem] place-items-center rounded-control border border-graphite bg-white/[0.015] p-6 text-center">
           <div>
             <FileText className="mx-auto mb-3 text-fog" size={28} aria-hidden="true" />
-            <p className="m-0 text-[13px] text-mist">Preview unavailable</p>
+            <p className="m-0 text-[13px] text-mist">{intl.formatMessage({ id: 'vault.previewUnavailable' })}</p>
             <p className="mt-2 text-[11px] leading-4 text-ash">{error}</p>
           </div>
         </div>
@@ -201,7 +204,7 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
         <div className="grid min-h-[20rem] place-items-center rounded-control border border-graphite bg-white/[0.015] p-6 text-center">
           <div>
             <FileText className="mx-auto mb-3 text-fog" size={28} aria-hidden="true" />
-            <p className="m-0 text-[13px] text-mist">Preview unavailable</p>
+            <p className="m-0 text-[13px] text-mist">{intl.formatMessage({ id: 'vault.previewUnavailable' })}</p>
             <p className="mt-2 text-[11px] leading-4 text-ash">{unavailableMessage}</p>
           </div>
         </div>
@@ -211,7 +214,7 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
       return (
         <div className="loading-state min-h-[20rem]" aria-live="polite">
           <span className="spinner" />
-          Preparing preview…
+          {intl.formatMessage({ id: 'vault.preparingPreview' })}
         </div>
       );
     }
@@ -220,7 +223,7 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
         <img
           className="max-h-[78vh] max-w-[92vw] rounded-[3px] object-contain shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
           src={content.url}
-          alt={`Preview of ${file.original_filename}`}
+          alt={intl.formatMessage({ id: 'vault.previewOfFile' }, { filename: file.original_filename })}
         />
       );
     }
@@ -230,7 +233,7 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
           <iframe
             className="h-[828px] w-[640px] max-w-[92vw] rounded-[3px] bg-paper shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
             src={content.url}
-            title={`Preview of ${file.original_filename}`}
+            title={intl.formatMessage({ id: 'vault.previewOfFile' }, { filename: file.original_filename })}
           />
         ) : content.kind === 'text' ? (
           <pre className={`h-[828px] w-[640px] max-w-[92vw] overflow-auto whitespace-pre-wrap break-words bg-paper p-16 font-mono text-[12px] leading-5 text-[#202124] shadow-[0_18px_40px_rgba(0,0,0,0.45)]`}>
@@ -254,12 +257,12 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
       className="fixed inset-0 z-50 flex flex-col bg-void text-bone"
       role="dialog"
       aria-modal="true"
-      aria-label={`File viewer: ${file.original_filename}`}
+      aria-label={intl.formatMessage({ id: 'vault.fileViewerLabel' }, { filename: file.original_filename })}
       tabIndex={-1}
       onKeyDown={handleTabTrap}
     >
       <header className="flex h-[54px] shrink-0 items-center gap-[14px] border-b border-graphite bg-carbon px-[14px]">
-        <button className={TOOLBAR_BUTTON} type="button" aria-label="Back to vault" onClick={onClose}>
+        <button className={TOOLBAR_BUTTON} type="button" aria-label={intl.formatMessage({ id: 'common.back' })} onClick={onClose}>
           <ArrowLeft size={16} />
         </button>
         <div className="flex min-w-0 items-center gap-2.5">
@@ -268,14 +271,14 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
           </span>
           <span className="truncate text-[13.5px] font-medium text-bone">{file.original_filename}</span>
           <span className="flex shrink-0 items-center gap-1.5 text-[11px] text-ash">
-            <span className="rounded-full border border-graphite bg-obsidian px-2 py-0.5 text-[10.5px] text-fog">View only</span>
+            <span className="rounded-full border border-graphite bg-obsidian px-2 py-0.5 text-[10.5px] text-fog">{intl.formatMessage({ id: 'vault.viewOnly' })}</span>
             <span>{formatFileSize(file.size_bytes)}</span>
           </span>
         </div>
         <div className="flex items-center gap-1.5 whitespace-nowrap text-[12.5px] text-ash">
           <span className="hidden md:block">Atlas</span>
           <span className="hidden text-smoke md:block">/</span>
-          <b className="hidden font-medium text-fog md:block">Secure vault</b>
+          <b className="hidden font-medium text-fog md:block">{intl.formatMessage({ id: 'vault.title' })}</b>
         </div>
         <div className="flex-1" />
         <div className="flex items-center gap-2">
@@ -285,9 +288,9 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
             onClick={handleDownload}
           >
             <Download size={14} />
-            Download
+            {intl.formatMessage({ id: 'common.download' })}
           </button>
-          <button className={TOOLBAR_BUTTON} type="button" aria-label="Close viewer" onClick={onClose}>
+          <button className={TOOLBAR_BUTTON} type="button" aria-label={intl.formatMessage({ id: 'common.close' })} onClick={onClose}>
             <X size={16} />
           </button>
         </div>
@@ -298,19 +301,19 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
           <button
             className={TOOLBAR_BUTTON}
             type="button"
-            aria-label="Previous page"
+            aria-label={intl.formatMessage({ id: 'pagination.previousPage' })}
             disabled={!hasPaginatedPage}
             onClick={() => goPage(-1)}
           >
             <ChevronLeft size={15} />
           </button>
           <span className="px-1 text-[12.5px] text-fog">
-            Page <b className="font-medium text-bone">1</b> of 1
+            {intl.formatMessage({ id: 'pagination.pageInfo' }, { page: 1, totalPages: 1 })}
           </span>
           <button
             className={TOOLBAR_BUTTON}
             type="button"
-            aria-label="Next page"
+            aria-label={intl.formatMessage({ id: 'pagination.nextPage' })}
             disabled={!hasPaginatedPage}
             onClick={() => goPage(1)}
           >
@@ -319,11 +322,11 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
         </div>
         <div className="flex-1" />
         <div className="flex h-[30px] items-center gap-0.5 rounded-[7px] border border-graphite bg-carbon px-1">
-          <button className={TOOLBAR_BUTTON} type="button" aria-label="Zoom out" disabled={zoom <= ZOOM_MIN} onClick={() => adjustZoom(-ZOOM_STEP)}>
+          <button className={TOOLBAR_BUTTON} type="button" aria-label={intl.formatMessage({ id: 'vault.zoomOut' })} disabled={zoom <= ZOOM_MIN} onClick={() => adjustZoom(-ZOOM_STEP)}>
             <Minus size={13} />
           </button>
           <span className="w-[42px] text-center text-[12px] tabular-nums text-fog">{zoom}%</span>
-          <button className={TOOLBAR_BUTTON} type="button" aria-label="Zoom in" disabled={zoom >= ZOOM_MAX} onClick={() => adjustZoom(ZOOM_STEP)}>
+          <button className={TOOLBAR_BUTTON} type="button" aria-label={intl.formatMessage({ id: 'vault.zoomIn' })} disabled={zoom >= ZOOM_MAX} onClick={() => adjustZoom(ZOOM_STEP)}>
             <Plus size={13} />
           </button>
         </div>
@@ -336,13 +339,13 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
       </div>
 
       <div className="pointer-events-none fixed bottom-5 left-1/2 z-[60] -translate-x-1/2 rounded-[9px] border border-graphite bg-obsidian/90 px-3.5 py-1.5 text-[12px] text-fog backdrop-blur-[6px]">
-        Page <b className="font-medium text-bone">1</b> of 1
+        {intl.formatMessage({ id: 'pagination.pageInfo' }, { page: 1, totalPages: 1 })}
       </div>
       <div className="fixed bottom-5 right-6 z-[60] flex items-center gap-0.5 rounded-[9px] border border-graphite bg-obsidian/90 p-1 backdrop-blur-[6px]">
         <button
           className="grid size-[26px] place-items-center rounded-[6px] text-fog transition-colors hover:bg-carbon hover:text-bone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-lime/70 disabled:cursor-not-allowed disabled:text-ash disabled:hover:bg-transparent disabled:hover:text-ash"
           type="button"
-          aria-label="Zoom out"
+          aria-label={intl.formatMessage({ id: 'vault.zoomOut' })}
           disabled={zoom <= ZOOM_MIN}
           onClick={() => adjustZoom(-ZOOM_STEP)}
         >
@@ -352,7 +355,7 @@ export default function VaultFileViewer({ file, onClose }: VaultFileViewerProps)
         <button
           className="grid size-[26px] place-items-center rounded-[6px] text-fog transition-colors hover:bg-carbon hover:text-bone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acid-lime/70 disabled:cursor-not-allowed disabled:text-ash disabled:hover:bg-transparent disabled:hover:text-ash"
           type="button"
-          aria-label="Zoom in"
+          aria-label={intl.formatMessage({ id: 'vault.zoomIn' })}
           disabled={zoom >= ZOOM_MAX}
           onClick={() => adjustZoom(ZOOM_STEP)}
         >

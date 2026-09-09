@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useIntl } from 'react-intl';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client.js';
 import { queryKeys } from '../api/queryKeys.js';
@@ -13,6 +14,7 @@ interface IssueDialogProps {
 }
 
 export default function IssueDialog({ issue, onClose, project, projectId }: IssueDialogProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
   const isEditing = Boolean(issue);
   const [form, setForm] = useState({
@@ -43,69 +45,69 @@ export default function IssueDialog({ issue, onClose, project, projectId }: Issu
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.title.trim()) {
-      setError('Title is required.');
+      setError(intl.formatMessage({ id: 'common.titleRequired' }));
       return;
     }
     saveMutation.mutate({ ...form, project_id: projectId });
   };
 
   return (
-    <DialogShell title={isEditing ? 'Edit issue' : 'Report issue'} onClose={onClose}>
+    <DialogShell title={isEditing ? intl.formatMessage({ id: 'riskIssue.updateIssue' }) : intl.formatMessage({ id: 'riskIssue.createIssue' })} onClose={onClose}>
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
         <div className="field-group">
-          <label htmlFor="issue-title">Title</label>
+          <label htmlFor="issue-title">{intl.formatMessage({ id: 'riskIssue.titleField' })}</label>
           <input id="issue-title" required value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} />
         </div>
         <div className="field-group">
-          <label htmlFor="issue-desc">Description</label>
-          <textarea id="issue-desc" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder="Describe the issue…" />
+          <label htmlFor="issue-desc">{intl.formatMessage({ id: 'riskIssue.descriptionField' })}</label>
+          <textarea id="issue-desc" value={form.description} onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))} placeholder={intl.formatMessage({ id: 'issue.describePlaceholder' })} />
         </div>
         <div className="field-row">
           <div className="field-group">
-            <label htmlFor="issue-priority">Priority</label>
+            <label htmlFor="issue-priority">{intl.formatMessage({ id: 'task.priority' })}</label>
             <select id="issue-priority" value={form.priority} onChange={(e) => setForm((c) => ({ ...c, priority: e.target.value }))}>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option value="low">{intl.formatMessage({ id: 'priority.low' })}</option>
+              <option value="medium">{intl.formatMessage({ id: 'priority.medium' })}</option>
+              <option value="high">{intl.formatMessage({ id: 'priority.high' })}</option>
+              <option value="critical">{intl.formatMessage({ id: 'priority.critical' })}</option>
             </select>
           </div>
           <div className="field-group">
-            <label htmlFor="issue-status">Status</label>
+            <label htmlFor="issue-status">{intl.formatMessage({ id: 'riskIssue.status' })}</label>
             <select id="issue-status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as IssueStatus }))}>
-              <option value="open">Open</option>
-              <option value="mitigating">Mitigating</option>
-              <option value="escalated">Escalated</option>
-              <option value="resolved">Resolved</option>
+              <option value="open">{intl.formatMessage({ id: 'status.issue.open' })}</option>
+              <option value="mitigating">{intl.formatMessage({ id: 'status.issue.mitigating' })}</option>
+              <option value="escalated">{intl.formatMessage({ id: 'status.issue.escalated' })}</option>
+              <option value="resolved">{intl.formatMessage({ id: 'status.issue.resolved' })}</option>
             </select>
           </div>
         </div>
         <div className="field-group">
-          <label htmlFor="issue-owner">Owner</label>
+          <label htmlFor="issue-owner">{intl.formatMessage({ id: 'riskIssue.owner' })}</label>
           <select id="issue-owner" value={form.owner_user_id} onChange={(e) => setForm((c) => ({ ...c, owner_user_id: e.target.value }))}>
-            <option value="">Unassigned</option>
+            <option value="">{intl.formatMessage({ id: 'account.notSet' })}</option>
             {(project?.team_members || []).map((member) => (
               <option key={member.user_id} value={member.user_id}>{member.name}</option>
             ))}
           </select>
         </div>
         <div className="field-group">
-          <label htmlFor="issue-date">Target resolution date</label>
+          <label htmlFor="issue-date">{intl.formatMessage({ id: 'riskIssue.targetDate' })}</label>
           <input id="issue-date" type="date" value={form.target_resolution_date} onChange={(e) => setForm((c) => ({ ...c, target_resolution_date: e.target.value }))} />
         </div>
         <div className="field-group">
-          <label htmlFor="issue-resolution">Resolution notes</label>
-          <textarea id="issue-resolution" value={form.resolution_note} onChange={(e) => setForm((c) => ({ ...c, resolution_note: e.target.value }))} placeholder="How was this issue resolved?" />
+          <label htmlFor="issue-resolution">{intl.formatMessage({ id: 'riskIssue.resolutionNote' })}</label>
+          <textarea id="issue-resolution" value={form.resolution_note} onChange={(e) => setForm((c) => ({ ...c, resolution_note: e.target.value }))} placeholder={intl.formatMessage({ id: 'issue.resolutionPlaceholder' })} />
         </div>
         <div className="field-group">
-          <label htmlFor="issue-progress">Resolution progress: {form.resolution_progress}%</label>
+          <label htmlFor="issue-progress">{intl.formatMessage({ id: 'riskIssue.resolutionProgress' })}: {form.resolution_progress}%</label>
           <input id="issue-progress" type="range" min={0} max={100} step={5} value={form.resolution_progress} onChange={(e) => setForm((c) => ({ ...c, resolution_progress: Number(e.target.value) }))} />
         </div>
         <footer className="dialog-actions">
-          <button className="button button-secondary" type="button" onClick={onClose}>Cancel</button>
+          <button className="button button-secondary" type="button" onClick={onClose}>{intl.formatMessage({ id: 'common.cancel' })}</button>
           <button className="button button-primary" type="submit" disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? 'Saving…' : 'Save'}
+            {saveMutation.isPending ? intl.formatMessage({ id: 'common.saving' }) : intl.formatMessage({ id: 'common.save' })}
           </button>
         </footer>
       </form>

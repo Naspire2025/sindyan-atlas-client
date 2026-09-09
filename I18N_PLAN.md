@@ -143,18 +143,19 @@ Keep messages as TypeScript objects:
 ```typescript
 // messages/en.ts
 export const enMessages = {
-  'common.save': 'Save',
-  'task.count': '{count, plural, =0 {No tasks} one {# task} other {# tasks}}',
+  "common.save": "Save",
+  "task.count": "{count, plural, =0 {No tasks} one {# task} other {# tasks}}",
 } as const;
 
 export type MessageId = keyof typeof enMessages;
 
 // messages/ar.ts
-import type { MessageId } from './en.js';
+import type { MessageId } from "./en.js";
 
 export const arMessages = {
-  'common.save': 'حفظ',
-  'task.count': '{count, plural, zero {لا توجد مهام} one {مهمة واحدة} two {مهمتان} few {# مهام} many {# مهمة} other {# مهمة}}',
+  "common.save": "حفظ",
+  "task.count":
+    "{count, plural, zero {لا توجد مهام} one {مهمة واحدة} two {مهمتان} few {# مهام} many {# مهمة} other {# مهمة}}",
 } satisfies Record<MessageId, string>;
 ```
 
@@ -234,7 +235,9 @@ For existing selectors in `src/index.css` that control app structure, replace ph
 
 ```css
 /* Existing structural CSS, converted in place */
-.main-content { margin-inline-start: 232px; }
+.main-content {
+  margin-inline-start: 232px;
+}
 .sidebar {
   inset-block: 0;
   inset-inline-start: 0;
@@ -462,56 +465,56 @@ The repository has no frontend test runner today. Do not add one solely to satis
 
 These were previously implicit or ambiguous and are now part of the plan:
 
-| Area | Decision |
-|---|---|
-| Arabic formatting | Generic Arabic catalog, Gregorian calendar, and Arabic-Indic digits. |
-| Locale persistence | User account is durable; local storage is the fast startup cache. |
-| Switcher placement | Authentication screens and authenticated sidebar. |
-| Server errors | Stable error codes and Arabic mappings are required before Arabic release. |
-| Email notifications | Localize by recipient/invitation locale as part of the rollout. |
-| User-authored content | Preserve verbatim; do not automatically translate or require duplicate entry. |
-| Routes | Keep stable and language-neutral; locale is not URL state. |
-| Arabic rollout | Do not expose Arabic as complete until all primary journeys and failure states pass the locale matrix. |
+| Area                  | Decision                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
+| Arabic formatting     | Generic Arabic catalog, Gregorian calendar, and Arabic-Indic digits.                                   |
+| Locale persistence    | User account is durable; local storage is the fast startup cache.                                      |
+| Switcher placement    | Authentication screens and authenticated sidebar.                                                      |
+| Server errors         | Stable error codes and Arabic mappings are required before Arabic release.                             |
+| Email notifications   | Localize by recipient/invitation locale as part of the rollout.                                        |
+| User-authored content | Preserve verbatim; do not automatically translate or require duplicate entry.                          |
+| Routes                | Keep stable and language-neutral; locale is not URL state.                                             |
+| Arabic rollout        | Do not expose Arabic as complete until all primary journeys and failure states pass the locale matrix. |
 
 ## 9. Deliberately deferred capabilities
 
 These items have concrete adoption triggers rather than an unspecified “later” status:
 
-| Capability | Why it is not needed now | Adopt when |
-|---|---|---|
-| Locale-prefixed routes or query parameters | Atlas is an authenticated SPA and locale is an account preference. | Public/SEO pages or shareable links must force a specific language. |
-| Localized database content | Current project/task/resource text is authored by users, not centrally translated copy. | A specific curated entity has an approved multilingual authoring and search workflow. |
-| Automatic or machine translation | It creates quality, confidentiality, cost, and review-policy requirements. | Product approves providers, data handling, human review, and fallback behavior. |
-| Lazy-loaded locale bundles | Two eager catalogs make switching faster and remain operationally simple. | Bundle analysis shows catalogs materially affect startup performance. |
-| Translation-management platform | There is no external translation workflow to integrate yet. | Multiple translators, more locales, or release coordination makes Git-based catalogs a bottleneck. |
-| FormatJS extraction/compile pipeline | Typed central catalogs are sufficient for the initial two-locale implementation. | Messages move inline/JSON, TMS integration begins, or manual ICU validation becomes unreliable. |
-| Pseudolocalization | Real Arabic already exercises RTL and expansion, and no visual test harness exists. | Automated visual regression or additional LTR locales make synthetic coverage valuable. |
+| Capability                                 | Why it is not needed now                                                                | Adopt when                                                                                         |
+| ------------------------------------------ | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Locale-prefixed routes or query parameters | Atlas is an authenticated SPA and locale is an account preference.                      | Public/SEO pages or shareable links must force a specific language.                                |
+| Localized database content                 | Current project/task/resource text is authored by users, not centrally translated copy. | A specific curated entity has an approved multilingual authoring and search workflow.              |
+| Automatic or machine translation           | It creates quality, confidentiality, cost, and review-policy requirements.              | Product approves providers, data handling, human review, and fallback behavior.                    |
+| Lazy-loaded locale bundles                 | Two eager catalogs make switching faster and remain operationally simple.               | Bundle analysis shows catalogs materially affect startup performance.                              |
+| Translation-management platform            | There is no external translation workflow to integrate yet.                             | Multiple translators, more locales, or release coordination makes Git-based catalogs a bottleneck. |
+| FormatJS extraction/compile pipeline       | Typed central catalogs are sufficient for the initial two-locale implementation.        | Messages move inline/JSON, TMS integration begins, or manual ICU validation becomes unreliable.    |
+| Pseudolocalization                         | Real Arabic already exercises RTL and expansion, and no visual test harness exists.     | Automated visual regression or additional LTR locales make synthetic coverage valuable.            |
 
 External font hosting and an RTL Tailwind plugin are rejected, not deferred: Tajawal is self-hosted, and Tailwind 4.3 already provides logical utilities and direction variants.
 
 ## 10. Decision record
 
-| Decision | Outcome | Reason |
-|---|---|---|
-| React Intl / FormatJS | Adopt | React-focused, ICU-native, and sufficient without plugins. |
-| English + Arabic catalogs | Adopt | Explicit product scope. |
-| Typed flat TypeScript catalogs | Adopt | Simple key parity and autocomplete with current tooling. |
-| Eager catalog loading | Adopt | Two small locales do not justify async loading complexity. |
-| Account-level locale persistence | Adopt | Locale is a durable user preference and must follow authenticated users across devices. |
-| Local locale cache | Adopt | Provides the correct first paint without delaying startup on authentication. |
-| Optimistic preference update | Adopt | Makes switching immediate while retaining durable server persistence. |
-| Tailwind/native logical properties | Adopt | Built into the installed Tailwind version and browser platform. |
-| Stable API error codes | Adopt before Arabic release | Required for reliable localized server errors. |
-| Localized outbound email | Adopt | Existing notifications are user-facing product surfaces. |
-| Arabic Gregorian calendar + Arabic-Indic digits | Adopt | Makes formatting deterministic instead of relying on browser defaults. |
-| `{ en, ar }` for all API text | Reject | User-authored content is not static translation content. |
-| `pickLocale()` / `useLoc()` | Reject for current model | No localized-object API fields exist or are required. |
-| Locale-aware links and URL prefixes | Reject | Locale is not part of Atlas route identity. |
-| `tailwindcss-rtl` | Reject | Tailwind 4.3 already provides the needed capabilities. |
-| Global RTL class rewrites | Reject | They are broad, fragile, and reverse components indiscriminately. |
-| Self-hosted Tajawal (`400`, `500`, `700`) | Adopt | Confirmed Arabic font with reliable, immediate switching and no third-party runtime dependency. |
-| Preload Tajawal and eagerly bundle both catalogs | Adopt | Two locales are small and switch latency is more important than marginal deferred loading. |
-| Custom parity script plus `tsx` | Reject | TypeScript can enforce catalog coverage without another tool. |
+| Decision                                         | Outcome                     | Reason                                                                                          |
+| ------------------------------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| React Intl / FormatJS                            | Adopt                       | React-focused, ICU-native, and sufficient without plugins.                                      |
+| English + Arabic catalogs                        | Adopt                       | Explicit product scope.                                                                         |
+| Typed flat TypeScript catalogs                   | Adopt                       | Simple key parity and autocomplete with current tooling.                                        |
+| Eager catalog loading                            | Adopt                       | Two small locales do not justify async loading complexity.                                      |
+| Account-level locale persistence                 | Adopt                       | Locale is a durable user preference and must follow authenticated users across devices.         |
+| Local locale cache                               | Adopt                       | Provides the correct first paint without delaying startup on authentication.                    |
+| Optimistic preference update                     | Adopt                       | Makes switching immediate while retaining durable server persistence.                           |
+| Tailwind/native logical properties               | Adopt                       | Built into the installed Tailwind version and browser platform.                                 |
+| Stable API error codes                           | Adopt before Arabic release | Required for reliable localized server errors.                                                  |
+| Localized outbound email                         | Adopt                       | Existing notifications are user-facing product surfaces.                                        |
+| Arabic Gregorian calendar + Arabic-Indic digits  | Adopt                       | Makes formatting deterministic instead of relying on browser defaults.                          |
+| `{ en, ar }` for all API text                    | Reject                      | User-authored content is not static translation content.                                        |
+| `pickLocale()` / `useLoc()`                      | Reject for current model    | No localized-object API fields exist or are required.                                           |
+| Locale-aware links and URL prefixes              | Reject                      | Locale is not part of Atlas route identity.                                                     |
+| `tailwindcss-rtl`                                | Reject                      | Tailwind 4.3 already provides the needed capabilities.                                          |
+| Global RTL class rewrites                        | Reject                      | They are broad, fragile, and reverse components indiscriminately.                               |
+| Self-hosted Tajawal (`400`, `500`, `700`)        | Adopt                       | Confirmed Arabic font with reliable, immediate switching and no third-party runtime dependency. |
+| Preload Tajawal and eagerly bundle both catalogs | Adopt                       | Two locales are small and switch latency is more important than marginal deferred loading.      |
+| Custom parity script plus `tsx`                  | Reject                      | TypeScript can enforce catalog coverage without another tool.                                   |
 
 ## 11. Primary references
 

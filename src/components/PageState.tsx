@@ -1,30 +1,33 @@
 import { type ReactNode } from 'react';
+import { useIntl } from 'react-intl';
 import EmptyState from './EmptyState.js';
 import { CircleCheck, ShieldCheck, TriangleAlert } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 
-export function LoadingState({ message = 'Loading…' }: { message?: string }) {
+export function LoadingState({ message }: { message?: string }) {
+  const intl = useIntl();
   return (
     <div className="loading-state">
       <span className="spinner" />
-      <span>{message}</span>
+      <span>{message ?? intl.formatMessage({ id: 'common.loading' })}</span>
     </div>
   );
 }
 
 export function ErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
+  const intl = useIntl();
   return (
     <div className="page-state page-state-error">
       <EmptyState
         icon={TriangleAlert}
-        title="Something went wrong"
-        message={message || 'An unexpected error occurred. Please try again.'}
+        title={intl.formatMessage({ id: 'state.somethingWrong' })}
+        message={message || intl.formatMessage({ id: 'state.unexpectedError' })}
         action={
           onRetry ? (
             <button className="button button-secondary" type="button" onClick={onRetry}>
               <CircleCheck size={14} />
-              Try again
+              {intl.formatMessage({ id: 'common.retry' })}
             </button>
           ) : null
         }
@@ -34,24 +37,26 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
 }
 
 export function PermissionDeniedState() {
+  const intl = useIntl();
   return (
     <div className="page-state">
       <EmptyState
         icon={ShieldCheck}
-        title="Access denied"
-        message="You don't have permission to view this page. Contact your administrator if you believe this is an error."
+        title={intl.formatMessage({ id: 'state.accessDenied' })}
+        message={intl.formatMessage({ id: 'state.accessDeniedMessage' })}
       />
     </div>
   );
 }
 
-export function NotFoundState({ message = "The page you're looking for doesn't exist or has been removed." }: { message?: string }) {
+export function NotFoundState({ message }: { message?: string }) {
+  const intl = useIntl();
   return (
     <div className="page-state">
       <EmptyState
         icon={TriangleAlert}
-        title="Not found"
-        message={message}
+        title={intl.formatMessage({ id: 'state.notFound' })}
+        message={message || intl.formatMessage({ id: 'state.notFoundMessage' })}
       />
     </div>
   );
