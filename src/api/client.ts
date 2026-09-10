@@ -194,7 +194,7 @@ export const api = {
   getCurrentUser: (): Promise<{ user: User }> => request('/auth/me') as Promise<{ user: User }>,
   logout: (): Promise<null> => request('/auth/logout', { method: 'POST' }) as Promise<null>,
   changePassword: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }): Promise<{ token: string }> => jsonRequest('/auth/change-password', 'POST', { current_password: currentPassword, new_password: newPassword }) as Promise<{ token: string }>,
-  updatePreferences: (data: { locale?: string }): Promise<{ user: User }> => jsonRequest('/users/me/preferences', 'PATCH', data) as Promise<{ user: User }>,
+  updatePreferences: (data: { locale: User['preferred_locale'] }): Promise<{ user: User }> => jsonRequest('/users/me/preferences', 'PATCH', data) as Promise<{ user: User }>,
 
   listProjects: ({ signal, ...query }: { signal?: AbortSignal } & Partial<ProjectFilters> = {}): Promise<Project[]> => list('/projects', query, signal) as Promise<Project[]>,
   getProject: (id: string, signal?: AbortSignal): Promise<Project> => request(`/projects/${id}`, { signal }) as Promise<Project>,

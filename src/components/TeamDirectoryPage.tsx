@@ -145,7 +145,7 @@ export default function TeamDirectoryPage({
           <div>
             <span className="eyebrow">{intl.formatMessage({ id: 'team.directory' })}</span>
             <h2>
-              {intl.formatMessage({ id: 'team.userCount', values: { n: users.length } })}
+              {intl.formatMessage({ id: 'team.userCount' }, { n: users.length })}
             </h2>
           </div>
           <label className="search-field">
@@ -294,7 +294,7 @@ export default function TeamDirectoryPage({
       {suspendTarget && (
         <ConfirmDialog
           title={intl.formatMessage({ id: 'team.suspendUser' })}
-          description={intl.formatMessage({ id: 'team.suspendDescription', values: { name: suspendTarget.name } })}
+          description={intl.formatMessage({ id: 'team.suspendDescription' }, { name: suspendTarget.name })}
           confirmLabel={intl.formatMessage({ id: "team.suspended" })}
           isPending={updateUser.isPending}
           onConfirm={() =>
@@ -458,7 +458,7 @@ function EditRoleDialog({
 
   return (
     <DialogShell
-      title={intl.formatMessage({ id: 'team.editUser', values: { name: user.name } })}
+      title={intl.formatMessage({ id: 'team.editUser' }, { name: user.name })}
       description={intl.formatMessage({ id: 'team.editRoleDescription' })}
       onClose={onClose}
     >

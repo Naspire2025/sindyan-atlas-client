@@ -11,9 +11,6 @@ export type LocaleMetadata = {
   locale: SupportedLocale;
   label: string;
   dir: 'ltr' | 'rtl';
-  dateFormat: string;
-  numberFormat: Intl.NumberFormatOptions;
-  headerDirection: string;
 };
 
 export const LOCALE_METADATA: Record<SupportedLocale, LocaleMetadata> = {
@@ -21,17 +18,11 @@ export const LOCALE_METADATA: Record<SupportedLocale, LocaleMetadata> = {
     locale: 'en',
     label: 'English',
     dir: 'ltr',
-    dateFormat: 'en-u-ca-gregory-nu-latn',
-    numberFormat: { locale: 'en', options: {} },
-    headerDirection: 'ltr',
   },
   ar: {
     locale: 'ar',
     label: 'العربية',
     dir: 'rtl',
-    dateFormat: 'ar-u-ca-gregory-nu-arab',
-    numberFormat: { locale: 'ar', options: {} },
-    headerDirection: 'rtl',
   },
 };
 
@@ -43,7 +34,7 @@ export const MESSAGE_CATALOGS: Record<SupportedLocale, Record<string, string>> =
 const STORAGE_KEY = 'atlas-locale';
 
 export function resolveInitialLocale(): SupportedLocale {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = getPersistedLocale();
   if (stored === 'en' || stored === 'ar') return stored;
   const languages = navigator.languages || [navigator.language];
   for (const lang of languages) {
@@ -54,33 +45,29 @@ export function resolveInitialLocale(): SupportedLocale {
 }
 
 export function persistLocale(locale: SupportedLocale): void {
-  localStorage.setItem(STORAGE_KEY, locale);
+  try {
+    localStorage.setItem(STORAGE_KEY, locale);
+  } catch {
+    // The in-memory locale remains usable when browser storage is unavailable.
+  }
 }
 
 export function removePersistedLocale(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage is optional; callers still reset their in-memory locale.
+  }
 }
 
 export function isSupportedLocale(value: string): value is SupportedLocale {
   return SUPPORTED_LOCALES.includes(value as SupportedLocale);
 }
 
-let localeSetter: ((locale: SupportedLocale) => void) | null = null;
-
-export function registerLocaleSetter(setter: (locale: SupportedLocale) => void): void {
-  localeSetter = setter;
-}
-
-export function unregisterLocaleSetter(): void {
-  localeSetter = null;
-}
-
-export function applyLocaleFromPreference(preferredLocale: SupportedLocale): void {
+function getPersistedLocale(): string | null {
   try {
-    if (localeSetter && preferredLocale !== resolveInitialLocale()) {
-      localeSetter(preferredLocale);
-    }
+    return localStorage.getItem(STORAGE_KEY);
   } catch {
-    // storage or provider unavailable; fall back to the in-memory locale
+    return null;
   }
 }

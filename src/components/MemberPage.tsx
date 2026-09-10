@@ -107,7 +107,7 @@ export default function MemberPage({
         >
           <Menu size={18} />
         </button>
-        <nav aria-label="Breadcrumb" className="breadcrumb">
+        <nav aria-label={intl.formatMessage({ id: "common.breadcrumb" })} className="breadcrumb">
           <button type="button" onClick={onBack}>
             {intl.formatMessage({ id: "team.title" })}
           </button>
@@ -118,7 +118,7 @@ export default function MemberPage({
           className={`status-badge status-${summary.status === "active" ? "active" : "cancelled"}`}
         >
           <span className="status-dot" />
-          {summary.status}
+          {intl.formatMessage({ id: summary.status === "active" ? "team.active" : "team.suspended" })}
         </span>
       </header>
       <PageHeader
@@ -174,7 +174,7 @@ export default function MemberPage({
             />
           ) : (
             <DetailList
-              aria-label="Projects and roles"
+              aria-label={intl.formatMessage({ id: "member.projectsAndRoles" })}
               className={SCROLLABLE_DETAIL_LIST_STYLES}
               role="region"
               tabIndex={0}
@@ -213,7 +213,7 @@ export default function MemberPage({
             />
           ) : (
             <DetailList
-              aria-label="Assigned tasks"
+              aria-label={intl.formatMessage({ id: "member.tasks" })}
               className={SCROLLABLE_DETAIL_LIST_STYLES}
               role="region"
               tabIndex={0}
@@ -229,9 +229,9 @@ export default function MemberPage({
                   </button>
                   <div className="detail-list-copy">
                     <small>
-                      {task.project_name} · {task.status.replaceAll("_", " ")}
+                      {task.project_name} · {intl.formatMessage({ id: `status.task.${task.status === 'in_progress' ? 'inProgress' : task.status}` })}
                       {task.due_date
-                        ? ` · due ${formatDate(task.due_date)}`
+                        ? intl.formatMessage({ id: 'member.dueDate' }, { date: formatDate(task.due_date, intl) })
                         : ""}
                     </small>
                   </div>
@@ -257,7 +257,7 @@ export default function MemberPage({
             />
           ) : (
             <DetailList
-              aria-label="Owned risks"
+              aria-label={intl.formatMessage({ id: "member.risks" })}
               className={SCROLLABLE_DETAIL_LIST_STYLES}
               role="region"
               tabIndex={0}
@@ -267,14 +267,14 @@ export default function MemberPage({
                   <span className="detail-list-copy">
                     <strong>{risk.title}</strong>
                     <small>
-                      {risk.project_name} · {risk.severity} ·{" "}
-                      {risk.status.replaceAll("_", " ")}
+                      {risk.project_name} · {intl.formatMessage({ id: `priority.${risk.severity}` })} ·{" "}
+                      {intl.formatMessage({ id: `status.risk.${risk.status}` })}
                       {risk.due_date
-                        ? ` · due ${formatDate(risk.due_date)}`
+                        ? intl.formatMessage({ id: 'member.dueDate' }, { date: formatDate(risk.due_date, intl) })
                         : ""}
                     </small>
                   </span>
-                  <span className="role-pill">{risk.severity}</span>
+                  <span className="role-pill">{intl.formatMessage({ id: `priority.${risk.severity}` })}</span>
                 </DetailRow>
               ))}
             </DetailList>
@@ -296,7 +296,7 @@ export default function MemberPage({
             />
           ) : (
             <DetailList
-              aria-label="Owned issues"
+              aria-label={intl.formatMessage({ id: "member.issues" })}
               className={SCROLLABLE_DETAIL_LIST_STYLES}
               role="region"
               tabIndex={0}
@@ -306,13 +306,13 @@ export default function MemberPage({
                   <span className="detail-list-copy">
                     <strong>{issue.title}</strong>
                     <small>
-                      {issue.project_name} · {issue.status.replaceAll("_", " ")}
+                      {issue.project_name} · {intl.formatMessage({ id: `status.issue.${issue.status}` })}
                       {issue.target_resolution_date
-                        ? ` · target ${formatDate(issue.target_resolution_date)}`
+                        ? intl.formatMessage({ id: 'member.targetDate' }, { date: formatDate(issue.target_resolution_date, intl) })
                         : ""}
                     </small>
                   </span>
-                  <span className="role-pill">{issue.priority}</span>
+                  <span className="role-pill">{intl.formatMessage({ id: `priority.${issue.priority}` })}</span>
                 </DetailRow>
               ))}
             </DetailList>
@@ -334,7 +334,7 @@ export default function MemberPage({
             />
           ) : (
             <DetailList
-              aria-label="Allocations"
+              aria-label={intl.formatMessage({ id: "member.allocations" })}
               className={SCROLLABLE_DETAIL_LIST_STYLES}
               role="region"
               tabIndex={0}
@@ -350,8 +350,8 @@ export default function MemberPage({
                   </button>
                   <div className="detail-list-copy">
                     <small>
-                      {formatDate(allocation.starts_on)} →{" "}
-                      {formatDate(allocation.ends_on)}
+                      {formatDate(allocation.starts_on, intl)} →{" "}
+                      {formatDate(allocation.ends_on, intl)}
                     </small>
                   </div>
                   <span className="role-pill">

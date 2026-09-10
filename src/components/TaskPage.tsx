@@ -187,8 +187,8 @@ function TaskProperties({ currentUser, isSaving, members, milestones, onSelectMe
       <h2>{intl.formatMessage({ id: 'task.properties' })}</h2>
       {availableStatuses.length > 1 ? <label className="task-property-control"><CircleCheck size={15} /><span>{intl.formatMessage({ id: 'task.statusLabel' })}</span><select disabled={isSaving} value={task.status} onChange={(event) => onUpdate('status', event.target.value)}>{availableStatuses.map((item) => <option key={item.value} value={item.value}>{intl.formatMessage({ id: item.label as MessageId })}</option>)}</select></label> : <PropertyRow icon={CircleCheck} label={intl.formatMessage({ id: 'task.statusLabel' })} value={intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status) })} />}
       {canManage ? <label className="task-property-control"><Flag size={15} /><span>{intl.formatMessage({ id: 'task.priorityLabel' })}</span><select disabled={isSaving} value={task.priority} onChange={(event) => onUpdate('priority', event.target.value)}>{PRIORITIES.map((item) => <option key={item.value} value={item.value}>{intl.formatMessage({ id: item.label as MessageId })}</option>)}</select></label> : <PropertyRow icon={Flag} label={intl.formatMessage({ id: 'task.priorityLabel' })} value={intl.formatMessage({ id: getLabel(PRIORITIES, task.priority) })} />}
-      {canManage ? <label className="task-property-control"><UserIcon size={15} /><span>{intl.formatMessage({ id: 'task.assigneeLabel' })}</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">{intl.formatMessage({ id: 'common.unassigned' })}</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${member.status})` : ''}</option>)}</select></label> : <PropertyRow icon={UserIcon} label={intl.formatMessage({ id: 'task.assigneeLabel' })} value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || intl.formatMessage({ id: 'task.assigneeFallback' })}</button> : task.owner || intl.formatMessage({ id: 'common.unassigned' })} />}
-      {canManage ? <label className="task-property-control"><Calendar size={15} /><span>{intl.formatMessage({ id: 'task.dueDateLabel' })}</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon={Calendar} label={intl.formatMessage({ id: 'task.dueDateLabel' })} value={formatDate(task.due_date)} />}
+      {canManage ? <label className="task-property-control"><UserIcon size={15} /><span>{intl.formatMessage({ id: 'task.assigneeLabel' })}</span><select disabled={isSaving} value={task.assignee_user_id || ''} onChange={(event) => onUpdate('assignee_user_id', event.target.value || null)}><option value="">{intl.formatMessage({ id: 'common.unassigned' })}</option>{members.map((member) => <option disabled={member.status !== 'active'} key={member.user_id} value={member.user_id}>{member.name}{member.status !== 'active' ? ` (${intl.formatMessage({ id: member.status === 'suspended' ? 'team.suspended' : 'team.pending' })})` : ''}</option>)}</select></label> : <PropertyRow icon={UserIcon} label={intl.formatMessage({ id: 'task.assigneeLabel' })} value={task.assignee_user_id ? <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || intl.formatMessage({ id: 'task.assigneeFallback' })}</button> : task.owner || intl.formatMessage({ id: 'common.unassigned' })} />}
+      {canManage ? <label className="task-property-control"><Calendar size={15} /><span>{intl.formatMessage({ id: 'task.dueDateLabel' })}</span><input disabled={isSaving} type="date" value={task.due_date || ''} onChange={(event) => onUpdate('due_date', event.target.value || null)} /></label> : <PropertyRow icon={Calendar} label={intl.formatMessage({ id: 'task.dueDateLabel' })} value={formatDate(task.due_date, intl)} />}
       {canManage ? <label className="task-property-control"><Diamond size={15} /><span>{intl.formatMessage({ id: 'task.milestoneLabel' })}</span><select disabled={isSaving} value={task.milestone_id || ''} onChange={(event) => onUpdate('milestone_id', event.target.value || null)}><option value="">{intl.formatMessage({ id: 'task.noMilestone' })}</option>{milestones.map((milestone) => <option key={milestone.id} value={milestone.id}>{milestone.title}</option>)}</select></label> : <PropertyRow icon={Diamond} label={intl.formatMessage({ id: 'task.milestoneLabel' })} value={task.milestone_title || intl.formatMessage({ id: 'task.noMilestone' })} />}
 
       <div className="task-property-group">
@@ -221,7 +221,7 @@ function ActivityEvent({ task }: ActivityEventProps) {
   const intl = useIntl();
   const events: (TaskActivityEvent | { id: string; actor_name: string; event_type: string; created_at: string })[] = task.activity?.length ? task.activity : [{ id: 'created', actor_name: task.created_by_name || 'Atlas', event_type: 'created', created_at: task.created_at || '' }];
   return (
-    events.map((event) => <div className="activity-item" key={event.id}><span className="avatar avatar-small">{getInitials('actor_name' in event ? event.actor_name : 'Atlas')}</span><div><p><strong>{'actor_name' in event ? event.actor_name : 'Atlas'}</strong> {formatActivity(event.event_type, intl)}</p><time dateTime={event.created_at}>{formatTimestamp(event.created_at)}</time></div></div>)
+    events.map((event) => <div className="activity-item" key={event.id}><span className="avatar avatar-small">{getInitials('actor_name' in event ? event.actor_name : 'Atlas')}</span><div><p><strong>{'actor_name' in event ? event.actor_name : 'Atlas'}</strong> {formatActivity(event.event_type, intl)}</p><time dateTime={event.created_at}>{formatTimestamp(event.created_at, intl)}</time></div></div>)
   );
 }
 
@@ -230,11 +230,12 @@ interface CommentItemProps {
 }
 
 function CommentItem({ comment }: CommentItemProps) {
+  const intl = useIntl();
   return (
     <article className="activity-item comment-item">
       <span className="avatar avatar-small">{getInitials(comment.author)}</span>
       <div className="comment-content">
-        <header><strong>{comment.author}</strong><time dateTime={comment.created_at}>{formatTimestamp(comment.created_at)}</time></header>
+        <header><strong>{comment.author}</strong><time dateTime={comment.created_at}>{formatTimestamp(comment.created_at, intl)}</time></header>
         <p>{comment.body}</p>
       </div>
     </article>
@@ -301,10 +302,10 @@ function normalizeTask(task: Task | null): Task | null {
 
 function formatActivity(eventType: string, intl: ReturnType<typeof useIntl>) { return eventType === 'created' ? intl.formatMessage({ id: 'task.activityCreated' }) : eventType === 'commented' ? intl.formatMessage({ id: 'task.activityCommented' }) : intl.formatMessage({ id: 'task.activityUpdated' }); }
 
-function formatTimestamp(value: string) {
-  if (!value) return 'Just now';
+function formatTimestamp(value: string, intl: ReturnType<typeof useIntl>) {
+  if (!value) return intl.formatMessage({ id: 'task.justNow' });
   const normalizedValue = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`;
   const date = new Date(normalizedValue);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }).format(date);
+  return intl.formatDate(date, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 }

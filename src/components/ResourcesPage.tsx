@@ -142,7 +142,7 @@ export default function ResourcesPage({ onMenu }: ResourcesPageProps) {
         }
       />
 
-      <nav className="project-tabs" aria-label="Resource sections">
+      <nav className="project-tabs" aria-label={intl.formatMessage({ id: 'resource.sections' })}>
         {(['Workload', 'Assignments', 'Availability', 'Capacity'] as const).map((tab) => (
           <button
             className={activeTab === tab ? 'is-active' : ''}
@@ -323,6 +323,7 @@ function WorkloadTab({ isLoading, error, data, dateRange, onDateRangeChange }: W
               { value: 'all', label: intl.formatMessage({ id: 'resource.filterAllMembers' }) },
               { value: 'overallocated', label: intl.formatMessage({ id: 'resource.filterOverallocatedOnly' }) },
             ]}
+            translateOptionLabels={false}
           />
           <div className="field-group" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
             <label htmlFor="workload-start" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{intl.formatMessage({ id: 'member.from' })}</label>
@@ -437,8 +438,8 @@ function groupMemberAssignments(allocations: MemberAllocation[]): MemberAssignme
     ));
 }
 
-function formatPercentage(value: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+function formatPercentage(value: number, intl: ReturnType<typeof useIntl>): string {
+  return intl.formatNumber(value, { maximumFractionDigits: 1 });
 }
 
 function CapacityBadge({ peakPercentage }: { peakPercentage: number }) {
@@ -446,16 +447,16 @@ function CapacityBadge({ peakPercentage }: { peakPercentage: number }) {
   if (peakPercentage > 100) {
     return (
       <span className="rounded-badge bg-coral-red/15 px-2 py-1 text-[10px] text-[#f09a9a]">
-        {intl.formatMessage({ id: 'resource.overallocatedBadge' }, { x: formatPercentage(peakPercentage - 100), y: formatPercentage(peakPercentage) })}
+        {intl.formatMessage({ id: 'resource.overallocatedBadge' }, { x: formatPercentage(peakPercentage - 100, intl), y: formatPercentage(peakPercentage, intl) })}
       </span>
     );
   }
   if (peakPercentage === 100) {
-    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">{intl.formatMessage({ id: 'resource.atCapacityBadge' }, { y: formatPercentage(peakPercentage) })}</span>;
+    return <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-mist">{intl.formatMessage({ id: 'resource.atCapacityBadge' }, { y: formatPercentage(peakPercentage, intl) })}</span>;
   }
   return (
     <span className="rounded-badge bg-white/5 px-2 py-1 text-[10px] text-fog">
-      {intl.formatMessage({ id: 'resource.availableBadge' }, { x: formatPercentage(100 - peakPercentage), y: formatPercentage(peakPercentage) })}
+      {intl.formatMessage({ id: 'resource.availableBadge' }, { x: formatPercentage(100 - peakPercentage, intl), y: formatPercentage(peakPercentage, intl) })}
     </span>
   );
 }
@@ -479,7 +480,7 @@ function AssignmentsTab({
       if (allocation.project_id) projects.set(allocation.project_id, allocation.project_name || intl.formatMessage({ id: 'common.unassigned' }));
     });
     return [...projects].map(([value, label]) => ({ value, label })).sort((left, right) => left.label.localeCompare(right.label));
-  }, [memberAllocations]);
+  }, [intl, memberAllocations]);
 
   const filteredMemberGroups = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -510,7 +511,8 @@ function AssignmentsTab({
               value={projectFilter}
               onChange={(event) => setProjectFilter(event.target.value)}
               label={intl.formatMessage({ id: 'allocation.project' })}
-              options={projectOptions}
+            options={projectOptions}
+            translateOptionLabels={false}
               placeholder={intl.formatMessage({ id: 'resource.filterAllProjects' })}
             />
           </div>
@@ -527,7 +529,7 @@ function AssignmentsTab({
       ) : (
         <section aria-labelledby="people-assignments-heading">
               <div className="mb-2 flex items-center justify-between gap-3">
-                <h3 id="people-assignments-heading" className="text-[11px] font-[510] uppercase tracking-[0.08em] text-ash">Team members</h3>
+                <h3 id="people-assignments-heading" className="text-[11px] font-[510] uppercase tracking-[0.08em] text-ash">{intl.formatMessage({ id: 'resource.teamMembers' })}</h3>
                 <span className="text-[10px] text-ash">{intl.formatMessage({ id: 'resource.overallPeakHint' })}</span>
               </div>
               <div className="space-y-2">
@@ -557,7 +559,7 @@ function AssignmentsTab({
                                 {allocation.starts_on && allocation.ends_on ? `${allocation.starts_on} → ${allocation.ends_on}` : intl.formatMessage({ id: 'resource.datesNotSet' })}
                               </small>
                             </div>
-                            <span className="text-right text-[12px] font-[510] text-bone">{formatPercentage(getAllocationPercentage(allocation))}%</span>
+                            <span className="text-right text-[12px] font-[510] text-bone">{formatPercentage(getAllocationPercentage(allocation), intl)}%</span>
                             <div className="invitation-actions col-span-2 justify-end sm:col-span-1">
                               <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'allocation.edit' })} onClick={() => onEditMemberAlloc(allocation)}><Pencil size={14} /></button>
                               <button className="icon-button" type="button" aria-label={intl.formatMessage({ id: 'resource.removeAllocation' })} onClick={() => onDeleteMemberAlloc(allocation)}><Trash2 size={14} /></button>
@@ -614,7 +616,7 @@ function AvailabilityTab({ users, onNewUnavailability, onEditAvailability, onDel
     <>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <span className="eyebrow">Capacity & Time-off</span>
+          <span className="eyebrow">{intl.formatMessage({ id: 'resource.capacityTimeOff' })}</span>
           <h2>
             {intl.formatMessage({ id: 'resource.availabilitySummary' }, { members: users.length, windows: records.length })}
           </h2>

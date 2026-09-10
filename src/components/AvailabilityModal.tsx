@@ -129,7 +129,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
             value={availabilityStatus}
             onChange={(e) => setAvailabilityStatus(e.target.value as 'unavailable' | 'reduced_capacity' | 'available')}
           >
-            <option value="unavailable">Unavailable (Vacation / Leave)</option>
+            <option value="unavailable">{intl.formatMessage({ id: 'availability.unavailableLeave' })}</option>
             <option value="reduced_capacity">{intl.formatMessage({ id: 'resource.reducedCapacity' })}</option>
             <option value="available">{intl.formatMessage({ id: 'resource.available' })}</option>
           </select>
@@ -143,7 +143,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
             min="0"
             step="0.5"
             required
-            placeholder="e.g. 20 for half-time"
+            placeholder={intl.formatMessage({ id: 'availability.hoursPlaceholder' })}
             value={capacityHours}
             onChange={(e) => setCapacityHours(e.target.value)}
           />
@@ -155,7 +155,7 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
             id="avail-notes"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. Annual leave or conference attendance"
+            placeholder={intl.formatMessage({ id: 'availability.notePlaceholder' })}
           />
         </div>
 
@@ -164,7 +164,9 @@ export default function AvailabilityModal({ editTarget, selectedUserId, onClose,
             {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : isEditing ? 'Update availability' : 'Record unavailability'}
+            {isSubmitting
+              ? intl.formatMessage({ id: 'common.saving' })
+              : intl.formatMessage({ id: isEditing ? 'availability.update' : 'availability.record' })}
           </button>
         </footer>
       </form>

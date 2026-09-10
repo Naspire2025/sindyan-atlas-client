@@ -121,7 +121,7 @@ function InvitationSection({ title, count, items, onResend, onRevoke }: Invitati
         <span className="count-pill">{count}</span>
       </div>
       {items.length === 0 ? (
-        <p className="invitation-empty">{intl.formatMessage({ id: 'invitation.noneForStatus', values: { status: title.toLowerCase() } })}</p>
+        <p className="invitation-empty">{intl.formatMessage({ id: 'invitation.noneForStatus' }, { status: title.toLowerCase() })}</p>
       ) : (
         <DetailList>
           {items.map((inv) => (

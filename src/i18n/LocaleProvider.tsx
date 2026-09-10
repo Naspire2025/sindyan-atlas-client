@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { IntlProvider } from 'react-intl';
 import type { SupportedLocale } from './locale.js';
-import { LOCALE_METADATA, MESSAGE_CATALOGS, DEFAULT_LOCALE, resolveInitialLocale, persistLocale, registerLocaleSetter, unregisterLocaleSetter, SUPPORTED_LOCALES } from './locale.js';
+import { LOCALE_METADATA, MESSAGE_CATALOGS, DEFAULT_LOCALE, resolveInitialLocale, persistLocale, SUPPORTED_LOCALES } from './locale.js';
 import { LocaleContext } from './locale-context.js';
 
 interface LocaleProviderProps {
@@ -16,11 +16,6 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     setLocaleState(next);
     persistLocale(next);
   }, []);
-
-  useEffect(() => {
-    registerLocaleSetter(setLocale);
-    return () => unregisterLocaleSetter();
-  }, [setLocale]);
 
   useEffect(() => {
     const metadata = LOCALE_METADATA[locale];

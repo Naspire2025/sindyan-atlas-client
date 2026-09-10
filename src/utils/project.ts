@@ -1,4 +1,5 @@
 import type { Project, TaskSummary, ProjectMember, HealthStatus } from '../types/api.js';
+import type { IntlShape } from 'react-intl';
 
 const DAY_IN_MS = 86_400_000;
 
@@ -37,10 +38,13 @@ export function getProjectHealth(project: Project): HealthStatus {
   return daysRemaining <= 14 && progress < 70 ? 'at_risk' : 'on_track';
 }
 
-export function formatDate(date: string | null | undefined): string {
-  if (!date) return 'Not set';
-  return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' })
-    .format(new Date(`${date}T00:00:00`));
+export function formatDate(date: string | null | undefined, intl: IntlShape): string {
+  if (!date) return intl.formatMessage({ id: 'common.notSet' });
+  return intl.formatDate(new Date(`${date}T00:00:00`), {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export function getInitials(name: string | null | undefined): string {

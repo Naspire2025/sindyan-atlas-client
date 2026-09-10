@@ -13,11 +13,17 @@
     <link rel="preload" href="/fonts/tajawal/Tajawal-Bold.v1.woff2" as="font" type="font/woff2" crossorigin />
     <script>
       (function() {
-        var stored = localStorage.getItem('atlas-theme');
+        var stored = null;
+        var locale = null;
+        try {
+          stored = localStorage.getItem('atlas-theme');
+          locale = localStorage.getItem('atlas-locale');
+        } catch (error) {
+          // Browser storage is optional; system preferences still provide defaults.
+        }
         var theme = stored === 'light' || stored === 'dark' ? stored : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
         document.documentElement.setAttribute('data-theme', theme);
 
-        var locale = localStorage.getItem('atlas-locale');
         var lang = 'en';
         var dir = 'ltr';
         if (locale === 'ar') { lang = 'ar'; dir = 'rtl'; }

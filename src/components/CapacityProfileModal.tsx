@@ -117,12 +117,12 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
             min="0"
             step="0.5"
             required
-            placeholder="e.g. 40"
+            placeholder={intl.formatMessage({ id: 'capacity.hoursPlaceholder' })}
             value={weeklyCapacityHours}
             onChange={(e) => setWeeklyCapacityHours(e.target.value)}
           />
           <small style={{ color: 'var(--color-text-secondary)', fontSize: 12 }}>
-            Standard full-time capacity is 40 hours per week.
+            {intl.formatMessage({ id: 'capacity.standardHours' })}
           </small>
         </div>
 
@@ -131,7 +131,9 @@ export default function CapacityProfileModal({ editTarget, onClose, onSuccess }:
             {intl.formatMessage({ id: 'common.cancel' })}
           </button>
           <button className="button button-primary" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? intl.formatMessage({ id: 'common.saving' }) : isEditing ? 'Update profile' : 'Create profile'}
+            {isSubmitting
+              ? intl.formatMessage({ id: 'common.saving' })
+              : intl.formatMessage({ id: isEditing ? 'capacity.update' : 'capacity.create' })}
           </button>
         </footer>
       </form>

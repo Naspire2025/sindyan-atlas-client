@@ -98,7 +98,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
     <>
       <PageHeader
         eyebrow={intl.formatMessage({ id: 'dashboard.workspaceOverview' })}
-        title={intl.formatMessage({ id: 'dashboard.greeting', values: { name: 'Admin' } })}
+        title={intl.formatMessage({ id: 'dashboard.greeting' }, { name: 'Admin' })}
         description={intl.formatMessage({ id: 'dashboard.attentionOverview' })}
         onMenu={onMenu}
         action={
@@ -203,7 +203,7 @@ export default function DashboardPage({ projects, tasks, onMenu, onNavigate, onS
             <span className={`project-glyph priority-${highlightedProject.priority}`} />
             <span className="highlighted-project-info">
               <strong>{highlightedProject.name}</strong>
-              <small>{intl.formatMessage({ id: 'dashboard.target', values: { date: formatDate(highlightedProject.deadline) } })} · {formatHealthLabel(intl, getProjectHealth(highlightedProject))}</small>
+              <small>{intl.formatMessage({ id: 'dashboard.target' }, { date: formatDate(highlightedProject.deadline, intl) })} · {formatHealthLabel(intl, getProjectHealth(highlightedProject))}</small>
             </span>
             <ChevronDown size={15} />
           </button>
@@ -285,7 +285,7 @@ function buildAttentionItems(projects: Project[], tasks: Task[], intl: ReturnTyp
     .map((project) => ({
       key: `project-${project.id}`,
       projectId: project.id,
-      title: intl.formatMessage({ id: 'dashboard.projectPastDeadline', values: { name: project.name } }),
+      title: intl.formatMessage({ id: 'dashboard.projectPastDeadline' }, { name: project.name }),
       detail: intl.formatMessage({ id: 'dashboard.reviewProjectPlan' }),
       tone: 'danger' as const,
     }));
@@ -306,7 +306,7 @@ function buildAttentionItems(projects: Project[], tasks: Task[], intl: ReturnTyp
       projectId: task.project_id,
       taskId: task.id,
       title: task.title,
-      detail: intl.formatMessage({ id: 'dashboard.taskOverdueSince', values: { task: task.project_name, date: task.due_date } }),
+      detail: intl.formatMessage({ id: 'dashboard.taskOverdueSince' }, { task: task.project_name, date: task.due_date }),
       tone: 'danger' as const,
     }));
   return [...overdueProjects, ...blockedTasks, ...overdueTasks];

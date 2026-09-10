@@ -26,8 +26,16 @@ interface MilestonePageProps {
   onSelectMember: (userId: string) => void;
 }
 
-function milestoneStatusLabel(status: string): string {
-  return status ? status.replaceAll('_', ' ') : 'Unscheduled';
+function milestoneStatusLabel(status: string, intl: ReturnType<typeof useIntl>): string {
+  const messageIds: Record<string, 'milestone.notStarted' | 'milestone.inProgress' | 'milestone.done' | 'milestone.missed'> = {
+    not_started: 'milestone.notStarted',
+    in_progress: 'milestone.inProgress',
+    done: 'milestone.done',
+    missed: 'milestone.missed',
+  };
+  return messageIds[status]
+    ? intl.formatMessage({ id: messageIds[status] })
+    : intl.formatMessage({ id: 'milestone.unscheduled' });
 }
 
 function AddMemberDialog({ project, onClose }: { project: Project; onClose: () => void }) {
@@ -50,16 +58,16 @@ function AddMemberDialog({ project, onClose }: { project: Project; onClose: () =
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!userId) { setError('Select a team member.'); return; }
+    if (!userId) { setError(intl.formatMessage({ id: 'allocation.selectMemberError' })); return; }
     saveMutation.mutate({ user_id: userId, project_role: role });
   };
 
   return (
-    <DialogShell title="Add person" description={`Add a team member to ${project.name}.`} onClose={onClose}>
+    <DialogShell title={intl.formatMessage({ id: 'milestone.addPerson' })} description={intl.formatMessage({ id: 'milestone.addPersonDescription' }, { project: project.name })} onClose={onClose}>
       <form className="dialog-form" onSubmit={handleSubmit}>
         {error && <div className="error-banner" role="alert">{error}</div>}
         <div className="field-group"><label htmlFor="mi-member-user">{intl.formatMessage({ id: 'resource.member' })}</label><select id="mi-member-user" required value={userId} onChange={(e) => setUserId(e.target.value)}><option value="">{intl.formatMessage({ id: 'common.selectUser' })}</option>{(usersQuery.data || []).filter((user) => user.status === 'active').map((user) => <option key={user.id} value={user.id}>{user.name} — {user.email}</option>)}</select></div>
-        <div className="field-group"><label htmlFor="mi-member-role">Project role</label><select id="mi-member-role" value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}><option value="member">{intl.formatMessage({ id: 'team.teamMember' })}</option><option value="project_lead">{intl.formatMessage({ id: 'member.projectLead' })}</option></select></div>
+        <div className="field-group"><label htmlFor="mi-member-role">{intl.formatMessage({ id: 'milestone.projectRole' })}</label><select id="mi-member-role" value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}><option value="member">{intl.formatMessage({ id: 'team.teamMember' })}</option><option value="project_lead">{intl.formatMessage({ id: 'member.projectLead' })}</option></select></div>
         <footer className="dialog-actions"><button className="button button-secondary" type="button" onClick={onClose}>{intl.formatMessage({ id: 'common.cancel' })}</button><button className="button button-primary" type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? intl.formatMessage({ id: 'common.saving' }) : intl.formatMessage({ id: 'common.save' })}</button></footer>
       </form>
     </DialogShell>
@@ -100,8 +108,8 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
   if (error && !milestone) {
     return (
       <div className="page">
-        <PageHeader eyebrow={intl.formatMessage({ id: 'milestone.title' })} title="Milestone unavailable" description={error} onMenu={onMenu} />
-        <EmptyState icon={TriangleAlert} title="Failed to load milestone" message={error} action={<button className="button ghost" type="button" onClick={load}>{intl.formatMessage({ id: 'common.retry' })}</button>} />
+        <PageHeader eyebrow={intl.formatMessage({ id: 'milestone.title' })} title={intl.formatMessage({ id: 'milestone.unavailable' })} description={error} onMenu={onMenu} />
+        <EmptyState icon={TriangleAlert} title={intl.formatMessage({ id: 'milestone.loadError' })} message={error} action={<button className="button ghost" type="button" onClick={load}>{intl.formatMessage({ id: 'common.retry' })}</button>} />
       </div>
     );
   }
@@ -110,7 +118,7 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
     return (
       <div className="page">
         <PageHeader eyebrow={intl.formatMessage({ id: 'milestone.title' })} title={intl.formatMessage({ id: 'common.loading' })} onMenu={onMenu} />
-        <div className="loading-state">Loading milestone details…</div>
+        <div className="loading-state">{intl.formatMessage({ id: 'milestone.loadingDetails' })}</div>
       </div>
     );
   }
@@ -134,13 +142,16 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
           <ChevronDown size={13} />
           <span>{milestone.title}</span>
         </nav>
-        <span className={`status-badge status-${milestone.status === 'done' ? 'active' : milestone.status === 'missed' ? 'cancelled' : 'pending'}`}><span className="status-dot" />{milestoneStatusLabel(milestone.status)}</span>
+        <span className={`status-badge status-${milestone.status === 'done' ? 'active' : milestone.status === 'missed' ? 'cancelled' : 'pending'}`}><span className="status-dot" />{milestoneStatusLabel(milestone.status, intl)}</span>
       </header>
 
       <PageHeader
         eyebrow={intl.formatMessage({ id: 'milestone.title' })}
         title={milestone.title}
-        description={`${milestone.phase_name || intl.formatMessage({ id: 'milestone.noPhase' })} · target ${formatDate(milestone.target_date)}`}
+        description={intl.formatMessage(
+          { id: 'milestone.phaseTarget' },
+          { phase: milestone.phase_name || intl.formatMessage({ id: 'milestone.noPhase' }), date: formatDate(milestone.target_date, intl) },
+        )}
         onMenu={onMenu}
         action={<div className="mini-progress milestone-progress milestone-progress-header"><span style={{ width: `${milestone.progress}%` }} /></div>}
       />
@@ -171,12 +182,12 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
           <div className="section-header">
             <div>
               <h2>{intl.formatMessage({ id: 'milestone.tasks' })}</h2>
-              <p>Work attached to this milestone</p>
+              <p>{intl.formatMessage({ id: 'milestone.tasksDescription' })}</p>
             </div>
             {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsTaskOpen(true)}><Plus size={14} />{intl.formatMessage({ id: 'milestone.addTask' })}</button>}
           </div>
           {tasks.length === 0 ? (
-            <EmptyState icon={CircleCheck} title={intl.formatMessage({ id: 'milestone.noTasks' })} message="No tasks are attached to this milestone yet." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>{intl.formatMessage({ id: 'milestone.addTask' })}</button> : undefined} />
+            <EmptyState icon={CircleCheck} title={intl.formatMessage({ id: 'milestone.noTasks' })} message={intl.formatMessage({ id: 'milestone.noTasksMessage' })} action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsTaskOpen(true)}>{intl.formatMessage({ id: 'milestone.addTask' })}</button> : undefined} />
           ) : (
             <DetailList>
               {tasks.map((task) => (
@@ -184,10 +195,10 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
                   <span className={`task-check status-${task.status}`} />
                   <button className="detail-list-copy detail-list-link" type="button" onClick={() => onSelectTask(task.id)}>
                     <strong>{task.title}</strong>
-                    <small>{task.status !== 'done' ? intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status) }) : intl.formatMessage({ id: 'kanban.done' })} · {intl.formatMessage({ id: getLabel(PRIORITIES, task.priority) })} · {task.due_date ? formatDate(task.due_date) : intl.formatMessage({ id: 'common.noDueDate' })}</small>
+                    <small>{task.status !== 'done' ? intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status) }) : intl.formatMessage({ id: 'kanban.done' })} · {intl.formatMessage({ id: getLabel(PRIORITIES, task.priority) })} · {task.due_date ? formatDate(task.due_date, intl) : intl.formatMessage({ id: 'common.noDueDate' })}</small>
                   </button>
                   {task.assignee_user_id && (
-                    <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || 'Assignee'}</button>
+                    <button className="text-button user-link" type="button" onClick={() => onSelectMember(task.assignee_user_id!)}>{task.assignee_name || intl.formatMessage({ id: 'task.assigneeLabel' })}</button>
                   )}
                 </DetailRow>
               ))}
@@ -200,13 +211,13 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
         <div className="project-section-card">
           <div className="section-header">
             <div>
-              <h2>People</h2>
-              <p>Members assigned to these tasks</p>
+              <h2>{intl.formatMessage({ id: 'milestone.people' })}</h2>
+              <p>{intl.formatMessage({ id: 'milestone.peopleDescription' })}</p>
             </div>
-            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsMemberOpen(true)}><Plus size={14} />Add people</button>}
+            {canEdit && project && <button className="button button-secondary button-small" type="button" onClick={() => setIsMemberOpen(true)}><Plus size={14} />{intl.formatMessage({ id: 'milestone.addPeople' })}</button>}
           </div>
           {milestone.members.length === 0 ? (
-            <EmptyState icon={Users} title="No people" message="No team members are assigned to tasks on this milestone." action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsMemberOpen(true)}>Add people</button> : undefined} />
+            <EmptyState icon={Users} title={intl.formatMessage({ id: 'milestone.noPeople' })} message={intl.formatMessage({ id: 'milestone.noPeopleMessage' })} action={canEdit && project ? <button className="button button-secondary" type="button" onClick={() => setIsMemberOpen(true)}>{intl.formatMessage({ id: 'milestone.addPeople' })}</button> : undefined} />
           ) : (
             <DetailList>
               {milestone.members.map((member) => (
@@ -214,7 +225,7 @@ export default function MilestonePage({ currentUser, milestoneId, onBack, onMenu
                   <span className="avatar">{member.name?.slice(0, 2).toUpperCase() || '—'}</span>
                   <span className="detail-list-copy">
                     <button className="text-button user-link" type="button" onClick={() => onSelectMember(member.user_id)}>{member.name}</button>
-                    <small>{member.email || 'No email'}</small>
+                    <small>{member.email || intl.formatMessage({ id: 'team.noEmailAdded' })}</small>
                   </span>
                   <span className="role-pill">{member.project_role === 'project_lead' ? intl.formatMessage({ id: 'member.projectLead' }) : intl.formatMessage({ id: 'team.teamMember' })}</span>
                 </DetailRow>

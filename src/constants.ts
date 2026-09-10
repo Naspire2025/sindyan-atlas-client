@@ -2,9 +2,9 @@ import type { LucideIcon } from 'lucide-react';
 import { CircleCheck, Filter, Layers, LayoutGrid, Lock, Send, TriangleAlert, Users } from 'lucide-react';
 import type { MessageId } from './i18n/messages/en.js';
 
-export interface Option {
+export interface Option<Label extends string = string> {
   value: string;
-  label: MessageId;
+  label: Label;
 }
 
 export interface NavItem {
@@ -14,7 +14,7 @@ export interface NavItem {
   adminOnly: boolean;
 }
 
-export const PROJECT_STATUSES: Option[] = [
+export const PROJECT_STATUSES: Option<MessageId>[] = [
   { value: 'planning', label: 'status.project.planning' },
   { value: 'active', label: 'status.project.active' },
   { value: 'on_hold', label: 'status.project.onHold' },
@@ -23,7 +23,7 @@ export const PROJECT_STATUSES: Option[] = [
   { value: 'cancelled', label: 'status.project.cancelled' },
 ];
 
-export const TASK_STATUSES: Option[] = [
+export const TASK_STATUSES: Option<MessageId>[] = [
   { value: 'todo', label: 'status.task.todo' },
   { value: 'in_progress', label: 'status.task.inProgress' },
   { value: 'blocked', label: 'status.task.blocked' },
@@ -32,41 +32,41 @@ export const TASK_STATUSES: Option[] = [
   { value: 'done', label: 'status.task.done' },
 ];
 
-export const PRIORITIES: Option[] = [
+export const PRIORITIES: Option<MessageId>[] = [
   { value: 'critical', label: 'priority.critical' },
   { value: 'high', label: 'priority.high' },
   { value: 'medium', label: 'priority.medium' },
   { value: 'low', label: 'priority.low' },
 ];
 
-export const RISK_SEVERITIES: Option[] = [
+export const RISK_SEVERITIES: Option<MessageId>[] = [
   { value: 'critical', label: 'priority.critical' },
   { value: 'high', label: 'priority.high' },
   { value: 'medium', label: 'priority.medium' },
   { value: 'low', label: 'priority.low' },
 ];
 
-export const RISK_PROBABILITIES: Option[] = [
+export const RISK_PROBABILITIES: Option<MessageId>[] = [
   { value: 'high', label: 'priority.high' },
   { value: 'medium', label: 'priority.medium' },
   { value: 'low', label: 'priority.low' },
 ];
 
-export const RISK_STATUSES: Option[] = [
+export const RISK_STATUSES: Option<MessageId>[] = [
   { value: 'open', label: 'status.risk.open' },
   { value: 'mitigating', label: 'status.risk.mitigating' },
   { value: 'escalated', label: 'status.risk.escalated' },
   { value: 'resolved', label: 'status.risk.resolved' },
 ];
 
-export const ISSUE_STATUSES: Option[] = [
+export const ISSUE_STATUSES: Option<MessageId>[] = [
   { value: 'open', label: 'status.issue.open' },
   { value: 'mitigating', label: 'status.issue.mitigating' },
   { value: 'escalated', label: 'status.issue.escalated' },
   { value: 'resolved', label: 'status.issue.resolved' },
 ];
 
-export const VAULT_ENTRY_TYPES: Option[] = [
+export const VAULT_ENTRY_TYPES: Option<MessageId>[] = [
   { value: 'credential', label: 'vaultType.credential' },
   { value: 'secret_key', label: 'vaultType.secretKey' },
   { value: 'markdown_note', label: 'vaultType.markdownNote' },
@@ -85,6 +85,6 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'vault', label: 'nav.vault', icon: Lock, adminOnly: false },
 ];
 
-export function getLabel(items: Option[], value: string): MessageId {
+export function getLabel(items: Option<MessageId>[], value: string): MessageId {
   return items.find((item) => item.value === value)?.label ?? (value as MessageId);
 }

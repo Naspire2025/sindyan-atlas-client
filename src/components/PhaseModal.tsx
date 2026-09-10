@@ -54,7 +54,7 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
   return (
     <DialogShell
       title={isEditing ? intl.formatMessage({ id: 'phase.edit' }) : intl.formatMessage({ id: 'phase.add' })}
-      description="Define a major stage in the project timeline."
+      description={intl.formatMessage({ id: 'phase.description' })}
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -68,7 +68,7 @@ export default function PhaseModal({ phase, projectId, onClose, onSuccess }: Pha
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Discovery & Design, Sprint 1, Q3 Release"
+            placeholder={intl.formatMessage({ id: 'phase.namePlaceholder' })}
           />
         </div>
 

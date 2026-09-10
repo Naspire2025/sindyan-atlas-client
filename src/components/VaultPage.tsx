@@ -108,9 +108,9 @@ export default function VaultPage({ currentUser, onMenu }: VaultPageProps) {
               options={VAULT_ENTRY_TYPES}
               placeholder={intl.formatMessage({ id: 'vault.filterAll' })}
             />
-            <SelectField value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} label={intl.formatMessage({ id: 'vault.entryCategory' })} options={categories.filter((category): category is string => Boolean(category)).map((category) => ({ value: category, label: category }))} placeholder={intl.formatMessage({ id: 'vault.filterAll' })} />
-            <SelectField value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} label={intl.formatMessage({ id: 'vault.entryProject' })} options={(projectsQuery.data || []).map((project) => ({ value: String(project.id), label: project.name }))} placeholder={intl.formatMessage({ id: 'vault.filterAll' })} />
-            <SelectField value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} label={intl.formatMessage({ id: 'vault.entryOwner' })} options={(usersQuery.data || []).map((user) => ({ value: user.id, label: user.name }))} placeholder={intl.formatMessage({ id: 'vault.filterAll' })} />
+            <SelectField value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} label={intl.formatMessage({ id: 'vault.entryCategory' })} options={categories.filter((category): category is string => Boolean(category)).map((category) => ({ value: category, label: category }))} placeholder={intl.formatMessage({ id: 'vault.filterAll' })} translateOptionLabels={false} />
+            <SelectField value={projectFilter} onChange={(event) => setProjectFilter(event.target.value)} label={intl.formatMessage({ id: 'vault.entryProject' })} options={(projectsQuery.data || []).map((project) => ({ value: String(project.id), label: project.name }))} placeholder={intl.formatMessage({ id: 'vault.filterAll' })} translateOptionLabels={false} />
+            <SelectField value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)} label={intl.formatMessage({ id: 'vault.entryOwner' })} options={(usersQuery.data || []).map((user) => ({ value: user.id, label: user.name }))} placeholder={intl.formatMessage({ id: 'vault.filterAll' })} translateOptionLabels={false} />
           </div>
         </div>
 

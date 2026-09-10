@@ -185,7 +185,7 @@ function KanbanCard({
       <div className="kanban-card-meta">
         <span className={`task-date ${isOverdue ? 'is-overdue' : ''}`}>
           <Calendar size={13} />
-          {formatDate(task.due_date)}
+          {formatDate(task.due_date, intl)}
         </span>
         {task.milestone_title && <span className="kanban-milestone">{task.milestone_title}</span>}
       </div>

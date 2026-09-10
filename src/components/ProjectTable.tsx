@@ -52,7 +52,7 @@ function ProjectRow({ project, onSelect }: ProjectRowProps) {
       <span className={`health health-${health}`}><span />{formatHealthLabel(intl, health)}</span>
       <span className="priority-label"><span className={`priority-mark priority-${project.priority}`} />{intl.formatMessage({ id: getLabel(PRIORITIES, project.priority) })}</span>
       <span className="lead-cell"><span className="avatar">{getInitials(project.owner_name)}</span>{project.owner_name || intl.formatMessage({ id: 'common.unassigned' })}</span>
-      <span className="date-cell">{formatDate(project.deadline)}</span>
+      <span className="date-cell">{formatDate(project.deadline, intl)}</span>
       <span className="issue-count">{tasks.total}{tasks.blocked > 0 && <small>{tasks.blocked} {intl.formatMessage({ id: 'status.task.blocked' })}</small>}</span>
       <span className="progress-cell"><span>{progress}%</span><span className="progress-track"><span style={{ width: `${progress}%` }} /></span></span>
       <span className="row-chevron"><ChevronDown size={15} /></span>

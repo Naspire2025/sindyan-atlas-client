@@ -41,9 +41,10 @@ interface SelectFieldProps {
   label: string;
   options: Option[];
   placeholder?: string;
+  translateOptionLabels?: boolean;
 }
 
-export function SelectField({ value, onChange, label, options, placeholder }: SelectFieldProps) {
+export function SelectField({ value, onChange, label, options, placeholder, translateOptionLabels = true }: SelectFieldProps) {
   const intl = useIntl();
   return (
     <label className="select-field">
@@ -52,7 +53,7 @@ export function SelectField({ value, onChange, label, options, placeholder }: Se
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
-            {intl.formatMessage({ id: option.label })}
+            {translateOptionLabels ? intl.formatMessage({ id: option.label }) : option.label}
           </option>
         ))}
       </select>

@@ -416,8 +416,8 @@ function TimelineSection({
 
   return (
     <ProjectSection
-      title="Project timeline"
-      description="Phases, milestones, and task deadlines in chronological order."
+      title={intl.formatMessage({ id: "project.timelineTitle" })}
+      description={intl.formatMessage({ id: "project.timelineDescription" })}
       actionLabel={canManageProject ? intl.formatMessage({ id: "project.addPhase" }) : null}
       onAction={() => setIsPhaseOpen(true)}
     >
@@ -452,6 +452,7 @@ function TimelineSection({
               value: String(phase.id),
               label: phase.name,
             }))}
+            translateOptionLabels={false}
             placeholder={intl.formatMessage({ id: "project.filterAllPhases" })}
           />
           <SelectField
@@ -462,6 +463,7 @@ function TimelineSection({
               value: String(member.user_id || member.id),
               label: member.name,
             }))}
+            translateOptionLabels={false}
             placeholder={intl.formatMessage({ id: "project.filterAllOwners" })}
           />
           <SelectField
@@ -472,6 +474,7 @@ function TimelineSection({
               value: String(milestone.id),
               label: milestone.title,
             }))}
+            translateOptionLabels={false}
             placeholder={intl.formatMessage({ id: "project.filterAllMilestones" })}
           />
           <SelectField
@@ -533,7 +536,7 @@ function TimelineSection({
                   {row.owner ||
                     getPhaseName(project, row.phaseId) ||
                     formatTimelineStatus(row.status)}{" "}
-                  · {formatDate(row.start)} — {formatDate(row.end)}
+                  · {formatDate(row.start, intl)} — {formatDate(row.end, intl)}
                 </small>
                 <span className={`timeline-deadline ${getDeadlineState(row)}`}>
                   {formatDeadlineState(row)}
@@ -589,8 +592,8 @@ function TimelineSection({
             </div>
           ))}
           <div className="timeline-scale" aria-hidden="true">
-            <span>{formatDate(timelineStart)}</span>
-            <span>{formatDate(timelineEnd)}</span>
+            <span>{formatDate(timelineStart, intl)}</span>
+            <span>{formatDate(timelineEnd, intl)}</span>
           </div>
         </div>
       ) : (
@@ -619,8 +622,8 @@ function TimelineSection({
 
       {deletePhaseTarget && (
         <ConfirmDialog
-          title="Delete Phase"
-          description="Delete this phase? A phase containing milestones must be cleared first."
+          title={intl.formatMessage({ id: "project.deletePhaseTitle" })}
+          description={intl.formatMessage({ id: "project.deletePhaseDescription" })}
           confirmLabel={intl.formatMessage({ id: "common.delete" })}
           variant="danger"
           isPending={deletePhaseMutation.isPending}
@@ -827,12 +830,12 @@ function ProjectHero({ project }: ProjectHeroProps) {
         {project.start_date && (
           <span className="project-property">
             <Calendar size={14} />
-            {intl.formatMessage({ id: "project.startDate" })}: {formatDate(project.start_date)}
+            {intl.formatMessage({ id: "project.startDate" })}: {formatDate(project.start_date, intl)}
           </span>
         )}
         <span className="project-property">
           <Calendar size={14} />
-          {intl.formatMessage({ id: "project.deadline" })}: {formatDate(project.deadline)}
+          {intl.formatMessage({ id: "project.deadline" })}: {formatDate(project.deadline, intl)}
         </span>
         <span className="project-property">
           <span className="progress-ring">{getProgress(project)}</span>
@@ -976,7 +979,7 @@ function TasksSection({
         </div>
       )}
       <div className="task-view-toolbar" style={{ marginBottom: 16 }}>
-        <div className="segmented-control" aria-label="Task view">
+        <div className="segmented-control" aria-label={intl.formatMessage({ id: "task.viewLabel" })}>
           <button
             className={view === "list" ? "is-active" : ""}
             type="button"
@@ -1012,7 +1015,7 @@ function TasksSection({
                       ? intl.formatMessage({ id: getLabel(TASK_STATUSES, task.status || "todo") })
                       : intl.formatMessage({ id: "kanban.done" })}{" "}
                     ·{" "}
-                    {task.due_date ? formatDate(task.due_date) : intl.formatMessage({ id: "common.noDueDate" })}
+                    {task.due_date ? formatDate(task.due_date, intl) : intl.formatMessage({ id: "common.noDueDate" })}
                   </small>
                 </button>
                 {task.assignee_user_id && (
@@ -1112,7 +1115,7 @@ function MilestonesSection({
                   </button>
                   <small>
                     {milestone.phase_name || intl.formatMessage({ id: "milestone.noPhase" })} ·{" "}
-                    {formatDate(milestone.target_date)} ·{" "}
+                    {formatDate(milestone.target_date, intl)} ·{" "}
                     {intl.formatMessage({ id: milestoneStatusKey(milestone.status || "not_started") })}
                   </small>
                 </span>
@@ -1166,9 +1169,9 @@ function MilestonesSection({
       )}
       {deleteTarget && (
         <ConfirmDialog
-          title="Delete milestone"
-          description={`Are you sure you want to delete "${deleteTarget.title}"? Tasks linked to it will be unlinked.`}
-          confirmLabel="Delete"
+          title={intl.formatMessage({ id: "project.deleteMilestoneTitle" })}
+          description={intl.formatMessage({ id: "project.deleteMilestoneDescription" }, { title: deleteTarget.title })}
+          confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteMilestone.isPending}
           onConfirm={() => deleteMilestone.mutate(deleteTarget.id)}
           onCancel={() => setDeleteTarget(null)}
@@ -1282,9 +1285,9 @@ function LinksSection({
         )}
         {deleteTarget && (
           <ConfirmDialog
-            title="Delete link"
-            description={`Are you sure you want to remove "${deleteTarget.label || deleteTarget.url}"?`}
-            confirmLabel="Delete"
+            title={intl.formatMessage({ id: "project.deleteLinkTitle" })}
+            description={intl.formatMessage({ id: "project.deleteLinkDescription" }, { link: deleteTarget.label || deleteTarget.url })}
+            confirmLabel={intl.formatMessage({ id: "common.delete" })}
             isPending={deleteLink.isPending}
             onConfirm={() => deleteLink.mutate({ linkId: deleteTarget.id })}
             onCancel={() => setDeleteTarget(null)}
@@ -1533,7 +1536,7 @@ function RisksIssuesSection({
     <>
       <div
         className="project-tabs"
-        aria-label="Risk and issue sections"
+        aria-label={intl.formatMessage({ id: "project.riskIssueSections" })}
         style={{ padding: "4px 0" }}
       >
         <button
@@ -1709,8 +1712,8 @@ function RisksIssuesSection({
       )}
       {deleteTarget?._type === "risk" && (
         <ConfirmDialog
-          title="Delete risk"
-          description={`Are you sure you want to delete "${deleteTarget.title}"?`}
+          title={intl.formatMessage({ id: "project.deleteRiskTitle" })}
+          description={intl.formatMessage({ id: "project.deleteItemDescription" }, { title: deleteTarget.title })}
           confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteRisk.isPending}
           onConfirm={() => deleteRisk.mutate(deleteTarget.id)}
@@ -1720,8 +1723,8 @@ function RisksIssuesSection({
       )}
       {deleteTarget?._type === "issue" && (
         <ConfirmDialog
-          title="Delete issue"
-          description={`Are you sure you want to delete "${deleteTarget.title}"?`}
+          title={intl.formatMessage({ id: "project.deleteIssueTitle" })}
+          description={intl.formatMessage({ id: "project.deleteItemDescription" }, { title: deleteTarget.title })}
           confirmLabel={intl.formatMessage({ id: "common.delete" })}
           isPending={deleteIssue.isPending}
           onConfirm={() => deleteIssue.mutate(deleteTarget.id)}
@@ -1817,7 +1820,7 @@ function MilestoneRows({ project, onSelectMilestone }: MilestoneRowsProps) {
                 {milestone.title}
               </button>
               <small>
-                {formatDate(milestone.target_date)} ·{" "}
+                {formatDate(milestone.target_date, intl)} ·{" "}
                 {intl.formatMessage({ id: milestoneStatusKey(milestone.status || "not_started") })}
               </small>
             </span>
@@ -1909,15 +1912,15 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
     <div className="finance-section">
       <div className="finance-summary-grid">
         <div className="project-stat">
-          <strong>{formatCurrency(allocated)}</strong>
+          <strong>{formatCurrency(allocated, intl)}</strong>
           <span>{intl.formatMessage({ id: "project.budgetAllocated" })}</span>
         </div>
         <div className="project-stat">
-          <strong>{formatCurrency(spent)}</strong>
+          <strong>{formatCurrency(spent, intl)}</strong>
           <span>{intl.formatMessage({ id: "project.totalSpent" })}</span>
         </div>
         <div className="project-stat">
-          <strong>{formatCurrency(remaining)}</strong>
+          <strong>{formatCurrency(remaining, intl)}</strong>
           <span>{intl.formatMessage({ id: "project.remaining" })}</span>
         </div>
         <div className="project-stat">
@@ -1926,7 +1929,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
         </div>
         {summary?.projected_final_cost !== undefined && summary.projected_final_cost !== null && (
           <div className="project-stat">
-            <strong>{formatCurrency(summary.projected_final_cost)}</strong>
+            <strong>{formatCurrency(summary.projected_final_cost, intl)}</strong>
             <span>{intl.formatMessage({ id: "project.projectedFinalCost" })}</span>
           </div>
         )}
@@ -1969,13 +1972,13 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                       <span style={{ width: `${pct}%` }} />
                     </span>
                     <small>
-                      {formatCurrency(line.planned_amount, line.currency)} {intl.formatMessage({ id: "project.budget" })}{line.note ? ` · ${line.note}` : ""}
+                      {formatCurrency(line.planned_amount, intl, line.currency)} {intl.formatMessage({ id: "project.budget" })}{line.note ? ` · ${line.note}` : ""}
                     </small>
                   </span>
                   <div className="variance-figures">
-                    <span>{formatCurrency(lineSpent, line.currency)} <em>{intl.formatMessage({ id: "project.spent" })}</em></span>
+                    <span>{formatCurrency(lineSpent, intl, line.currency)} <em>{intl.formatMessage({ id: "project.spent" })}</em></span>
                     <span className={`variance-badge ${over ? "is-over" : "is-ok"}`}>
-                      {over ? intl.formatMessage({ id: "project.overBudget" }) : intl.formatMessage({ id: "project.underBudget" })} {formatCurrency(Math.abs(line.planned_amount - lineSpent), line.currency)}
+                      {over ? intl.formatMessage({ id: "project.overBudget" }) : intl.formatMessage({ id: "project.underBudget" })} {formatCurrency(Math.abs(line.planned_amount - lineSpent), intl, line.currency)}
                     </span>
                   </div>
                   <div className="milestone-actions">
@@ -2019,7 +2022,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
           <div>
             <span className="eyebrow">{intl.formatMessage({ id: "project.financialTracking" })}</span>
             <h2>{intl.formatMessage({ id: "project.spendRecords" })}</h2>
-            <p>Actual expenditures against budget lines.</p>
+            <p>{intl.formatMessage({ id: "project.spendRecordsDescription" })}</p>
           </div>
           <button
             className="button button-secondary button-small"
@@ -2044,7 +2047,7 @@ function FinanceSection({ projectId }: FinanceSectionProps) {
                     {record.description || record.category || intl.formatMessage({ id: "budget.spendRecord" })}
                   </strong>
                   <small>
-                    {formatCurrency(record.amount)} ·{" "}
+                    {formatCurrency(record.amount, intl)} ·{" "}
                     {record.spent_on || intl.formatMessage({ id: "common.noDate" })}
                   </small>
                 </span>
@@ -2203,7 +2206,7 @@ function BudgetLineDialog({
             onChange={(e) =>
               setForm((c) => ({ ...c, category: e.target.value }))
             }
-            placeholder="e.g. Infrastructure"
+            placeholder={intl.formatMessage({ id: "budget.categoryPlaceholder" })}
           />
         </div>
         <div className="field-row">
@@ -2237,7 +2240,7 @@ function BudgetLineDialog({
                   currency: e.target.value.toUpperCase(),
                 }))
               }
-              placeholder="USD"
+              placeholder={intl.formatMessage({ id: "budget.currencyPlaceholder" })}
             />
           </div>
         </div>
@@ -2375,7 +2378,7 @@ function SpendRecordDialog({
             />
           </div>
           <div className="field-group">
-            <label htmlFor="sp-date">Date</label>
+            <label htmlFor="sp-date">{intl.formatMessage({ id: "project.spendDate" })}</label>
             <input
               id="sp-date"
               type="date"
@@ -2394,7 +2397,7 @@ function SpendRecordDialog({
             onChange={(e) =>
               setForm((c) => ({ ...c, category: e.target.value }))
             }
-            placeholder="e.g. Cloud services"
+            placeholder={intl.formatMessage({ id: "budget.spendCategoryPlaceholder" })}
           />
         </div>
         <div className="field-group">
@@ -2431,14 +2434,14 @@ function SpendRecordDialog({
   );
 }
 
-function formatCurrency(amount: number, currency = "USD") {
+function formatCurrency(amount: number, intl: ReturnType<typeof useIntl>, currency = "USD") {
   const num = Number(amount) || 0;
-  return new Intl.NumberFormat("en-US", {
+  return intl.formatNumber(num, {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(num);
+  });
 }
 
 interface ProjectSectionProps {
@@ -2458,11 +2461,12 @@ function ProjectSection({
   onAction,
   title,
 }: ProjectSectionProps) {
+  const intl = useIntl();
   return (
     <section className={`project-section-card${className ? ` ${className}` : ""}`}>
       <div className="section-header">
         <div>
-          <span className="eyebrow">Project workspace</span>
+          <span className="eyebrow">{intl.formatMessage({ id: "project.workspace" })}</span>
           <h2>{title}</h2>
           <p>{description}</p>
         </div>
@@ -2873,7 +2877,7 @@ export function TaskDialog({
             onChange={(e) =>
               setForm((c) => ({ ...c, description: e.target.value }))
             }
-            placeholder="Add context, expected outcome, or links…"
+            placeholder={intl.formatMessage({ id: "task.descriptionPlaceholder" })}
           />
         </div>
         <div className="field-group">
@@ -3172,7 +3176,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
             id="link-label"
             value={form.label}
             onChange={(e) => setForm((c) => ({ ...c, label: e.target.value }))}
-            placeholder="e.g. GitHub repo"
+            placeholder={intl.formatMessage({ id: "project.linkLabelPlaceholder" })}
           />
         </div>
         <div className="field-group">
@@ -3183,7 +3187,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
             required
             value={form.url}
             onChange={(e) => setForm((c) => ({ ...c, url: e.target.value }))}
-            placeholder="https://..."
+            placeholder={intl.formatMessage({ id: "project.urlPlaceholder" })}
           />
         </div>
         <div className="field-group">
@@ -3194,7 +3198,7 @@ function LinkDialog({ link, projectId, onClose }: LinkDialogProps) {
             onChange={(e) =>
               setForm((c) => ({ ...c, link_type: e.target.value }))
             }
-            placeholder="e.g. Documentation"
+            placeholder={intl.formatMessage({ id: "project.linkTypePlaceholder" })}
           />
         </div>
         <footer className="dialog-actions">

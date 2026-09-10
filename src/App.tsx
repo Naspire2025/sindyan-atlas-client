@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
@@ -51,7 +51,11 @@ export default function App() {
   const intl = useIntl();
 
   if (status === "checking")
-    return <LoadingScreen message={intl.formatMessage({ id: "dashboard.confirmSession" })} />;
+    return (
+      <PublicPageFrame>
+        <LoadingScreen message={intl.formatMessage({ id: "dashboard.confirmSession" })} />
+      </PublicPageFrame>
+    );
   if (status === "error") return <SessionError message={error} />;
   if (status !== "authenticated")
     return <PublicApp route={currentRoute} sessionError={error} />;
@@ -395,84 +399,85 @@ function PublicApp({
   };
 
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <div className="language-switcher-auth"><LanguageSwitcher /></div>
-        <div className="workspace-mark">AT</div>
-        <span className="eyebrow">{intl.formatMessage({ id: "auth.atlasCommandCenter" })}</span>
-        <h1>{title}</h1>
-        <p>{description}</p>
-        <form onSubmit={submit}>
-          {error && (
-            <div className="error-banner" role="alert">
-              {error}
-            </div>
-          )}
-          {!invitationToken && (
-            <label className="field-group" htmlFor="email">
-              {intl.formatMessage({ id: "auth.email" })}
-              <input
-                autoComplete="email"
-                id="email"
-                required
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    email: event.target.value,
-                  }))
-                }
-              />
+    <PublicPageFrame>
+      <main className="auth-page">
+        <section className="auth-card">
+          <div className="workspace-mark">AT</div>
+          <span className="eyebrow">{intl.formatMessage({ id: "auth.atlasCommandCenter" })}</span>
+          <h1>{title}</h1>
+          <p>{description}</p>
+          <form onSubmit={submit}>
+            {error && (
+              <div className="error-banner" role="alert">
+                {error}
+              </div>
+            )}
+            {!invitationToken && (
+              <label className="field-group" htmlFor="email">
+                {intl.formatMessage({ id: "auth.email" })}
+                <input
+                  autoComplete="email"
+                  id="email"
+                  required
+                  type="email"
+                  value={form.email}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      email: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+            )}
+            <label className="field-group" htmlFor="password">
+              {intl.formatMessage({ id: "auth.password" })}
+              <span className="password-field">
+                <input
+                  autoComplete={
+                    invitationToken ? "new-password" : "current-password"
+                  }
+                  id="password"
+                  minLength={invitationToken ? 12 : undefined}
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      password: event.target.value,
+                    }))
+                  }
+                />
+                <button
+                  aria-label={
+                    showPassword
+                      ? intl.formatMessage({ id: "auth.hidePassword" })
+                      : intl.formatMessage({ id: "auth.showPassword" })
+                  }
+                  className="password-toggle"
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </span>
             </label>
-          )}
-          <label className="field-group" htmlFor="password">
-            {intl.formatMessage({ id: "auth.password" })}
-            <span className="password-field">
-              <input
-                autoComplete={
-                  invitationToken ? "new-password" : "current-password"
-                }
-                id="password"
-                minLength={invitationToken ? 12 : undefined}
-                required
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    password: event.target.value,
-                  }))
-                }
-              />
-              <button
-                aria-label={
-                  showPassword
-                    ? intl.formatMessage({ id: "auth.hidePassword" })
-                    : intl.formatMessage({ id: "auth.showPassword" })
-                }
-                className="password-toggle"
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </span>
-          </label>
-          <button
-            className="button button-primary auth-submit"
-            disabled={isSubmitting}
-            type="submit"
-          >
-            {isSubmitting
-              ? intl.formatMessage({ id: "auth.pleaseWait" })
-              : invitationToken
-                ? intl.formatMessage({ id: "auth.activateAccount" })
-                : intl.formatMessage({ id: "auth.signIn" })}
-          </button>
-        </form>
-      </section>
-    </main>
+            <button
+              className="button button-primary auth-submit"
+              disabled={isSubmitting}
+              type="submit"
+            >
+              {isSubmitting
+                ? intl.formatMessage({ id: "auth.pleaseWait" })
+                : invitationToken
+                  ? intl.formatMessage({ id: "auth.activateAccount" })
+                  : intl.formatMessage({ id: "auth.signIn" })}
+            </button>
+          </form>
+        </section>
+      </main>
+    </PublicPageFrame>
   );
 }
 
@@ -484,19 +489,32 @@ function SessionError({ message }: SessionErrorProps) {
   const { refreshSession } = useAuth();
   const intl = useIntl();
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <h1>{intl.formatMessage({ id: "auth.sessionUnavailable" })}</h1>
-        <p>{message}</p>
-        <button
-          className="button button-primary"
-          type="button"
-          onClick={refreshSession}
-        >
-          {intl.formatMessage({ id: "common.retry" })}
-        </button>
-      </section>
-    </main>
+    <PublicPageFrame>
+      <main className="auth-page">
+        <section className="auth-card">
+          <h1>{intl.formatMessage({ id: "auth.sessionUnavailable" })}</h1>
+          <p>{message}</p>
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={refreshSession}
+          >
+            {intl.formatMessage({ id: "common.retry" })}
+          </button>
+        </section>
+      </main>
+    </PublicPageFrame>
+  );
+}
+
+function PublicPageFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative min-h-full">
+      <div className="fixed right-4 top-4 z-10 sm:right-6 sm:top-6">
+        <LanguageSwitcher />
+      </div>
+      {children}
+    </div>
   );
 }
 

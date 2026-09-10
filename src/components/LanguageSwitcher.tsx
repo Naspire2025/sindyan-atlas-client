@@ -1,80 +1,57 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, type ChangeEvent } from 'react';
+import { Globe2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
+import { api } from '../api/client.js';
+import { useAuth } from '../auth/useAuth.js';
+import { LOCALE_METADATA, SUPPORTED_LOCALES, type SupportedLocale } from '../i18n/locale.js';
 import { useLocale } from '../i18n/useLocale.js';
-import { SUPPORTED_LOCALES, LOCALE_METADATA } from '../i18n/locale.js';
-import type { SupportedLocale } from '../i18n/locale.js';
 
 export function LanguageSwitcher() {
-  const { locale, setLocale } = useLocale();
   const intl = useIntl();
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { status } = useAuth();
+  const { locale, setLocale } = useLocale();
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+  const handleChange = async (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextLocale = event.target.value as SupportedLocale;
+    const previousLocale = locale;
+    setError('');
+    setLocale(nextLocale);
+
+    if (status !== 'authenticated') return;
+
+    setIsSaving(true);
+    try {
+      await api.updatePreferences({ locale: nextLocale });
+    } catch {
+      setLocale(previousLocale);
+      setError(intl.formatMessage({ id: 'language.saveError' }));
+    } finally {
+      setIsSaving(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  function handleSelect(next: SupportedLocale) {
-    setLocale(next);
-    setIsOpen(false);
-  }
-
-  const currentLabel = LOCALE_METADATA[locale]?.label ?? locale;
+  };
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-transparent px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200"
-        aria-label={intl.formatMessage({ id: 'language.label' })}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="2" y1="12" x2="22" y2="12" />
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-        <span>{currentLabel}</span>
-      </button>
-      {isOpen && (
-        <ul
-          role="listbox"
+    <div className="relative inline-flex flex-col items-end gap-1">
+      <label className="inline-flex items-center gap-2 rounded-control border border-graphite bg-carbon px-2.5 py-1.5 text-xs text-fog focus-within:border-mist">
+        <Globe2 aria-hidden="true" className="size-4 shrink-0" />
+        <span className="sr-only">{intl.formatMessage({ id: 'language.label' })}</span>
+        <select
           aria-label={intl.formatMessage({ id: 'language.label' })}
-          className="absolute right-0 z-50 mt-1 w-36 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-gray-900"
+          className="cursor-pointer border-0 bg-transparent p-0 text-xs font-[510] text-mist outline-none disabled:cursor-wait disabled:opacity-60"
+          disabled={isSaving}
+          value={locale}
+          onChange={handleChange}
         >
-          {SUPPORTED_LOCALES.map((code) => {
-            const meta = LOCALE_METADATA[code];
-            const isActive = code === locale;
-            return (
-              <li
-                key={code}
-                role="option"
-                aria-selected={isActive}
-                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
-                onClick={() => handleSelect(code)}
-              >
-                <span className={`flex-1 ${isActive ? 'font-semibold text-emerald-500' : ''}`}>
-                  {meta.label}
-                </span>
-                {isActive && (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-emerald-500">
-                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+          {SUPPORTED_LOCALES.map((supportedLocale) => (
+            <option key={supportedLocale} value={supportedLocale}>
+              {LOCALE_METADATA[supportedLocale].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {error && <span className="max-w-52 text-end text-[10px] text-coral-red" role="alert">{error}</span>}
     </div>
   );
 }

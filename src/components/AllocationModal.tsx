@@ -17,10 +17,6 @@ function getWeeklyCapacityHours(profiles: CapacityProfile[], startsOn: string): 
   return activeProfile ? Number(activeProfile.weekly_capacity_hours) : DEFAULT_WEEKLY_CAPACITY_HOURS;
 }
 
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
-}
-
 interface MemberCapacitySummaryProps {
   currentPercentage: number;
   hasCustomCapacity: boolean;
@@ -41,6 +37,7 @@ function MemberCapacitySummary({
   weeklyCapacityHours,
 }: MemberCapacitySummaryProps) {
   const intl = useIntl();
+  const formatNumber = (value: number) => intl.formatNumber(value, { maximumFractionDigits: 1 });
   const totalPercentage = peakAllocatedPercentage + currentPercentage;
   const isOverCapacity = totalPercentage > FULL_CAPACITY_PERCENTAGE;
   const remainingPercentage = Math.max(0, FULL_CAPACITY_PERCENTAGE - totalPercentage);
@@ -53,7 +50,7 @@ function MemberCapacitySummary({
   if (isError) {
     return (
       <div className="mb-3 rounded-control border border-graphite bg-obsidian p-3 text-[11px] text-fog" role="status">
-        Capacity details could not be loaded. Atlas will still validate this allocation when you save.
+        {intl.formatMessage({ id: 'allocation.capacityLoadError' })}
       </div>
     );
   }
@@ -61,45 +58,51 @@ function MemberCapacitySummary({
   return (
     <section
       className={`mb-3 rounded-control border p-3 ${isOverCapacity ? 'border-coral-red/40 bg-coral-red/10' : 'border-graphite bg-obsidian'}`}
-      aria-label={`${memberName} capacity summary`}
+      aria-label={intl.formatMessage({ id: 'allocation.capacitySummaryLabel' }, { name: memberName })}
       aria-live="polite"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="m-0 text-xs font-[510] text-mist">Capacity for selected dates</h3>
+          <h3 className="m-0 text-xs font-[510] text-mist">{intl.formatMessage({ id: 'allocation.capacityForDates' })}</h3>
           <p className="mt-1 text-[11px] leading-4 text-fog">
-            100% equals {formatNumber(weeklyCapacityHours)} hours per week for {memberName}.
+            {intl.formatMessage({ id: 'allocation.fullCapacityExplanation' }, { hours: formatNumber(weeklyCapacityHours), name: memberName })}
           </p>
         </div>
         <span className={`shrink-0 rounded-badge px-1.5 py-0.5 text-[10px] ${isOverCapacity ? 'bg-coral-red/15 text-[#f09a9a]' : 'bg-white/5 text-fog'}`}>
-          {isOverCapacity ? `${formatNumber(totalPercentage - FULL_CAPACITY_PERCENTAGE)}% over` : `${formatNumber(remainingPercentage)}% available`}
+          {isOverCapacity
+            ? intl.formatMessage({ id: 'allocation.percentOver' }, { percent: formatNumber(totalPercentage - FULL_CAPACITY_PERCENTAGE) })
+            : intl.formatMessage({ id: 'allocation.percentAvailable' }, { percent: formatNumber(remainingPercentage) })}
         </span>
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
         <div>
-          <dt className="text-[10px] text-ash">Weekly capacity</dt>
+          <dt className="text-[10px] text-ash">{intl.formatMessage({ id: 'resource.weeklyCapacity' })}</dt>
           <dd className="mt-0.5 text-xs text-mist">
-            {formatNumber(weeklyCapacityHours)}h <span className="text-ash">({hasCustomCapacity ? 'profile' : 'default'})</span>
+            {intl.formatMessage({ id: 'allocation.hoursShort' }, { hours: formatNumber(weeklyCapacityHours) })}{' '}
+            <span className="text-ash">({intl.formatMessage({ id: hasCustomCapacity ? 'allocation.profileCapacity' : 'allocation.defaultCapacity' })})</span>
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] text-ash">Already allocated (peak)</dt>
+          <dt className="text-[10px] text-ash">{intl.formatMessage({ id: 'allocation.alreadyAllocatedPeak' })}</dt>
           <dd className="mt-0.5 text-xs text-mist">
-            {formatNumber(peakAllocatedPercentage)}% <span className="text-ash">· {formatNumber(percentageToHours(peakAllocatedPercentage))}h/week</span>
+            {intl.formatNumber(peakAllocatedPercentage / 100, { style: 'percent', maximumFractionDigits: 1 })}{' '}
+            <span className="text-ash">· {intl.formatMessage({ id: 'allocation.hoursPerWeek' }, { hours: formatNumber(percentageToHours(peakAllocatedPercentage)) })}</span>
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] text-ash">This allocation</dt>
+          <dt className="text-[10px] text-ash">{intl.formatMessage({ id: 'allocation.thisAllocation' })}</dt>
           <dd className="mt-0.5 text-xs text-mist">
-            {formatNumber(currentPercentage)}% <span className="text-ash">· {formatNumber(percentageToHours(currentPercentage))}h/week</span>
+            {intl.formatNumber(currentPercentage / 100, { style: 'percent', maximumFractionDigits: 1 })}{' '}
+            <span className="text-ash">· {intl.formatMessage({ id: 'allocation.hoursPerWeek' }, { hours: formatNumber(percentageToHours(currentPercentage)) })}</span>
           </dd>
         </div>
         <div>
-          <dt className="text-[10px] text-ash">After allocation</dt>
+          <dt className="text-[10px] text-ash">{intl.formatMessage({ id: 'allocation.afterAllocation' })}</dt>
           <dd className={`mt-0.5 text-xs ${isOverCapacity ? 'text-[#f09a9a]' : 'text-mist'}`}>
-            {formatNumber(totalPercentage)}% <span className={isOverCapacity ? 'text-[#f09a9a]' : 'text-ash'}>
-              · {formatNumber(percentageToHours(totalPercentage))}h/week
+            {intl.formatNumber(totalPercentage / 100, { style: 'percent', maximumFractionDigits: 1 })}{' '}
+            <span className={isOverCapacity ? 'text-[#f09a9a]' : 'text-ash'}>
+              · {intl.formatMessage({ id: 'allocation.hoursPerWeek' }, { hours: formatNumber(percentageToHours(totalPercentage)) })}
             </span>
           </dd>
         </div>
@@ -182,26 +185,30 @@ export default function AllocationModal({
     setError('');
 
     if (!projectId) {
-      setError('Please select a project.');
+      setError(intl.formatMessage({ id: 'allocation.selectProjectError' }));
       return;
     }
 
     if (!userId) {
-      setError('Please select a team member.');
+      setError(intl.formatMessage({ id: 'allocation.selectMemberError' }));
       return;
     }
 
     if (endsOn && startsOn && endsOn < startsOn) {
-      setError('End date must not be earlier than start date.');
+      setError(intl.formatMessage({ id: 'allocation.dateRangeError' }));
       return;
     }
 
     if (isOverMemberCapacity) {
       const totalPercentage = peakAllocatedPercentage + currentPercentage;
-      setError(
-        `${selectedUser?.name || 'This team member'} is already allocated up to ${formatNumber(peakAllocatedPercentage)}% ` +
-        `during these dates. This allocation would bring the total to ${formatNumber(totalPercentage)}%.`
-      );
+      setError(intl.formatMessage(
+        { id: 'allocation.capacityExceededError' },
+        {
+          name: selectedUser?.name || intl.formatMessage({ id: 'allocation.thisMember' }),
+          peak: intl.formatNumber(peakAllocatedPercentage, { maximumFractionDigits: 1 }),
+          total: intl.formatNumber(totalPercentage, { maximumFractionDigits: 1 }),
+        },
+      ));
       return;
     }
 
@@ -233,7 +240,7 @@ export default function AllocationModal({
   return (
     <DialogShell
       title={isEditing ? intl.formatMessage({ id: 'allocation.edit' }) : intl.formatMessage({ id: 'allocation.add' })}
-      description="Assign a team member to a project workload and track planned capacity."
+      description={intl.formatMessage({ id: 'allocation.description' })}
       onClose={onClose}
     >
       <form className="dialog-form" onSubmit={handleSubmit}>
@@ -265,7 +272,7 @@ export default function AllocationModal({
             hasCustomCapacity={hasCustomCapacity}
             isError={memberAllocationsQuery.isError || capacityProfilesQuery.isError}
             isLoading={memberAllocationsQuery.isLoading || capacityProfilesQuery.isLoading}
-            memberName={selectedUser?.name || editMemberTarget?.user_name || 'this member'}
+            memberName={selectedUser?.name || editMemberTarget?.user_name || intl.formatMessage({ id: 'allocation.thisMember' })}
             peakAllocatedPercentage={peakAllocatedPercentage}
             weeklyCapacityHours={weeklyCapacityHours}
           />

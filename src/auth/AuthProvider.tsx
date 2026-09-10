@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useIntl } from 'react-intl';
 import { api, ApiError, setSessionToken, setUnauthorizedHandler } from '../api/client.js';
 import type { AuthContextValue } from '../types/auth.js';
 import type { User } from '../types/api.js';
 import { AuthContext } from './auth-context.js';
-import { applyLocaleFromPreference, isSupportedLocale } from '../i18n/locale.js';
+import { isSupportedLocale } from '../i18n/locale.js';
+import { useLocale } from '../i18n/useLocale.js';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -17,7 +19,9 @@ interface AuthState {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
+  const intl = useIntl();
   const queryClient = useQueryClient();
+  const { setLocale } = useLocale();
   const [authState, setAuthState] = useState<AuthState>({ status: 'checking', user: null, error: '' });
   const establishedRef = useRef(false);
 
@@ -28,34 +32,34 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, [queryClient]);
 
   const establishSession = useCallback((user: User) => {
+    if (user.preferred_locale && isSupportedLocale(user.preferred_locale)) {
+      setLocale(user.preferred_locale);
+    }
     establishedRef.current = true;
     setAuthState({ status: 'authenticated', user, error: '' });
-  }, []);
+  }, [setLocale]);
 
   const refreshSession = useCallback(async () => {
     try {
       const { user } = await api.getCurrentUser();
       establishSession(user);
-      if (user.preferred_locale && isSupportedLocale(user.preferred_locale)) {
-        applyLocaleFromPreference(user.preferred_locale);
-      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) return;
-      setAuthState({ status: 'error', user: null, error: 'Atlas could not confirm your session. Please try again.' });
+      setAuthState({ status: 'error', user: null, error: intl.formatMessage({ id: 'auth.sessionError' }) });
     }
-  }, [establishSession]);
+  }, [establishSession, intl]);
 
   useEffect(() => {
     setUnauthorizedHandler(async (error?: ApiError) => {
       if (establishedRef.current) {
-        showUnauthenticated(error?.message ?? 'Your session could not be established. Please sign in again.');
+        showUnauthenticated(error?.message ?? intl.formatMessage({ id: 'auth.sessionExpired' }));
       } else {
         showUnauthenticated();
       }
     });
     void Promise.resolve().then(refreshSession);
     return () => setUnauthorizedHandler(null);
-  }, [refreshSession, showUnauthenticated]);
+  }, [intl, refreshSession, showUnauthenticated]);
 
   const login = useCallback(async (credentials: { email: string; password: string }) => {
     const session = await api.login(credentials);
